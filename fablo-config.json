@@ -1,0 +1,81 @@
+{
+  "$schema": "https://github.com/hyperledger-labs/fablo/releases/download/2.3.0/schema.json",
+  "global": {
+    "fabricVersion": "2.5.12",
+    "tls": false,
+    "peerDevMode": false,
+    "engine": "docker",
+    "tools": {
+      "explorer": true
+    }
+  },
+  "orgs": [
+    {
+      "organization": {
+        "name": "Orderer",
+        "domain": "orderer.example.com",
+        "mspName": "OrdererMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [
+        {
+          "groupName": "group1",
+          "type": "solo",
+          "instances": 1,
+          "prefix": "orderer"
+        }
+      ],
+      "tools": {
+        "fabloRest": true
+      }
+    },
+    {
+      "organization": {
+        "name": "Org1",
+        "domain": "org1.example.com",
+        "mspName": "Org1MSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 2,
+        "db": "CouchDb",
+        "prefix": "peer"
+      },
+      "tools": {
+        "fabloRest": true
+      }
+    }
+  ],
+  "channels": [
+    {
+      "name": "my-channel1",
+      "orgs": [
+        {
+          "name": "Org1",
+          "peers": [
+            "peer0",
+            "peer1"
+          ]
+        }
+      ]
+    }
+  ],
+  "chaincodes": [
+    {
+      "name": "chaincode-submission-ts",
+      "version": "1.0.0",
+      "lang": "node",
+      "channel": "my-channel1",
+      "directory": "./chaincodes/chaincode-submission-ts",
+      "initRequired": false
+    }
+  ],
+  "hooks": {}
+}

@@ -1,0 +1,21 @@
+graph TD
+
+  subgraph Org_Orderer [Org: Orderer]
+    CA_ca_Orderer[CA: ca_Orderer - sqlite]
+  end
+
+  subgraph Org_Org1 [Org: Org1]
+    CA_ca_Org1[CA: ca_Org1 - sqlite]
+    Org1_peer0[Peer: peer0]
+    Org1_peer1[Peer: peer1]
+  end
+
+  subgraph Channel_my_channel1 [Channel: my-channel1]
+    Chaincode_chaincode_submission_ts[Chaincode: chaincode-submission-ts]
+  end
+
+  %% Connections
+  Org_Orderer --> Channel_my_channel1
+  Org_Org1 -.-> Channel_my_channel1
+  Org1_peer0 --> Channel_my_channel1
+  Org1_peer1 --> Channel_my_channel1
