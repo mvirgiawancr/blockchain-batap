@@ -6,6 +6,7 @@ export declare class UserContract extends Contract {
      * (Logika belum diimplementasikan)
      */
     registerUser(ctx: Context, userID: string, username: string, hashedPassword: string, role: string): Promise<void>;
+    getUserByUsername(ctx: Context, username: string): Promise<string>;
     /**
      * Mengambil profil pengguna berdasarkan ID.
      * (Logika belum diimplementasikan)

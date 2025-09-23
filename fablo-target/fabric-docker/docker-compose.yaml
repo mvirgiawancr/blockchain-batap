@@ -58,8 +58,6 @@ services:
       - AS_LOCALHOST=false
       - DISCOVERY_URLS=grpc://peer0.org1.example.com:7041,grpc://peer1.org1.example.com:7042
       - HFC_LOGGING={"error":"console","warn":"console","info":"console"}
-      - CORS_ENABLED=true
-      - CORS_ALLOWED_ORIGINS=*
     ports:
       - 8800:8000
     networks:
@@ -148,8 +146,6 @@ services:
       - AS_LOCALHOST=false
       - DISCOVERY_URLS=grpc://peer0.org1.example.com:7041,grpc://peer1.org1.example.com:7042
       - HFC_LOGGING={"error":"console","warn":"console","info":"console"}
-      - CORS_ENABLED=true
-      - CORS_ALLOWED_ORIGINS=*
     ports:
       - 8801:8000
     networks:

@@ -36,6 +36,29 @@ let UserContract = class UserContract extends fabric_contract_api_1.Contract {
         user.role = role;
         await ctx.stub.putState(userID, Buffer.from(JSON.stringify(user)));
     }
+    async getUserByUsername(ctx, username) {
+        const allResults = [];
+        // Buat iterator untuk semua data
+        const iterator = await ctx.stub.getStateByRange('', '');
+        let result = await iterator.next();
+        while (!result.done) {
+            const strValue = Buffer.from(result.value.value.toString()).toString('utf8');
+            let record;
+            try {
+                record = JSON.parse(strValue);
+                // Cek apakah record memiliki properti 'username'
+                if (record && record.username === username) {
+                    return JSON.stringify(record);
+                }
+            }
+            catch (err) {
+                console.log(err);
+            }
+            result = await iterator.next();
+        }
+        // Jika tidak ditemukan setelah iterasi selesai
+        throw new Error(`Pengguna dengan username ${username} tidak ditemukan.`);
+    }
     /**
      * Mengambil profil pengguna berdasarkan ID.
      * (Logika belum diimplementasikan)
@@ -63,6 +86,12 @@ __decorate([
     __metadata("design:paramtypes", [fabric_contract_api_1.Context, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], UserContract.prototype, "registerUser", null);
+__decorate([
+    (0, fabric_contract_api_1.Transaction)(false),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [fabric_contract_api_1.Context, String]),
+    __metadata("design:returntype", Promise)
+], UserContract.prototype, "getUserByUsername", null);
 __decorate([
     (0, fabric_contract_api_1.Transaction)(false),
     __metadata("design:type", Function),

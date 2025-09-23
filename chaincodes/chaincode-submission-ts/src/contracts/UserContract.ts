@@ -35,6 +35,30 @@ export class UserContract extends Contract {
         await ctx.stub.putState(userID, Buffer.from(JSON.stringify(user)));
     }
 
+    @Transaction(false)
+    public async getUserByUsername(ctx: Context, username: string): Promise<string> {
+        const allResults = [];
+        // Buat iterator untuk semua data
+        const iterator = await ctx.stub.getStateByRange('', '');
+        let result = await iterator.next();
+        while (!result.done) {
+            const strValue = Buffer.from(result.value.value.toString()).toString('utf8');
+            let record;
+            try {
+                record = JSON.parse(strValue);
+                // Cek apakah record memiliki properti 'username'
+                if (record && record.username === username) {
+                    return JSON.stringify(record);
+                }
+            } catch (err) {
+                console.log(err);
+            }
+            result = await iterator.next();
+        }
+        // Jika tidak ditemukan setelah iterasi selesai
+        throw new Error(`Pengguna dengan username ${username} tidak ditemukan.`);
+    }
+
     /**
      * Mengambil profil pengguna berdasarkan ID.
      * (Logika belum diimplementasikan)

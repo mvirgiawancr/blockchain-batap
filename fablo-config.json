@@ -6,7 +6,8 @@
     "peerDevMode": false,
     "engine": "docker",
     "tools": {
-      "explorer": true
+      "explorer": true,
+      "fabloRest": true
     }
   },
   "orgs": [
