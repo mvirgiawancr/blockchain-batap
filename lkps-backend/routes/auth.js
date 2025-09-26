@@ -1,8 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const { getCouchDBConnector } = require('../blockchain/couchdbConnector');
 
-// Mock users database - dalam implementasi nyata ini akan menggunakan blockchain atau database
-const users = [
+// Initialize CouchDB connector
+let couchDB = null;
+const initCouchDB = async () => {
+  if (!couchDB) {
+    couchDB = await getCouchDBConnector();
+  }
+  return couchDB;
+};
+
+// Fallback users for demo (will be moved to blockchain)
+const fallbackUsers = [
   {
     id: 'admin',
     username: 'admin',
@@ -39,12 +49,21 @@ const users = [
 ];
 
 // Demo login endpoint
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // Find user by username
-    const user = users.find(u => u.username === username);
+    let user = null;
+
+    try {
+      // Try to get user from blockchain first
+      const db = await initCouchDB();
+      user = await db.getUserByUsername(username);
+    } catch (error) {
+      console.log('Blockchain not available, using fallback users:', error.message);
+      // Fallback to static users if blockchain is not available
+      user = fallbackUsers.find(u => u.username === username);
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -53,8 +72,8 @@ router.post('/login', (req, res) => {
       });
     }
 
-    // Check password
-    if (user.password !== password) {
+    // Check password (in production, use proper password hashing)
+    if (user.password !== password && user.hashedPassword !== password) {
       return res.status(401).json({
         success: false,
         message: 'Password salah'
@@ -73,7 +92,7 @@ router.post('/login', (req, res) => {
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
 
     // Return user data (without password)
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, hashedPassword: __, ...userWithoutPassword } = user;
     
     res.json({
       success: true,
@@ -92,7 +111,7 @@ router.post('/login', (req, res) => {
 });
 
 // Get current user profile
-router.get('/profile', (req, res) => {
+router.get('/profile', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -107,7 +126,17 @@ router.get('/profile', (req, res) => {
     const decoded = Buffer.from(token, 'base64').toString();
     const [userId] = decoded.split(':');
     
-    const user = users.find(u => u.id === userId);
+    let user = null;
+
+    try {
+      // Try to get user from blockchain first
+      const db = await initCouchDB();
+      user = await db.getUser(userId);
+    } catch (error) {
+      console.log('Blockchain not available, using fallback users');
+      // Fallback to static users if blockchain is not available
+      user = fallbackUsers.find(u => u.id === userId);
+    }
     
     if (!user) {
       return res.status(401).json({
@@ -116,13 +145,14 @@ router.get('/profile', (req, res) => {
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, hashedPassword: __, ...userWithoutPassword } = user;
     
     res.json({
       success: true,
       user: userWithoutPassword
     });
   } catch (error) {
+    console.error('Profile error:', error);
     res.status(401).json({
       success: false,
       message: 'Token tidak valid'
@@ -139,15 +169,28 @@ router.post('/logout', (req, res) => {
 });
 
 // Get all users (admin only)
-router.get('/users', (req, res) => {
+router.get('/users', async (req, res) => {
   try {
-    const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+    let users = [];
+
+    try {
+      // Try to get users from blockchain first
+      const db = await initCouchDB();
+      users = await db.getAllUsers();
+    } catch (error) {
+      console.log('Blockchain not available, using fallback users');
+      // Fallback to static users if blockchain is not available
+      users = fallbackUsers;
+    }
+    
+    const usersWithoutPasswords = users.map(({ password, hashedPassword, ...user }) => user);
     
     res.json({
       success: true,
       users: usersWithoutPasswords
     });
   } catch (error) {
+    console.error('Users fetch error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

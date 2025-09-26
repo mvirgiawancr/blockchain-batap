@@ -114,39 +114,89 @@ export const AsesorDashboard: React.FC<AsesorDashboardProps> = ({ user, onLogout
   const [assessmentCriteria, setAssessmentCriteria] = useState<AssessmentCriteria[]>(LKPS_CRITERIA);
   const [expandedCriteria, setExpandedCriteria] = useState<Set<string>>(new Set());
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    pending_review: 0,
+    in_progress: 0,
+    completed: 0,
+    avg_score: 0
+  });
 
-  // Mock data
+  // Fetch submissions from blockchain API
   useEffect(() => {
-    const mockSubmissions: SubmissionForReview[] = [
-      {
-        id: '1',
-        documentType: 'LKPS',
-        namaUniversitas: 'Universitas Indonesia',
-        namaProgram: 'Teknik Informatika',
-        fileName: 'LKPS_TI_2024.xlsx',
-        submittedDate: '2024-09-20',
-        submittedBy: 'Dr. Ahmad Rahman',
-        status: 'pending_review',
-        maxScore: 4,
-        assignedTo: 'Prof. Dr. Bambang'
-      },
-      {
-        id: '2',
-        documentType: 'LED',
-        namaUniversitas: 'Institut Teknologi Bandung',
-        namaProgram: 'Sistem Informasi',
-        fileName: 'LED_SI_2024.xlsx',
-        submittedDate: '2024-09-22',
-        submittedBy: 'Dr. Siti Nurhaliza',
-        status: 'in_progress',
-        maxScore: 4,
-        currentScore: 3.2,
-        assignedTo: 'Prof. Dr. Bambang',
-        assessmentId: 'assess-1'
+    fetchSubmissions();
+    fetchStats();
+  }, [user]);
+
+  const getUserId = () => user?.id || user?.userID;
+
+  const fetchSubmissions = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`http://localhost:3002/api/submissions/asesor/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
       }
-    ];
-    setSubmissions(mockSubmissions);
-  }, []);
+      
+      const data = await response.json();
+      if (data.success) {
+        // Transform backend data to match frontend interface
+        const transformedSubmissions = data.data.map((sub: any) => ({
+          id: sub.submissionID || sub.id,
+          documentType: sub.documentType,
+          namaUniversitas: sub.namaUniversitas,
+          namaProgram: sub.namaProgram,
+          fileName: sub.fileName,
+          submittedDate: sub.submittedDate || sub.createdAt?.split('T')[0],
+          submittedBy: sub.submittedBy || 'Unknown User',
+          status: mapBackendStatus(sub.status),
+          maxScore: sub.maxScore || 4,
+          currentScore: sub.currentScore,
+          assignedTo: sub.assignedTo,
+          assessmentId: sub.assessmentId
+        }));
+        setSubmissions(transformedSubmissions);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+      // Fallback to empty array if API fails
+      setSubmissions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`http://localhost:3002/api/submissions/stats/${userId}/asesor`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const mapBackendStatus = (backendStatus: string) => {
+    const statusMap: Record<string, SubmissionForReview['status']> = {
+      'pending_review': 'pending_review',
+      'in_progress': 'in_progress',
+      'completed': 'completed',
+      'approved': 'approved',
+      'rejected': 'rejected'
+    };
+    return statusMap[backendStatus] || 'pending_review';
+  };
 
   const getStatusBadge = (status: SubmissionForReview['status']) => {
     const configs = {
@@ -168,15 +218,52 @@ export const AsesorDashboard: React.FC<AsesorDashboardProps> = ({ user, onLogout
     );
   };
 
-  const startAssessment = (submission: SubmissionForReview) => {
-    setSelectedSubmission(submission);
-    setShowAssessmentModal(true);
-    // Initialize assessment criteria with empty scores
-    const initializedCriteria = LKPS_CRITERIA.map(criteria => ({
-      ...criteria,
-      components: criteria.components.map(comp => ({ ...comp, score: 0, notes: '' }))
-    }));
-    setAssessmentCriteria(initializedCriteria);
+  const startAssessment = async (submission: SubmissionForReview) => {
+    const userId = getUserId();
+    if (!userId) {
+      alert('User ID tidak tersedia');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3002/api/submissions/asesor/${userId}/assess/${submission.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start assessment');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Update local submission data
+        setSubmissions(prev => 
+          prev.map(sub => 
+            sub.id === submission.id 
+              ? { ...sub, status: 'in_progress', assignedTo: userId, assessmentId: result.data.assessment.id }
+              : sub
+          )
+        );
+        
+        setSelectedSubmission({ ...submission, status: 'in_progress', assessmentId: result.data.assessment.id });
+        setShowAssessmentModal(true);
+        
+        // Initialize assessment criteria with empty scores
+        const initializedCriteria = LKPS_CRITERIA.map(criteria => ({
+          ...criteria,
+          components: criteria.components.map(comp => ({ ...comp, score: 0, notes: '' }))
+        }));
+        setAssessmentCriteria(initializedCriteria);
+      } else {
+        throw new Error(result.message || 'Failed to start assessment');
+      }
+    } catch (error) {
+      console.error('Error starting assessment:', error);
+      alert('Gagal memulai assessment. Silakan coba lagi.');
+    }
   };
 
   const updateComponentScore = (criteriaId: string, componentId: string, score: number) => {

@@ -1,7 +1,12 @@
 export interface User {
+    id?: string;
     userID: string;
     username: string;
-    role: 'UniversityAdmin' | 'Assessor' | 'SuperAdmin';
+    role: 'UniversityAdmin' | 'Assessor' | 'SuperAdmin' | 'upps' | 'asesor' | 'admin';
+    name?: string;
+    university?: string;
+    program?: string;
+    specialization?: string;
 }
 
 export interface LoginCredentials {
