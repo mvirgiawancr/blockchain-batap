@@ -35,4 +35,52 @@ export class SubmissionContract extends Contract {
         await ctx.stub.putState(key, Buffer.from(value));
         return { success: "OK" };
     }
+
+    @Transaction(false)
+    @Returns('string')
+    public async queryWithQueryString(ctx: Context, queryString: string): Promise<string> {
+        const resultsIterator = await ctx.stub.getQueryResult(queryString);
+        const results = [];
+
+        let result = await resultsIterator.next();
+        while (!result.done) {
+            const strValue = Buffer.from(result.value.value.toString()).toString('utf8');
+            let record;
+            try {
+                record = JSON.parse(strValue);
+            } catch (err) {
+                console.log(err);
+                record = strValue;
+            }
+            results.push({ Key: result.value.key, Record: record });
+            result = await resultsIterator.next();
+        }
+
+        await resultsIterator.close();
+        return JSON.stringify(results);
+    }
+
+    @Transaction(false)
+    @Returns('string')
+    public async getAllResults(ctx: Context, startKey: string, endKey: string): Promise<string> {
+        const resultsIterator = await ctx.stub.getStateByRange(startKey, endKey);
+        const results = [];
+
+        let result = await resultsIterator.next();
+        while (!result.done) {
+            const strValue = Buffer.from(result.value.value.toString()).toString('utf8');
+            let record;
+            try {
+                record = JSON.parse(strValue);
+            } catch (err) {
+                console.log(err);
+                record = strValue;
+            }
+            results.push({ Key: result.value.key, Record: record });
+            result = await resultsIterator.next();
+        }
+
+        await resultsIterator.close();
+        return JSON.stringify(results);
+    }
 }

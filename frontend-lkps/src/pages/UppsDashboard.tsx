@@ -41,58 +41,128 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    draft: 0,
+    pending_review: 0,
+    approved: 0
+  });
 
-  // Mock data - dalam implementasi nyata ini dari API
+  // Fetch submissions from blockchain API
   useEffect(() => {
-    const mockSubmissions: Submission[] = [
-      {
-        id: '1',
-        documentType: 'LKPS',
-        namaUniversitas: 'Universitas Indonesia',
-        namaProgram: 'Teknik Informatika',
-        fileName: 'LKPS_TI_2024.xlsx',
-        uploadDate: '2024-09-20',
-        status: 'approved',
-        version: 2,
-        submittedBy: 'Dr. Ahmad Rahman'
-      },
-      {
-        id: '2',
-        documentType: 'LED',
-        namaUniversitas: 'Universitas Indonesia',
-        namaProgram: 'Teknik Informatika',
-        fileName: 'LED_TI_2024.xlsx',
-        uploadDate: '2024-09-25',
-        status: 'under_review',
-        version: 1,
-        submittedBy: 'Dr. Ahmad Rahman'
+    fetchSubmissions();
+    fetchStats();
+  }, [user]);
+
+  const getUserId = () => user?.id || user?.userID;
+
+  const fetchSubmissions = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`http://localhost:3002/api/submissions/upps/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
       }
-    ];
-    setSubmissions(mockSubmissions);
-  }, []);
+      
+      const data = await response.json();
+      if (data.success) {
+        // Transform backend data to match frontend interface
+        const transformedSubmissions = data.data.map((sub: any) => ({
+          id: sub.submissionID || sub.id,
+          documentType: sub.documentType,
+          namaUniversitas: sub.namaUniversitas,
+          namaProgram: sub.namaProgram,
+          fileName: sub.fileName,
+          uploadDate: sub.submittedDate || sub.createdAt?.split('T')[0],
+          status: mapBackendStatus(sub.status),
+          version: sub.version,
+          submittedBy: user?.name || 'Current User'
+        }));
+        setSubmissions(transformedSubmissions);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+      // Fallback to empty array if API fails
+      setSubmissions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`http://localhost:3002/api/submissions/stats/${userId}/upps`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const mapBackendStatus = (backendStatus: string) => {
+    const statusMap: Record<string, Submission['status']> = {
+      'draft': 'draft',
+      'pending_review': 'submitted',
+      'in_progress': 'under_review',
+      'approved': 'approved',
+      'rejected': 'rejected'
+    };
+    return statusMap[backendStatus] || 'draft';
+  };
 
   const handleFileUploaded = async (data: ParsedExcelFile) => {
+    const userId = getUserId();
+    if (!userId) {
+      alert('User ID tidak tersedia');
+      return;
+    }
+
     try {
-      // Simulasi API call untuk save data
-      const newSubmission: Submission = {
-        id: Date.now().toString(),
+      const submissionData = {
         documentType: uploadType,
-        namaUniversitas: data.lkpsData.namaUniversitas || 'Unknown University',
-        namaProgram: data.lkpsData.namaProgram || 'Unknown Program',
+        namaUniversitas: data.lkpsData.namaUniversitas || user?.university || 'Unknown University',
+        namaProgram: data.lkpsData.namaProgram || user?.program || 'Unknown Program',
         fileName: `${uploadType}_${Date.now()}.xlsx`,
-        uploadDate: new Date().toISOString().split('T')[0],
-        status: 'draft',
-        version: 1,
-        submittedBy: 'Current User'
+        fileData: data // Store parsed Excel data
       };
 
-      setSubmissions(prev => [newSubmission, ...prev]);
-      setShowUploadModal(false);
-      
-      alert(`${uploadType} berhasil diupload dan disimpan sebagai draft!`);
+      const response = await fetch(`http://localhost:3002/api/submissions/upps/${userId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create submission');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh submissions list
+        await fetchSubmissions();
+        await fetchStats();
+        setShowUploadModal(false);
+        alert(`${uploadType} berhasil diupload dan disimpan ke blockchain!`);
+      } else {
+        throw new Error(result.message || 'Failed to save submission');
+      }
     } catch (error) {
       console.error('Error saving submission:', error);
-      alert('Gagal menyimpan data. Silakan coba lagi.');
+      alert('Gagal menyimpan data ke blockchain. Silakan coba lagi.');
     }
   };
 
@@ -128,16 +198,36 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
   });
 
   const submitDocument = async (id: string) => {
+    const userId = getUserId();
+    if (!userId) {
+      alert('User ID tidak tersedia');
+      return;
+    }
+
     try {
-      // Simulasi API call
-      setSubmissions(prev => 
-        prev.map(sub => 
-          sub.id === id ? { ...sub, status: 'submitted' } : sub
-        )
-      );
-      alert('Dokumen berhasil disubmit untuk review!');
+      const response = await fetch(`http://localhost:3002/api/submissions/upps/${userId}/submit/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit document');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh submissions list
+        await fetchSubmissions();
+        await fetchStats();
+        alert('Dokumen berhasil disubmit untuk review!');
+      } else {
+        throw new Error(result.message || 'Failed to submit document');
+      }
     } catch (error) {
-      alert('Gagal submit dokumen. Silakan coba lagi.');
+      console.error('Error submitting document:', error);
+      alert('Gagal submit dokumen ke blockchain. Silakan coba lagi.');
     }
   };
 
@@ -191,7 +281,7 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Submissions</p>
-                <p className="text-2xl font-bold text-gray-900">{submissions.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total || submissions.length}</p>
               </div>
             </div>
           </div>
@@ -202,9 +292,9 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
                 <Clock className="h-8 w-8 text-yellow-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Under Review</p>
+                <p className="text-sm font-medium text-gray-600">Draft</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {submissions.filter(s => s.status === 'under_review').length}
+                  {stats.draft || submissions.filter(s => s.status === 'draft').length}
                 </p>
               </div>
             </div>
@@ -218,7 +308,7 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Approved</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {submissions.filter(s => s.status === 'approved').length}
+                  {stats.approved || submissions.filter(s => s.status === 'approved').length}
                 </p>
               </div>
             </div>
@@ -227,12 +317,12 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <AlertTriangle className="h-8 w-8 text-red-500" />
+                <Upload className="h-8 w-8 text-orange-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Draft</p>
+                <p className="text-sm font-medium text-gray-600">Pending Review</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {submissions.filter(s => s.status === 'draft').length}
+                  {stats.pending_review || submissions.filter(s => s.status === 'submitted').length}
                 </p>
               </div>
             </div>
@@ -286,120 +376,116 @@ export const UppsDashboard: React.FC<UppsDashboardProps> = ({ user, onLogout }) 
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Dokumen Submissions ({filteredSubmissions.length})
+              Dokumen Submissions ({isLoading ? "..." : filteredSubmissions.length})
             </h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dokumen
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Program Studi
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tanggal Upload
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredSubmissions.map((submission) => (
-                  <tr key={submission.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                            submission.documentType === 'LKPS' 
-                              ? 'bg-orange-100 text-orange-600' 
-                              : 'bg-blue-100 text-blue-600'
-                          }`}>
-                            <FileText className="w-4 h-4" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {submission.documentType}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {submission.fileName}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {submission.namaProgram}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {submission.namaUniversitas}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                        {new Date(submission.uploadDate).toLocaleDateString('id-ID')}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        v{submission.version}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(submission.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          className="text-orange-600 hover:text-orange-900 flex items-center"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
-                          title="Download"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        {submission.status === 'draft' && (
-                          <button
-                            onClick={() => submitDocument(submission.id)}
-                            className="text-green-600 hover:text-green-900 flex items-center"
-                            title="Submit untuk Review"
-                          >
-                            <Upload className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
-          {filteredSubmissions.length === 0 && (
-            <div className="text-center py-12">
+          {isLoading ? (
+            <div className="px-6 py-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+              <p className="mt-2 text-sm text-gray-500">Memuat data dari blockchain...</p>
+            </div>
+          ) : filteredSubmissions.length === 0 ? (
+            <div className="px-6 py-12 text-center">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                Tidak ada dokumen
-              </h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada submissions</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-                  ? 'Tidak ada dokumen yang cocok dengan filter'
-                  : 'Mulai dengan mengupload dokumen LKPS atau LED pertama Anda'
-                }
+                {searchTerm || statusFilter !== "all" || typeFilter !== "all"
+                  ? "Tidak ada dokumen yang cocok dengan filter"
+                  : "Mulai dengan mengupload dokumen LKPS atau LED pertama Anda"}
               </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Dokumen
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Program Studi
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tanggal Upload
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredSubmissions.map((submission) => (
+                    <tr key={submission.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div
+                              className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                submission.documentType === "LKPS"
+                                  ? "bg-orange-100 text-orange-600"
+                                  : "bg-blue-100 text-blue-600"
+                              }`}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {submission.documentType}
+                            </div>
+                            <div className="text-sm text-gray-500">{submission.fileName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{submission.namaProgram}</div>
+                        <div className="text-sm text-gray-500">{submission.namaUniversitas}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                          {new Date(submission.uploadDate).toLocaleDateString("id-ID")}
+                        </div>
+                        <div className="text-sm text-gray-500">v{submission.version}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(submission.status)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            className="text-orange-600 hover:text-orange-900 flex items-center"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="text-blue-600 hover:text-blue-900 flex items-center"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          {submission.status === "draft" && (
+                            <button
+                              onClick={() => submitDocument(submission.id)}
+                              className="text-green-600 hover:text-green-900 flex items-center"
+                              title="Submit untuk Review"
+                            >
+                              <Upload className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
+
       </div>
 
       {/* Upload Modal */}

@@ -1,79 +1,32 @@
 const express = require('express');
 const router = express.Router();
+const { getCouchDBConnector } = require('../blockchain/couchdbConnector');
 
-// Mock data untuk submissions
-let submissions = [
-  {
-    id: 'sub-1',
-    documentType: 'LKPS',
-    namaUniversitas: 'Universitas Indonesia',
-    namaProgram: 'Teknik Informatika',
-    fileName: 'LKPS_TI_2024.xlsx',
-    submittedDate: '2024-09-20',
-    submittedBy: 'upps1',
-    status: 'pending_review',
-    maxScore: 4,
-    assignedTo: 'asesor1',
-    version: 1,
-    fileData: null // In production, this would reference file storage
-  },
-  {
-    id: 'sub-2',
-    documentType: 'LED',
-    namaUniversitas: 'Institut Teknologi Bandung',
-    namaProgram: 'Sistem Informasi',
-    fileName: 'LED_SI_2024.xlsx',
-    submittedDate: '2024-09-22',
-    submittedBy: 'upps2',
-    status: 'in_progress',
-    maxScore: 4,
-    currentScore: 3.2,
-    assignedTo: 'asesor1',
-    assessmentId: 'assess-1',
-    version: 1
+// Initialize CouchDB connector
+let couchDB = null;
+const initCouchDB = async () => {
+  if (!couchDB) {
+    couchDB = await getCouchDBConnector();
   }
-];
-
-let assessments = [
-  {
-    id: 'assess-1',
-    submissionId: 'sub-2',
-    assessorId: 'asesor1',
-    criteria: {
-      'visi-misi': {
-        components: [
-          { id: 'vm-1', score: 3, notes: 'Visi misi cukup jelas namun perlu diperkuat keterlibatan stakeholder' },
-          { id: 'vm-2', score: 4, notes: 'Tujuan sangat selaras dengan visi misi' },
-          { id: 'vm-3', score: 3, notes: 'Sasaran spesifik dan terukur' }
-        ]
-      },
-      'tata-pamong': {
-        components: [
-          { id: 'tp-1', score: 3, notes: 'Struktur organisasi lengkap' },
-          { id: 'tp-2', score: 3, notes: 'Kepemimpinan efektif' },
-          { id: 'tp-3', score: 4, notes: 'Sistem pengelolaan sangat baik' }
-        ]
-      }
-    },
-    overallScore: 3.2,
-    status: 'in_progress',
-    createdAt: '2024-09-22',
-    updatedAt: '2024-09-25'
-  }
-];
+  return couchDB;
+};
 
 // Get all submissions for UPPS (filtered by user)
-router.get('/upps/:userId', (req, res) => {
+router.get('/upps/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
-    const userSubmissions = submissions.filter(sub => sub.submittedBy === userId);
+    const db = await initCouchDB();
+    
+    // Query submissions from blockchain
+    const submissions = await db.getSubmissionsByUser(userId);
     
     res.json({
       success: true,
-      data: userSubmissions,
-      total: userSubmissions.length
+      data: submissions,
+      total: submissions.length
     });
   } catch (error) {
+    console.error('Error fetching submissions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching submissions',
@@ -83,33 +36,32 @@ router.get('/upps/:userId', (req, res) => {
 });
 
 // Create new submission (UPPS)
-router.post('/upps/:userId/submit', (req, res) => {
+router.post('/upps/:userId/submit', async (req, res) => {
   try {
     const userId = req.params.userId;
     const { documentType, namaUniversitas, namaProgram, fileName, fileData } = req.body;
+    const db = await initCouchDB();
     
-    const newSubmission = {
-      id: 'sub-' + Date.now(),
+    const submissionID = 'sub-' + Date.now();
+    const submission = await db.createSubmission(submissionID, {
       documentType,
       namaUniversitas,
       namaProgram,
       fileName,
-      submittedDate: new Date().toISOString().split('T')[0],
       submittedBy: userId,
       status: 'draft',
       maxScore: 4,
       version: 1,
-      fileData // In production, store file reference
-    };
-    
-    submissions.push(newSubmission);
+      fileData
+    });
     
     res.json({
       success: true,
-      data: newSubmission,
+      data: submission,
       message: 'Submission created successfully'
     });
   } catch (error) {
+    console.error('Error creating submission:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating submission',
@@ -119,30 +71,27 @@ router.post('/upps/:userId/submit', (req, res) => {
 });
 
 // Submit document for review (UPPS)
-router.patch('/upps/:userId/submit/:submissionId', (req, res) => {
+router.patch('/upps/:userId/submit/:submissionId', async (req, res) => {
   try {
     const { submissionId } = req.params;
-    const submissionIndex = submissions.findIndex(sub => sub.id === submissionId);
+    const db = await initCouchDB();
     
-    if (submissionIndex === -1) {
+    const submission = await db.updateSubmissionStatus(submissionId, 'pending_review');
+    
+    if (!submission) {
       return res.status(404).json({
         success: false,
         message: 'Submission not found'
       });
     }
     
-    submissions[submissionIndex] = {
-      ...submissions[submissionIndex],
-      status: 'pending_review',
-      submittedDate: new Date().toISOString().split('T')[0]
-    };
-    
     res.json({
       success: true,
-      data: submissions[submissionIndex],
+      data: submission,
       message: 'Document submitted for review'
     });
   } catch (error) {
+    console.error('Error submitting document:', error);
     res.status(500).json({
       success: false,
       message: 'Error submitting document',
@@ -152,9 +101,13 @@ router.patch('/upps/:userId/submit/:submissionId', (req, res) => {
 });
 
 // Get all submissions for Asesor
-router.get('/asesor/:assessorId', (req, res) => {
+router.get('/asesor/:assessorId', async (req, res) => {
   try {
     const assessorId = req.params.assessorId;
+    const db = await initCouchDB();
+    
+    // Get submissions that need to be assessed or are assigned to this assessor
+    const submissions = await db.getSubmissionsByStatus(['pending_review', 'in_progress']);
     const assessorSubmissions = submissions.filter(sub => 
       sub.assignedTo === assessorId || 
       ['pending_review', 'in_progress'].includes(sub.status)
@@ -166,6 +119,7 @@ router.get('/asesor/:assessorId', (req, res) => {
       total: assessorSubmissions.length
     });
   } catch (error) {
+    console.error('Error fetching submissions for assessor:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching submissions for assessor',
@@ -175,12 +129,13 @@ router.get('/asesor/:assessorId', (req, res) => {
 });
 
 // Start assessment (Asesor)
-router.post('/asesor/:assessorId/assess/:submissionId', (req, res) => {
+router.post('/asesor/:assessorId/assess/:submissionId', async (req, res) => {
   try {
     const { assessorId, submissionId } = req.params;
+    const db = await initCouchDB();
     
-    const submissionIndex = submissions.findIndex(sub => sub.id === submissionId);
-    if (submissionIndex === -1) {
+    const submission = await db.getSubmission(submissionId);
+    if (!submission) {
       return res.status(404).json({
         success: false,
         message: 'Submission not found'
@@ -189,35 +144,30 @@ router.post('/asesor/:assessorId/assess/:submissionId', (req, res) => {
     
     // Create new assessment
     const assessmentId = 'assess-' + Date.now();
-    const newAssessment = {
-      id: assessmentId,
+    const assessment = await db.createAssessment(assessmentId, {
       submissionId,
       assessorId,
       criteria: {},
-      status: 'in_progress',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+      status: 'in_progress'
+    });
     
-    assessments.push(newAssessment);
-    
-    // Update submission status
-    submissions[submissionIndex] = {
-      ...submissions[submissionIndex],
+    // Update submission status and assign to assessor
+    const updatedSubmission = await db.updateSubmission(submissionId, {
       status: 'in_progress',
       assignedTo: assessorId,
       assessmentId
-    };
+    });
     
     res.json({
       success: true,
       data: {
-        submission: submissions[submissionIndex],
-        assessment: newAssessment
+        submission: updatedSubmission,
+        assessment: assessment
       },
       message: 'Assessment started'
     });
   } catch (error) {
+    console.error('Error starting assessment:', error);
     res.status(500).json({
       success: false,
       message: 'Error starting assessment',
@@ -227,38 +177,39 @@ router.post('/asesor/:assessorId/assess/:submissionId', (req, res) => {
 });
 
 // Update assessment scores (Asesor)
-router.patch('/asesor/:assessorId/assess/:assessmentId', (req, res) => {
+router.patch('/asesor/:assessorId/assess/:assessmentId', async (req, res) => {
   try {
     const { assessmentId } = req.params;
     const { criteria, overallScore } = req.body;
+    const db = await initCouchDB();
     
-    const assessmentIndex = assessments.findIndex(assess => assess.id === assessmentId);
-    if (assessmentIndex === -1) {
+    const assessment = await db.updateAssessment(assessmentId, {
+      criteria,
+      overallScore,
+      updatedAt: new Date().toISOString()
+    });
+
+    if (!assessment) {
       return res.status(404).json({
         success: false,
         message: 'Assessment not found'
       });
     }
     
-    assessments[assessmentIndex] = {
-      ...assessments[assessmentIndex],
-      criteria,
-      overallScore,
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
-    
-    // Update submission score
-    const submissionIndex = submissions.findIndex(sub => sub.assessmentId === assessmentId);
-    if (submissionIndex !== -1) {
-      submissions[submissionIndex].currentScore = overallScore;
+    // Update submission score if assessment has overallScore
+    if (overallScore && assessment.submissionId) {
+      await db.updateSubmission(assessment.submissionId, {
+        currentScore: overallScore
+      });
     }
     
     res.json({
       success: true,
-      data: assessments[assessmentIndex],
+      data: assessment,
       message: 'Assessment updated'
     });
   } catch (error) {
+    console.error('Error updating assessment:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating assessment',
@@ -268,42 +219,41 @@ router.patch('/asesor/:assessorId/assess/:assessmentId', (req, res) => {
 });
 
 // Complete assessment (Asesor)
-router.post('/asesor/:assessorId/complete/:assessmentId', (req, res) => {
+router.post('/asesor/:assessorId/complete/:assessmentId', async (req, res) => {
   try {
     const { assessmentId } = req.params;
     const { status, finalComments } = req.body; // status: 'approved' or 'rejected'
+    const db = await initCouchDB();
     
-    const assessmentIndex = assessments.findIndex(assess => assess.id === assessmentId);
-    if (assessmentIndex === -1) {
+    const assessment = await db.updateAssessment(assessmentId, {
+      status: 'completed',
+      finalStatus: status,
+      finalComments,
+      completedAt: new Date().toISOString()
+    });
+
+    if (!assessment) {
       return res.status(404).json({
         success: false,
         message: 'Assessment not found'
       });
     }
     
-    assessments[assessmentIndex] = {
-      ...assessments[assessmentIndex],
-      status: 'completed',
-      finalStatus: status,
-      finalComments,
-      completedAt: new Date().toISOString().split('T')[0]
-    };
-    
     // Update submission status
-    const submissionIndex = submissions.findIndex(sub => sub.assessmentId === assessmentId);
-    if (submissionIndex !== -1) {
-      submissions[submissionIndex].status = status;
-    }
+    const submission = await db.updateSubmission(assessment.submissionId, {
+      status: status
+    });
     
     res.json({
       success: true,
       data: {
-        assessment: assessments[assessmentIndex],
-        submission: submissions[submissionIndex]
+        assessment,
+        submission
       },
       message: `Assessment completed with status: ${status}`
     });
   } catch (error) {
+    console.error('Error completing assessment:', error);
     res.status(500).json({
       success: false,
       message: 'Error completing assessment',
@@ -313,11 +263,12 @@ router.post('/asesor/:assessorId/complete/:assessmentId', (req, res) => {
 });
 
 // Get assessment details
-router.get('/assessment/:assessmentId', (req, res) => {
+router.get('/assessment/:assessmentId', async (req, res) => {
   try {
     const { assessmentId } = req.params;
-    const assessment = assessments.find(assess => assess.id === assessmentId);
+    const db = await initCouchDB();
     
+    const assessment = await db.getAssessment(assessmentId);
     if (!assessment) {
       return res.status(404).json({
         success: false,
@@ -325,7 +276,7 @@ router.get('/assessment/:assessmentId', (req, res) => {
       });
     }
     
-    const submission = submissions.find(sub => sub.assessmentId === assessmentId);
+    const submission = await db.getSubmission(assessment.submissionId);
     
     res.json({
       success: true,
@@ -335,6 +286,7 @@ router.get('/assessment/:assessmentId', (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error fetching assessment:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching assessment',
@@ -344,14 +296,15 @@ router.get('/assessment/:assessmentId', (req, res) => {
 });
 
 // Get submission statistics
-router.get('/stats/:userId/:role', (req, res) => {
+router.get('/stats/:userId/:role', async (req, res) => {
   try {
     const { userId, role } = req.params;
+    const db = await initCouchDB();
     
     let stats = {};
     
     if (role === 'upps') {
-      const userSubs = submissions.filter(sub => sub.submittedBy === userId);
+      const userSubs = await db.getSubmissionsByUser(userId);
       stats = {
         total: userSubs.length,
         draft: userSubs.filter(s => s.status === 'draft').length,
@@ -361,9 +314,12 @@ router.get('/stats/:userId/:role', (req, res) => {
         rejected: userSubs.filter(s => s.status === 'rejected').length
       };
     } else if (role === 'asesor') {
-      const assessorSubs = submissions.filter(sub => sub.assignedTo === userId);
+      const allSubmissions = await db.getAllSubmissions();
+      const assessorSubs = allSubmissions.filter(sub => sub.assignedTo === userId);
+      const pendingReviews = allSubmissions.filter(s => s.status === 'pending_review');
+      
       stats = {
-        pending_review: submissions.filter(s => s.status === 'pending_review').length,
+        pending_review: pendingReviews.length,
         in_progress: assessorSubs.filter(s => s.status === 'in_progress').length,
         completed: assessorSubs.filter(s => ['approved', 'rejected'].includes(s.status)).length,
         avg_score: assessorSubs.filter(s => s.currentScore).reduce((acc, s) => acc + s.currentScore, 0) / 
@@ -376,6 +332,7 @@ router.get('/stats/:userId/:role', (req, res) => {
       data: stats
     });
   } catch (error) {
+    console.error('Error fetching statistics:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching statistics',
