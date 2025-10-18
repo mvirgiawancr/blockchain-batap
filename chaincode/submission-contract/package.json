@@ -1,0 +1,37 @@
+{
+    "name": "submission-contract",
+    "version": "1.0.0",
+    "description": "Hyperledger Fabric chaincode for accreditation submission management (TypeScript)",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "build:watch": "tsc --watch",
+        "start": "fabric-chaincode-node start",
+        "prepublish": "npm run build",
+        "test": "mocha --require ts-node/register test/**/*.spec.ts"
+    },
+    "keywords": [
+        "fabric",
+        "chaincode",
+        "typescript",
+        "accreditation"
+    ],
+    "dependencies": {
+        "fabric-contract-api": "^2.5.0",
+        "fabric-shim": "^2.5.0",
+        "typescript": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^18.0.0",
+        "ts-node": "^10.9.0",
+        "mocha": "^10.0.0",
+        "chai": "^4.3.6",
+        "@types/chai": "^4.3.0",
+        "@types/mocha": "^10.0.0"
+    },
+    "engines": {
+        "node": ">=14",
+        "npm": ">=6"
+    }
+}

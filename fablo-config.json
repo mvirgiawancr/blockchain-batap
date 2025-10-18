@@ -1,0 +1,127 @@
+{
+  "$schema": "https://github.com/hyperledger-labs/fablo/releases/download/2.3.0/schema.json",
+  "global": {
+    "fabricVersion": "2.5.12",
+    "tls": false,
+    "peerDevMode": false,
+    "engine": "docker",
+    "tools": {
+      "explorer": true
+    }
+  },
+  "orgs": [
+    {
+      "organization": {
+        "name": "Orderer",
+        "domain": "orderer.akreditasi.local",
+        "mspName": "OrdererMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [
+        {
+          "groupName": "group1",
+          "type": "solo",
+          "instances": 1,
+          "prefix": "orderer"
+        }
+      ],
+      "tools": {
+        "fabloRest": true
+      }
+    },
+    {
+      "organization": {
+        "name": "UPPS",
+        "domain": "upps.akreditasi.local",
+        "mspName": "UPPSMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "couchDb": {
+          "prefix": "couch",
+          "port": 5984
+        }
+      },
+      "tools": {}
+    },
+    {
+      "organization": {
+        "name": "Sekretariat",
+        "domain": "sekretariat.akreditasi.local",
+        "mspName": "SekretariatMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "couchDb": {
+          "prefix": "couch",
+          "port": 6984
+        }
+      },
+      "tools": {}
+    }
+  ],
+  "channels": [
+    {
+      "name": "akreditasi",
+      "orgs": [
+        {
+          "name": "UPPS",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Sekretariat",
+          "peers": [
+            "peer0"
+          ]
+        }
+      ]
+    }
+  ],
+  "chaincodes": [
+    {
+      "name": "submission-contract",
+      "version": "1.0",
+      "lang": "node",
+      "channel": "akreditasi",
+      "directory": "chaincode/submission-contract",
+      "sequence": 1,
+      "initRequired": false,
+      "policy": "OR('UPPSMSP.member','SekretariatMSP.member')",
+      "collections": [],
+      "orgs": [
+        {
+          "name": "UPPS",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Sekretariat",
+          "peers": [
+            "peer0"
+          ]
+        }
+      ]
+    }
+  ],
+  "hooks": {}
+}
