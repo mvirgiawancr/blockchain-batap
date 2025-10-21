@@ -213,7 +213,7 @@ async def upload_documents(
             documents=documents_for_ai,
             file_contents=file_contents
         )
-        print(f"[Upload] ✓ AI analysis complete: score={ai_result.get('scoreCompleteness', 0)}")
+        print(f"[Upload] ✓ AI analysis complete: LED={ai_result.get('hasLED')}, LKPS={ai_result.get('hasLKPS')}")
         
         # Emit progress: Step 3 completed
         await manager.emit_event("UploadProgress", {

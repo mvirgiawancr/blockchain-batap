@@ -340,39 +340,38 @@ export default function SekretariatDashboard() {
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 mb-4">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingUp className="w-6 h-6 text-blue-600" />
-                      <h4 className="text-lg font-bold text-blue-900">AI Analysis</h4>
+                      <h4 className="text-lg font-bold text-blue-900">AI Analysis - Validitas & Kelengkapan</h4>
                     </div>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex-1">
-                        <p className="text-sm text-blue-700 font-medium mb-1">Skor Kelengkapan</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-blue-200 rounded-full h-3">
-                            <div 
-                              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all"
-                              style={{ width: `${(sub.ai.scoreCompleteness / 4) * 100}%` }}
-                            />
-                          </div>
-                          <div className="text-right">
-                            <span className="text-2xl font-bold text-blue-900">
-                              {sub.ai.scoreCompleteness}/4
-                            </span>
-                            <p className="text-xs text-blue-600">
-                              {sub.ai.scoreCompleteness === 0 && "Tidak Terakreditasi"}
-                              {sub.ai.scoreCompleteness === 1 && "C"}
-                              {sub.ai.scoreCompleteness === 2 && "B"}
-                              {sub.ai.scoreCompleteness === 3 && "A"}
-                              {sub.ai.scoreCompleteness === 4 && "Unggul"}
-                            </p>
-                          </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-white rounded-lg p-3 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">LED Status</p>
+                        <div className="flex items-center gap-2">
+                          {sub.ai.hasLED ? (
+                            <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">✓ Valid</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">✗ Tidak Ada</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">LKPS Status</p>
+                        <div className="flex items-center gap-2">
+                          {sub.ai.hasLKPS ? (
+                            <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">✓ Valid</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">✗ Tidak Ada</span>
+                          )}
                         </div>
                       </div>
                     </div>
+                    
                     {sub.ai.flags && sub.ai.flags.length > 0 && (
                       <div className="mb-3">
-                        <p className="text-sm font-semibold text-red-700 mb-2">⚠️ Flags:</p>
+                        <p className="text-sm font-semibold text-blue-700 mb-2">📋 Temuan Analisis:</p>
                         <ul className="space-y-1">
                           {sub.ai.flags.map((flag, idx) => (
-                            <li key={idx} className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">• {flag}</li>
+                            <li key={idx} className="text-sm text-blue-800 bg-blue-50 px-3 py-2 rounded-lg">• {flag}</li>
                           ))}
                         </ul>
                       </div>

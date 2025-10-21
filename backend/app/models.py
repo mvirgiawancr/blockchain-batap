@@ -11,9 +11,12 @@ class Document(BaseModel):
     confidence: float = Field(0.0, ge=0, le=1)
 
 class AIRecommendation(BaseModel):
-    scoreCompleteness: int = Field(..., ge=0, le=4, description="Skor akreditasi: 0=Tidak Terakreditasi, 1=C, 2=B, 3=A, 4=Unggul")
-    flags: List[str] = []
-    recommendations: Optional[List[str]] = []
+    hasLED: bool = Field(..., description="LED terdeteksi dan valid")
+    hasLKPS: bool = Field(..., description="LKPS terdeteksi dan valid")
+    ledCriteriaCoverage: dict = Field(default_factory=dict, description="Coverage 9 kriteria akreditasi")
+    lkpsDataCompleteness: dict = Field(default_factory=dict, description="Kelengkapan data LKPS")
+    flags: List[str] = Field(default_factory=list, description="Temuan/observasi dari analisis")
+    recommendations: List[str] = Field(default_factory=list, description="Rekomendasi perbaikan")
 
 class Decision(BaseModel):
     result: str  # "approved" or "rejected"

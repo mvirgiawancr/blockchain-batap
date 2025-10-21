@@ -538,17 +538,19 @@ export default function UPPSDashboard() {
                 </span>
               </div>
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-                <p className="text-sm text-purple-700 font-medium mb-1">AI Score</p>
-                <p className="text-3xl font-bold text-purple-900">
-                  {result.ai.scoreCompleteness}/4
-                </p>
-                <p className="text-xs text-purple-600 mt-1">
-                  {result.ai.scoreCompleteness === 0 && "Tidak Terakreditasi"}
-                  {result.ai.scoreCompleteness === 1 && "Terakreditasi C"}
-                  {result.ai.scoreCompleteness === 2 && "Terakreditasi B"}
-                  {result.ai.scoreCompleteness === 3 && "Terakreditasi A"}
-                  {result.ai.scoreCompleteness === 4 && "Unggul"}
-                </p>
+                <p className="text-sm text-purple-700 font-medium mb-1">Kelengkapan Dokumen</p>
+                <div className="flex items-center gap-2 mt-2">
+                  {result.ai.hasLED && (
+                    <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
+                      ✓ LED
+                    </span>
+                  )}
+                  {result.ai.hasLKPS && (
+                    <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
+                      ✓ LKPS
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             

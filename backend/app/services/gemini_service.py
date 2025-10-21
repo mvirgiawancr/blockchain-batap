@@ -198,10 +198,10 @@ Hanya berikan JSON, tanpa teks tambahan.
             print(f"[Gemini] File contents provided: {list(file_contents.keys())}")
             for doc_type, content in file_contents.items():
                 if "LED" in doc_type:
-                    led_content = content[:8000]  # First 8000 chars
+                    led_content = content  # Use full extracted content (30k chars max)
                     print(f"[Gemini] LED content loaded: {len(led_content)} chars")
                 elif "LKPS" in doc_type:
-                    lkps_content = content[:8000]
+                    lkps_content = content  # Use full extracted content
                     print(f"[Gemini] LKPS content loaded: {len(lkps_content)} chars")
         
         # Extract file size info for better scoring
@@ -216,17 +216,18 @@ Hanya berikan JSON, tanpa teks tambahan.
         prompt = f"""
 Anda adalah sistem AI asesor akreditasi program studi yang bertugas menilai KELENGKAPAN dokumen LED dan LKPS berdasarkan standar BAN-PT.
 
-PENTING: Ini adalah penilaian KELENGKAPAN dokumen, bukan penilaian MUTU konten. Jika dokumen LED/LKPS ada dan berformat benar, berikan nilai tinggi.
+DEFINISI KELENGKAPAN:
+- LED harus mencakup 9 KRITERIA AKREDITASI (lihat matriks di bawah)
+- LKPS harus berisi DATA KUANTITATIF yang mendukung LED
+- Skor ditentukan dari JUMLAH KRITERIA yang terdokumentasi, BUKAN ukuran file
 
 Program Studi: {program_studi}
 Institusi: {institusi}
 
-📊 INFORMASI UKURAN FILE (PENTING UNTUK SCORING):
-- LED File: {led_size_mb} MB ({led_metadata.get('filename', 'N/A')})
-- LKPS File: {lkps_size_mb} MB ({lkps_metadata.get('filename', 'N/A')})
-
 Dokumen yang diupload:
 {json.dumps(documents, indent=2)}
+
+CATATAN: Ukuran file LED {led_size_mb}MB dan LKPS {lkps_size_mb}MB (sebagai referensi)
 
 MATRIKS PENILAIAN LED (Laporan Evaluasi Diri):
 LED harus mencakup analisis terhadap 9 kriteria akreditasi:
@@ -277,59 +278,44 @@ LKPS harus berisi data kuantitatif yang mendukung analisis LED, meliputi:
 
 {"LED Content Preview: " + led_content[:2000] if led_content else "LED content not provided"}
 
-{"LKPS Content Preview: " + lkps_content[:2000] if lkps_content else "LKPS content not provided"}
+{"LED Content Preview (Strategic Sampling): " + led_content[:3000] if led_content else "LED content not provided"}
 
-TUGAS ANALISIS:
+{"LKPS Content Preview: " + lkps_content[:3000] if lkps_content else "LKPS content not provided"}
+
+TUGAS ANALISIS - VALIDITAS DAN KELENGKAPAN:
 1. Verifikasi keberadaan LED dan LKPS (WAJIB)
-2. Berikan skor kelengkapan dalam skala 0-4 (Standar BAN-PT):
+2. Analisis konten LED untuk deteksi 9 kriteria akreditasi
+3. Identifikasi kriteria mana saja yang TERDETEKSI vs TIDAK TERDETEKSI
+4. Berikan flags dan recommendations konstruktif
 
-PEDOMAN SCORING YANG ADIL (BERDASARKAN UKURAN FILE):
+CARA DETEKSI 9 KRITERIA AKREDITASI:
+Cari kata kunci atau konteks dari konten LED:
 
-⭐ SKOR 4 (UNGGUL) - Berikan jika:
-   - LED dan LKPS keduanya ada dan terverifikasi
-   - LED ≥ 2 MB (menunjukkan dokumen lengkap 100+ halaman)
-   - LKPS ≥ 0.5 MB (menunjukkan data lengkap banyak sheet)
-   - Preview konten menunjukkan struktur dokumen akademik formal
-   - Tidak perlu semua 9 kriteria disebutkan eksplisit di preview
-   ➡️ Untuk file di atas: LED {led_size_mb}MB + LKPS {lkps_size_mb}MB → Jika LED ≥2MB DAN LKPS ≥0.5MB = SKOR 4!
-
-⭐ SKOR 3 (TERAKREDITASI A) - Berikan jika:
-   - LED dan LKPS ada dan terverifikasi
-   - LED 0.5-2 MB atau LKPS 0.2-0.5 MB
-   - Preview menunjukkan dokumen akademik formal
-   ➡️ Untuk file di atas: Salah satu file agak kecil tapi masih cukup lengkap
-
-⭐ SKOR 2 (TERAKREDITASI B) - Berikan jika:
-   - LED dan LKPS ada tapi keduanya kecil
-   - LED < 0.5 MB dan LKPS < 0.2 MB
-   - Preview konten menunjukkan dokumen kurang lengkap
-
-⭐ SKOR 1 (TERAKREDITASI C) - Berikan jika:
-   - Hanya salah satu dokumen yang ada (LED saja atau LKPS saja)
-   - Atau kedua dokumen sangat minim (< 100 KB)
-
-⭐ SKOR 0 (TIDAK TERAKREDITASI) - Berikan jika:
-   - Tidak ada LED dan LKPS sama sekali
-   - File tidak valid atau rusak
+1. VISI, MISI, TUJUAN → kata kunci: visi, misi, tujuan, strategi
+2. TATA PAMONG, KERJASAMA → kata kunci: tata pamong, kepemimpinan, kerjasama, MoU
+3. MAHASISWA → kata kunci: mahasiswa, rekrutmen, seleksi, layanan kemahasiswaan
+4. SUMBER DAYA MANUSIA → kata kunci: dosen, tendik, kualifikasi, rasio dosen
+5. KEUANGAN, SARANA PRASARANA → kata kunci: keuangan, anggaran, laboratorium, perpustakaan
+6. PENDIDIKAN → kata kunci: kurikulum, pembelajaran, capaian pembelajaran, RPS
+7. PENELITIAN → kata kunci: penelitian, publikasi, sitasi, jurnal
+8. PENGABDIAN MASYARAKAT → kata kunci: pengabdian, PkM, masyarakat, community service
+9. LUARAN DAN CAPAIAN → kata kunci: lulusan, alumni, IPK, masa studi, tracer study
 
 CATATAN PENTING:
-- LIHAT UKURAN FILE DI ATAS! Ini indikator paling akurat kelengkapan
-- Preview hanya menampilkan 5 halaman pertama dari ratusan halaman
-- Ukuran file LED >2MB biasanya = 100+ halaman = LENGKAP
-- Ukuran file LKPS >0.5MB biasanya = 20+ sheet = LENGKAP
-- Jika LED ≥2MB DAN LKPS ≥0.5MB → OTOMATIS SKOR 4 (kecuali preview menunjukkan file rusak)
-- Fokus pada KELENGKAPAN DOKUMEN, bukan analisis mendalam konten
+- Kriteria tidak harus eksplisit disebutkan, bisa tersirat dari konteks
+- Preview sudah sampling strategis (awal + tengah + akhir dokumen)
+- Jika 7-8 kriteria terdeteksi, kemungkinan yang lain ada di bagian tidak ter-sample
+- Berikan benefit of doubt untuk dokumen yang terstruktur baik
 
 TUGAS ANALISIS (WAJIB LENGKAPI SEMUA):
-1. Verifikasi keberadaan LED dan LKPS (WAJIB)
-2. Berikan skor kelengkapan 0-4 berdasarkan ukuran file
-3. Identifikasi kriteria yang terlihat dari preview
-4. **WAJIB: Berikan minimal 2-3 flags** (temuan/catatan penting)
-5. **WAJIB: Berikan minimal 3-5 recommendations** (saran perbaikan konstruktif)
+1. Verifikasi keberadaan LED dan LKPS
+2. **Identifikasi kriteria yang terdeteksi** di ledCriteriaCoverage (true/false)
+3. **Identifikasi kelengkapan data LKPS** di lkpsDataCompleteness (true/false)
+4. **WAJIB: Berikan minimal 3-5 flags** (temuan penting: kriteria apa saja yang terdeteksi/tidak terdeteksi)
+5. **WAJIB: Berikan minimal 3-5 recommendations** (saran untuk melengkapi kriteria yang kurang)
 
 Format Output JSON (WAJIB LENGKAP):
 {{
-  "scoreCompleteness": 4,
   "hasLED": true,
   "hasLKPS": true,
   "ledCriteriaCoverage": {{
@@ -351,16 +337,18 @@ Format Output JSON (WAJIB LENGKAP):
     "dataPengabdian": false
   }},
   "flags": [
-    "Dokumen LED berukuran {led_size_mb}MB menunjukkan kelengkapan tinggi",
-    "Dokumen LKPS berukuran {lkps_size_mb}MB menunjukkan data komprehensif",
-    "Preview menampilkan struktur dokumen akademik yang formal"
+    "Terdeteksi 8 dari 9 kriteria akreditasi di LED",
+    "Kriteria 8 (Pengabdian Masyarakat) tidak ditemukan dalam sampling",
+    "LKPS berisi data mahasiswa, dosen, dan penelitian yang lengkap",
+    "Struktur dokumen LED sangat baik dan sistematis",
+    "Data keuangan di LKPS perlu diverifikasi kelengkapannya"
   ],
   "recommendations": [
+    "Lengkapi dokumentasi Kriteria 8 (Pengabdian Masyarakat) di LED",
     "Pastikan konsistensi data antara LED dan LKPS",
-    "Verifikasi kelengkapan 9 kriteria akreditasi di LED",
-    "Periksa keakuratan data kuantitatif di LKPS",
-    "Lengkapi dokumentasi pendukung jika ada yang kurang",
-    "Siapkan bukti dukung untuk setiap klaim di LED"
+    "Tambahkan data keuangan 3 tahun terakhir di LKPS jika belum ada",
+    "Verifikasi kelengkapan data sarana prasarana",
+    "Siapkan bukti pendukung untuk setiap kriteria"
   ]
 }}
 
@@ -388,16 +376,6 @@ PENTING:
             print(f"[Gemini] ✓ Analysis complete")
             
             # Validate and ensure all required fields
-            if "scoreCompleteness" not in result:
-                result["scoreCompleteness"] = 2
-            else:
-                # Ensure score is between 0-4
-                score = result["scoreCompleteness"]
-                if isinstance(score, float) and score <= 1.0:
-                    # Convert old percentage format (0.0-1.0) to new scale (0-4)
-                    result["scoreCompleteness"] = int(score * 4)
-                result["scoreCompleteness"] = max(0, min(4, int(result["scoreCompleteness"])))
-            
             if "hasLED" not in result:
                 result["hasLED"] = False
             if "hasLKPS" not in result:
@@ -418,9 +396,8 @@ PENTING:
             import traceback
             traceback.print_exc()
             
-            # Return default cautious response with scoring matrix structure
+            # Return default cautious response
             return {
-                "scoreCompleteness": 0.5,
                 "hasLED": True,  # Assume true since document passed validation
                 "hasLKPS": True,
                 "ledCriteriaCoverage": {},
@@ -434,7 +411,7 @@ PENTING:
             }
     
     async def extract_text_from_pdf(self, pdf_content: bytes) -> str:
-        """Extract text from PDF for deeper analysis"""
+        """Extract text from PDF for deeper analysis - strategically samples pages"""
         try:
             print(f"[Gemini] extract_text_from_pdf: Starting PDF extraction ({len(pdf_content)} bytes)")
             import asyncio
@@ -445,15 +422,44 @@ PENTING:
                 print(f"[Gemini] extract_text_from_pdf: Reading PDF...")
                 pdf_file = io.BytesIO(pdf_content)
                 reader = PdfReader(pdf_file)
-                print(f"[Gemini] extract_text_from_pdf: PDF has {len(reader.pages)} pages")
+                total_pages = len(reader.pages)
+                print(f"[Gemini] extract_text_from_pdf: PDF has {total_pages} pages")
+                
+                # Strategy: Extract from beginning, middle, and end to detect all 9 criteria
+                pages_to_extract = []
+                
+                # First 5 pages (intro, visi-misi)
+                pages_to_extract.extend(range(min(5, total_pages)))
+                
+                # Middle section (kriteria tengah)
+                if total_pages > 10:
+                    mid_start = total_pages // 3
+                    pages_to_extract.extend(range(mid_start, min(mid_start + 5, total_pages)))
+                
+                # Near end (luaran, capaian)
+                if total_pages > 15:
+                    end_start = (total_pages * 2) // 3
+                    pages_to_extract.extend(range(end_start, min(end_start + 5, total_pages)))
+                
+                # Last 2 pages (kesimpulan)
+                if total_pages > 20:
+                    pages_to_extract.extend(range(max(0, total_pages - 2), total_pages))
+                
+                # Remove duplicates and sort
+                pages_to_extract = sorted(set(pages_to_extract))
+                print(f"[Gemini] extract_text_from_pdf: Extracting {len(pages_to_extract)} strategic pages: {pages_to_extract[:10]}...")
                 
                 text = ""
-                for i, page in enumerate(reader.pages[:5]):  # Only first 5 pages for performance
-                    print(f"[Gemini] extract_text_from_pdf: Extracting page {i+1}...")
-                    text += page.extract_text() + "\n"
+                for i in pages_to_extract:
+                    page_text = reader.pages[i].extract_text()
+                    text += f"\n--- Halaman {i+1} ---\n{page_text}\n"
+                    
+                    # Stop if we have enough text
+                    if len(text) > 30000:
+                        break
                 
                 print(f"[Gemini] extract_text_from_pdf: Extraction complete, {len(text)} chars")
-                return text[:5000]  # Limit to 5000 chars
+                return text[:30000]  # Max 30k chars to cover more criteria
             
             # Run blocking I/O in thread pool
             print(f"[Gemini] extract_text_from_pdf: Running in thread pool...")
