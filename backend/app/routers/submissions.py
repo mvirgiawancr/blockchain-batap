@@ -24,15 +24,85 @@ async def get_all_submissions(
 ):
     """Get all submissions with optional filters"""
     try:
+        print(f"[Submissions] Query params - status: {status}, institusi: {institusi}")
+        
         if status:
+            print(f"[Submissions] Querying by status: {status}")
             results = await fabric_service.query_submissions_by_status(status)
         elif institusi:
+            print(f"[Submissions] Querying by institusi: {institusi}")
             results = await fabric_service.query_submissions_by_institusi(institusi)
         else:
+            print(f"[Submissions] Querying all submissions")
             results = await fabric_service.query_all_submissions()
         
-        return [SubmissionResponse(**r) for r in results]
+        print(f"[Submissions] Found {len(results)} submissions")
+        
+        # Transform blockchain data to match SubmissionResponse model
+        transformed_results = []
+        for r in results:
+            try:
+                # Transform documents to match expected format
+                documents = []
+                for doc in r.get('documents', []):
+                    documents.append({
+                        "type": doc.get('type', 'unknown'),
+                        "cid": doc.get('ipfsHash', doc.get('cid', '')),
+                        "hash": doc.get('ipfsHash', doc.get('hash', '')),
+                        "filename": doc.get('filename', ''),
+                        "verified": True,
+                        "confidence": 1.0
+                    })
+                
+                # Transform AI data to match expected format
+                ai_data = r.get('ai', {})
+                
+                # Map scoring_summary from blockchain to scoring field for frontend
+                scoring_data = ai_data.get('scoring_summary')
+                if scoring_data:
+                    # Transform scoring_summary to full scoring format expected by frontend
+                    scoring_data = {
+                        "total_score": scoring_data.get('total_score', 0),
+                        "overall_percentage": scoring_data.get('overall_percentage', 0),
+                        "grade": scoring_data.get('grade', 'C'),
+                        "method": scoring_data.get('method', 'LAM-TEK 2025'),
+                        "total_indicators": 0,  # Will be populated by real data
+                        "results": []  # Will be populated by real data
+                    }
+                
+                ai = {
+                    "hasLED": True,  # Default values for blockchain data
+                    "hasLKPS": True,
+                    "ledCriteriaCoverage": {},
+                    "lkpsDataCompleteness": {},
+                    "flags": ai_data.get('flags', []),
+                    "recommendations": ai_data.get('recommendations', []),
+                    "scoreCompleteness": ai_data.get('scoreCompleteness', 0),
+                    "analyzedAt": ai_data.get('analyzedAt'),
+                    "scoring": scoring_data,  # Use mapped scoring data
+                    "scoring_analysis": None,
+                    "scoring_error": None
+                }
+                
+                transformed = {
+                    "submissionId": r.get('submissionId'),
+                    "programStudi": r.get('programStudi'),
+                    "institusi": r.get('institusi'),
+                    "status": r.get('status'),
+                    "version": r.get('version', 1),  # Add version with default value
+                    "documents": documents,
+                    "ai": ai,
+                    "createdAt": r.get('createdAt'),
+                    "updatedAt": r.get('updatedAt')
+                }
+                transformed_results.append(SubmissionResponse(**transformed))
+            except Exception as transform_error:
+                print(f"[Submissions] Transform error for submission {r.get('submissionId', 'unknown')}: {transform_error}")
+                continue
+                
+        return transformed_results
     except Exception as e:
+        print(f"[Submissions] Query error: {e}")
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
 
 @router.post("/{submission_id}/decision", response_model=SubmissionResponse)

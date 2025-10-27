@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { uploadDocuments } from '../services/api';
+import { createSubmission } from '../services/api';
 import wsService from '../services/websocket';
 import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download } from 'lucide-react';
 
@@ -7,6 +7,7 @@ export default function UPPSDashboard() {
   const [formData, setFormData] = useState({
     programStudi: '',
     institusi: '',
+    programType: 'S', // Default to Sarjana
   });
   const [ledFile, setLedFile] = useState(null);
   const [lkpsFile, setLkpsFile] = useState(null);
@@ -40,9 +41,9 @@ export default function UPPSDashboard() {
       const { step, status, message } = data;
       
       if (status === 'processing') {
-        updateProgress(step, 'processing');
+        updateProgress(step, 'processing', message);
       } else if (status === 'completed') {
-        updateProgress(step, 'completed');
+        updateProgress(step, 'completed', message);
       }
     });
 
@@ -62,20 +63,21 @@ export default function UPPSDashboard() {
   const [uploadProgress, setUploadProgress] = useState({
     step: 0,
     steps: [
-      { id: 1, name: 'Memverifikasi LED', status: 'pending' },
-      { id: 2, name: 'Memverifikasi LKPS', status: 'pending' },
+      { id: 1, name: 'Verifikasi LED', status: 'pending' },
+      { id: 2, name: 'Verifikasi LKPS', status: 'pending' },
       { id: 3, name: 'Analisis AI', status: 'pending' },
-      { id: 4, name: 'Upload ke IPFS', status: 'pending' },
-      { id: 5, name: 'Simpan ke Blockchain', status: 'pending' }
+      { id: 4, name: 'Skoring LAM-TEK 2025', status: 'pending' },
+      { id: 5, name: 'Upload ke IPFS', status: 'pending' },
+      { id: 6, name: 'Simpan ke Blockchain', status: 'pending' }
     ]
   });
 
-  const updateProgress = (stepId, status) => {
+  const updateProgress = (stepId, status, message) => {
     setUploadProgress(prev => ({
       ...prev,
       step: stepId,
       steps: prev.steps.map(s => 
-        s.id === stepId ? { ...s, status } : 
+        s.id === stepId ? { ...s, status, message } : 
         s.id < stepId ? { ...s, status: 'completed' } : s
       )
     }));
@@ -84,7 +86,7 @@ export default function UPPSDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.programStudi || !formData.institusi) {
+    if (!formData.programStudi || !formData.institusi || !formData.programType) {
       setError('Mohon lengkapi semua field');
       return;
     }
@@ -105,8 +107,9 @@ export default function UPPSDashboard() {
         { id: 1, name: 'Memverifikasi LED', status: 'pending' },
         { id: 2, name: 'Memverifikasi LKPS', status: 'pending' },
         { id: 3, name: 'Analisis AI', status: 'pending' },
-        { id: 4, name: 'Upload ke IPFS', status: 'pending' },
-        { id: 5, name: 'Simpan ke Blockchain', status: 'pending' }
+        { id: 4, name: 'Analisis Skoring', status: 'pending' },
+        { id: 5, name: 'Upload ke IPFS', status: 'pending' },
+        { id: 6, name: 'Simpan ke Blockchain', status: 'pending' }
       ]
     });
     
@@ -121,6 +124,7 @@ export default function UPPSDashboard() {
       const formDataToSend = new FormData();
       formDataToSend.append('programStudi', formData.programStudi);
       formDataToSend.append('institusi', formData.institusi);
+      formDataToSend.append('programType', formData.programType);
       formDataToSend.append('led_file', ledFile);
       formDataToSend.append('lkps_file', lkpsFile);
       
@@ -130,20 +134,35 @@ export default function UPPSDashboard() {
 
       console.log('[Frontend] Sending upload request to backend...');
       
-      // Step 1: Verifying LED (backend will do this)
-      updateProgress(1, 'processing');
+      // Step 1: Start upload process
+      updateProgress(1, 'processing', 'Memulai proses upload...');
       
       // Make the actual API call immediately (no setTimeout delays!)
-      console.log('[Frontend] Calling uploadDocuments API...');
-      const response = await uploadDocuments(formDataToSend);
+      console.log('[Frontend] Calling createSubmission API...');
+      const response = await createSubmission(formDataToSend);
       console.log('[Frontend] Upload response received:', response);
       
+      // Debug scoring data
+      if (response.ai) {
+        console.log('[Frontend] AI data:', response.ai);
+        if (response.ai.scoring) {
+          console.log('[Frontend] Scoring data found:', response.ai.scoring);
+          console.log('[Frontend] Scoring results:', response.ai.scoring.results);
+          console.log('[Frontend] Results length:', response.ai.scoring.results?.length || 0);
+        } else {
+          console.log('[Frontend] No scoring data in AI response');
+        }
+      } else {
+        console.log('[Frontend] No AI data in response');
+      }
+      
       // Mark all steps as completed
-      updateProgress(1, 'completed');
-      updateProgress(2, 'completed');
-      updateProgress(3, 'completed');
-      updateProgress(4, 'completed');
-      updateProgress(5, 'completed');
+      updateProgress(1, 'completed', 'LED terverifikasi');
+      updateProgress(2, 'completed', 'LKPS terverifikasi');
+      updateProgress(3, 'completed', 'Analisis AI selesai');
+      updateProgress(4, 'completed', 'Skoring LAM-TEK 2025 selesai');
+      updateProgress(5, 'completed', 'Upload ke IPFS selesai');
+      updateProgress(6, 'completed', 'Upload berhasil - Scoring tersedia');
       
       setResult(response);
       
@@ -154,15 +173,19 @@ export default function UPPSDashboard() {
       });
       addNotification('Upload berhasil! Dokumen telah diverifikasi.', 'success');
       
-      setFormData({ programStudi: '', institusi: '' });
+      setFormData({ programStudi: '', institusi: '', programType: 'S' });
       setLedFile(null);
       setLkpsFile(null);
       setAdditionalFiles([]);
       
-      // Auto close success modal after 2 seconds
+      // Force immediate display of result - no need to wait
+      setShowModal(false);  // Close progress modal immediately
+      
+      // Auto close success modal after showing immediately
       setTimeout(() => {
-        setShowModal(false);
-      }, 2000);
+        // Result is already set and visible
+        console.log('[Frontend] Upload completed successfully, result displayed');
+      }, 100);
     } catch (err) {
       let errorMsg = 'Terjadi kesalahan yang tidak diketahui.';
 
@@ -261,10 +284,19 @@ export default function UPPSDashboard() {
                         }`}>
                           {step.name}
                         </p>
-                        {step.status === 'processing' && (
+                        {step.message && (
+                          <p className={`text-xs mt-1 ${
+                            step.status === 'completed' ? 'text-green-600' :
+                            step.status === 'processing' ? 'text-blue-600' :
+                            'text-gray-500'
+                          }`}>
+                            {step.message}
+                          </p>
+                        )}
+                        {step.status === 'processing' && !step.message && (
                           <p className="text-xs text-blue-600 mt-1">Sedang diproses...</p>
                         )}
-                        {step.status === 'completed' && (
+                        {step.status === 'completed' && !step.message && (
                           <p className="text-xs text-green-600 mt-1">Selesai</p>
                         )}
                       </div>
@@ -276,11 +308,11 @@ export default function UPPSDashboard() {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${(uploadProgress.step / 5) * 100}%` }}
+                      style={{ width: `${(uploadProgress.step / 6) * 100}%` }}
                     />
                   </div>
                   <p className="text-center text-sm text-gray-600 mt-2">
-                    {Math.round((uploadProgress.step / 5) * 100)}% selesai
+                    {Math.round((uploadProgress.step / 6) * 100)}% selesai
                   </p>
                 </div>
               </div>
@@ -377,7 +409,7 @@ export default function UPPSDashboard() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Program Studi <span className="text-red-500">*</span>
@@ -404,6 +436,29 @@ export default function UPPSDashboard() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Jenjang Program <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.programType}
+                  onChange={(e) => setFormData({ ...formData, programType: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  required
+                >
+                  <option value="S">Sarjana (S)</option>
+                  <option value="D">Doktor (D)</option>
+                  <option value="PPI">Profesi Insinyur (PPI)</option>
+                  <option value="D1">Diploma Satu (D1)</option>
+                  <option value="D2">Diploma Dua (D2)</option>
+                  <option value="D3">Diploma Tiga (D3)</option>
+                  <option value="STr">Sarjana Terapan (STr)</option>
+                  <option value="M">Magister (M)</option>
+                  <option value="MTr">Magister Terapan (MTr)</option>
+                  <option value="DTr">Doktor Terapan (DTr)</option>
+                </select>
               </div>
             </div>
 
@@ -526,7 +581,7 @@ export default function UPPSDashboard() {
               </div>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <div className="grid md:grid-cols-4 gap-4 mb-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
                 <p className="text-sm text-blue-700 font-medium mb-1">Submission ID</p>
                 <p className="font-mono text-lg text-blue-900 font-bold">{result.submissionId}</p>
@@ -552,6 +607,84 @@ export default function UPPSDashboard() {
                   )}
                 </div>
               </div>
+              {result.ai.scoring && (
+                <div className="col-span-full">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-900">🎯 Hasil Scoring LAM-TEK 2025</h4>
+                        <p className="text-sm text-blue-700">
+                          Metode: {result.ai.scoring.method || 'LAM-TEK 2025'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-4xl font-bold text-blue-900">
+                          {result.ai.scoring.overall_percentage.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-blue-700">
+                          ({result.ai.scoring.total_score.toFixed(1)}/{result.ai.scoring.total_indicators} butir)
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Grade Display - Prominent */}
+                    <div className="text-center mb-4">
+                      <span className={`inline-block px-8 py-4 rounded-2xl text-3xl font-bold ${
+                        result.ai.scoring.grade === 'A' || result.ai.scoring.overall_grade === 'A' ? 'bg-green-600 text-white' :
+                        result.ai.scoring.grade === 'B' || result.ai.scoring.overall_grade === 'B' ? 'bg-blue-600 text-white' :
+                        result.ai.scoring.grade === 'C' || result.ai.scoring.overall_grade === 'C' ? 'bg-yellow-600 text-white' :
+                        result.ai.scoring.grade === 'D' || result.ai.scoring.overall_grade === 'D' ? 'bg-orange-600 text-white' :
+                        'bg-red-600 text-white'
+                      }`}>
+                        Grade: {result.ai.scoring.grade || result.ai.scoring.overall_grade}
+                        {result.ai.scoring.grade_description && ` (${result.ai.scoring.grade_description})`}
+                      </span>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="w-full bg-blue-200 rounded-full h-6">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full transition-all duration-1000 flex items-center justify-center"
+                          style={{ width: `${result.ai.scoring.overall_percentage}%` }}
+                        >
+                          <span className="text-white text-sm font-bold">{result.ai.scoring.overall_percentage.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* LAM-TEK Summary */}
+                    <div className="text-center text-blue-800">
+                      <p className="text-lg">
+                        <span className="font-bold">{result.ai.scoring.total_indicators}</span> butir penilaian LAM-TEK
+                      </p>
+                      <p className="text-sm mt-1">
+                        Skor total: <span className="font-bold">{result.ai.scoring.total_score.toFixed(1)}</span> dari {result.ai.scoring.total_indicators}
+                      </p>
+                      {result.ai.scoring.lamtek_details && (
+                        <p className="text-xs mt-2 text-blue-600">
+                          Task 1: {result.ai.scoring.lamtek_details.summary?.task1_score || 0} | 
+                          Task 2: {result.ai.scoring.lamtek_details.summary?.task2_score || 0} | 
+                          Task 3: {result.ai.scoring.lamtek_details.summary?.task3_score || 0} | 
+                          Task 4: {result.ai.scoring.lamtek_details.summary?.task4_score || 0}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!result.ai.scoring && (
+                <div className="col-span-full">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-dashed border-gray-300">
+                    <h4 className="text-lg font-semibold text-gray-700 mb-2">🎯 Hasil Scoring Otomatis</h4>
+                    <p className="text-gray-600 mb-4">Scoring sedang diproses atau tidak tersedia</p>
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
+                      <span className="text-gray-600">Menunggu hasil scoring...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="space-y-4">

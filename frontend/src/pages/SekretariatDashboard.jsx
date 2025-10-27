@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAllSubmissions, setDecision } from '../services/api';
 import wsService from '../services/websocket';
-import { CheckCircle, XCircle, Clock, RefreshCw, FileText, Award, TrendingUp, AlertCircle, FileCheck, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, RefreshCw, FileText, Award, TrendingUp, AlertCircle, FileCheck, Download, Star } from 'lucide-react';
+import ScoringResultDisplay from '../components/ScoringResultDisplay';
 
 export default function SekretariatDashboard() {
   const [submissions, setSubmissions] = useState([]);
@@ -365,6 +366,17 @@ export default function SekretariatDashboard() {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Scoring Results */}
+                    {(sub.ai.scoring || sub.ai.scoringResults) && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Star className="w-5 h-5 text-yellow-600" />
+                          <h5 className="font-semibold text-yellow-800">Hasil Skoring Otomatis</h5>
+                        </div>
+                        <ScoringResultDisplay scoringResult={sub.ai.scoring || sub.ai.scoringResults} />
+                      </div>
+                    )}
                     
                     {sub.ai.flags && sub.ai.flags.length > 0 && (
                       <div className="mb-3">
