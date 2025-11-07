@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getAllSubmissions, setDecision } from '../services/api';
 import wsService from '../services/websocket';
-import { CheckCircle, XCircle, Clock, RefreshCw, FileText, Award, TrendingUp, AlertCircle, FileCheck, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, RefreshCw, FileText, Award, TrendingUp, AlertCircle, FileCheck, Download, Star } from 'lucide-react';
+import ScoringResultDisplay from '../components/ScoringResultDisplay';
+import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 
 export default function SekretariatDashboard() {
   const [submissions, setSubmissions] = useState([]);
@@ -35,10 +37,12 @@ export default function SekretariatDashboard() {
   const loadSubmissions = async () => {
     try {
       setLoading(true);
-      const data = await getAllSubmissions({ status: filter });
-      setSubmissions(data);
+      const response = await getAllSubmissions({ status: filter });
+      // API returns { success: true, data: [], pagination: {} }
+      setSubmissions(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error loading submissions:', error);
+      setSubmissions([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -121,10 +125,12 @@ export default function SekretariatDashboard() {
   };
 
   const getStatistics = () => {
-    const total = submissions.length;
-    const pending = submissions.filter(s => s.status === 'under_review').length;
-    const approved = submissions.filter(s => s.status === 'approved').length;
-    const rejected = submissions.filter(s => s.status === 'rejected').length;
+    // Ensure submissions is always an array
+    const submissionArray = Array.isArray(submissions) ? submissions : [];
+    const total = submissionArray.length;
+    const pending = submissionArray.filter(s => s.status === 'under_review').length;
+    const approved = submissionArray.filter(s => s.status === 'approved').length;
+    const rejected = submissionArray.filter(s => s.status === 'rejected').length;
     
     return { total, pending, approved, rejected };
   };
@@ -294,14 +300,14 @@ export default function SekretariatDashboard() {
             <RefreshCw className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
             <p className="text-gray-600 text-lg">Loading submissions...</p>
           </div>
-        ) : submissions.length === 0 ? (
+        ) : !Array.isArray(submissions) || submissions.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 text-lg">Tidak ada submission dengan status "{filter}"</p>
           </div>
         ) : (
           <div className="space-y-6">
-            {submissions.map(sub => (
+            {(Array.isArray(submissions) ? submissions : []).map(sub => (
               <div key={sub.submissionId} className="bg-gradient-to-r from-white to-gray-50 rounded-2xl shadow-lg border-2 border-gray-200 p-6 hover:shadow-xl transition-all">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-4">
@@ -347,7 +353,7 @@ export default function SekretariatDashboard() {
                       <div className="bg-white rounded-lg p-3 border border-blue-200">
                         <p className="text-xs text-gray-600 mb-1">LED Status</p>
                         <div className="flex items-center gap-2">
-                          {sub.ai.hasLED ? (
+                          {(sub.ai.hasLED !== undefined ? sub.ai.hasLED : sub.documents?.some(d => d.type === 'LED')) ? (
                             <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">✓ Valid</span>
                           ) : (
                             <span className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">✗ Tidak Ada</span>
@@ -357,7 +363,7 @@ export default function SekretariatDashboard() {
                       <div className="bg-white rounded-lg p-3 border border-blue-200">
                         <p className="text-xs text-gray-600 mb-1">LKPS Status</p>
                         <div className="flex items-center gap-2">
-                          {sub.ai.hasLKPS ? (
+                          {(sub.ai.hasLKPS !== undefined ? sub.ai.hasLKPS : sub.documents?.some(d => d.type === 'LKPS')) ? (
                             <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">✓ Valid</span>
                           ) : (
                             <span className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">✗ Tidak Ada</span>
@@ -365,6 +371,22 @@ export default function SekretariatDashboard() {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Scoring Results */}
+                    {(sub.ai.scoring || sub.ai.scoringResults) && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Star className="w-5 h-5 text-yellow-600" />
+                          <h5 className="font-semibold text-yellow-800">Hasil Skoring Otomatis</h5>
+                        </div>
+                        <ScoringResultDisplay scoringResult={sub.ai.scoring || sub.ai.scoringResults} />
+                        
+                        {/* Detailed Scoring Breakdown with Nested Dropdowns */}
+                        <div className="mt-4">
+                          <ScoringDetailDropdown scoring={sub.ai.scoring || sub.ai.scoringResults} />
+                        </div>
+                      </div>
+                    )}
                     
                     {sub.ai.flags && sub.ai.flags.length > 0 && (
                       <div className="mb-3">

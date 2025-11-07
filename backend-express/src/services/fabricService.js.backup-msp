@@ -1,0 +1,565 @@
+/**
+ * Hyperledger Fabric Service
+ * Handles blockchain interactions for LAM-TEK 2025 submission storage
+ */
+
+const { Gateway, Wallets } = require('fabric-network');
+const FabricCAServices = require('fabric-ca-client');
+const fs = require('fs');
+const fsPromises = require('fs').promises;
+const path = require('path');
+const config = require('../config');
+const logger = require('../utils/logger');
+
+class FabricService {
+  constructor() {
+    this.gateway = null;
+    this.wallet = null;
+    this.network = null;
+    this.contract = null;
+    this.isConnected = false;
+    
+    // Initialize paths
+    if (path.isAbsolute(config.fabric.connectionProfile)) {
+      this.connectionProfilePath = config.fabric.connectionProfile;
+    } else {
+      this.connectionProfilePath = path.resolve(__dirname, '../../', config.fabric.connectionProfile);
+    }
+    
+    if (path.isAbsolute(config.fabric.walletPath)) {
+      this.walletPath = config.fabric.walletPath;
+    } else {
+      this.walletPath = path.resolve(__dirname, '../../', config.fabric.walletPath);
+    }
+
+    console.log('[Fabric] Service initialized');
+    console.log('[Fabric] Connection profile path:', this.connectionProfilePath);
+    console.log('[Fabric] Wallet path:', this.walletPath);
+  }
+
+  /**
+   * Load connection profile from file
+   */
+  async loadConnectionProfile() {
+    try {
+      // Use absolute path dari config atau relative dari project root
+      let ccpPath;
+      if (path.isAbsolute(config.fabric.connectionProfile)) {
+        ccpPath = config.fabric.connectionProfile;
+      } else {
+        // Resolve dari project root (2 levels up dari services/)
+        ccpPath = path.resolve(__dirname, '../../', config.fabric.connectionProfile);
+      }
+      
+      console.log('[Fabric] Attempting to load connection profile from:', ccpPath);
+      
+      const ccpJSON = await fsPromises.readFile(ccpPath, 'utf8');
+      const ccp = JSON.parse(ccpJSON);
+      
+      console.log('[Fabric] Connection profile loaded successfully');
+      return ccp;
+    } catch (error) {
+      console.error('[Fabric] Failed to load connection profile:', error.message);
+      throw new Error(`Cannot load connection profile: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create or load wallet
+   */
+  async getWallet() {
+    if (this.wallet) {
+      return this.wallet;
+    }
+
+    try {
+      // Use absolute path atau relative dari project root
+      let walletPath;
+      if (path.isAbsolute(config.fabric.walletPath)) {
+        walletPath = config.fabric.walletPath;
+      } else {
+        walletPath = path.resolve(__dirname, '../../', config.fabric.walletPath);
+      }
+      
+      this.wallet = await Wallets.newFileSystemWallet(walletPath);
+      
+      console.log('[Fabric] Wallet loaded from:', walletPath);
+      return this.wallet;
+    } catch (error) {
+      console.error('[Fabric] Failed to load wallet:', error.message);
+      throw new Error(`Cannot load wallet: ${error.message}`);
+    }
+  }
+
+  /**
+   * Enroll admin user
+   */
+  async enrollAdmin(ccp) {
+    try {
+      // Get first CA from connection profile
+      const caNames = Object.keys(ccp.certificateAuthorities || {});
+      if (caNames.length === 0) {
+        throw new Error('No Certificate Authority found in connection profile');
+      }
+
+      const caName = caNames[0];
+      const caInfo = ccp.certificateAuthorities[caName];
+      
+      if (!caInfo) {
+        throw new Error(`CA info not found for ${caName}`);
+      }
+
+      // Handle both HTTP and HTTPS CAs
+      let caOptions = { verify: false };
+      if (caInfo.tlsCACerts && caInfo.tlsCACerts.pem) {
+        caOptions.trustedRoots = caInfo.tlsCACerts.pem;
+      }
+
+      const ca = new FabricCAServices(caInfo.url, caOptions, caInfo.caName || caName);
+
+      const wallet = await this.getWallet();
+      const identity = await wallet.get('admin');
+      
+      if (identity) {
+        console.log('[Fabric] Admin identity already exists in wallet');
+        return;
+      }
+
+      console.log('[Fabric] Enrolling admin...');
+      const enrollment = await ca.enroll({
+        enrollmentID: 'admin',
+        enrollmentSecret: 'adminpw'
+      });
+
+      const x509Identity = {
+        credentials: {
+          certificate: enrollment.certificate,
+          privateKey: enrollment.key.toBytes(),
+        },
+        mspId: config.fabric.mspId,
+        type: 'X.509',
+      };
+
+      await wallet.put('admin', x509Identity);
+      console.log('[Fabric] Admin identity enrolled and imported to wallet');
+    } catch (error) {
+      console.error('[Fabric] Failed to enroll admin:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Register and enroll user
+   */
+  async registerUser(username, ccp) {
+    try {
+      const wallet = await this.getWallet();
+      const userIdentity = await wallet.get(username);
+      
+      if (userIdentity) {
+        console.log(`[Fabric] User "${username}" already enrolled`);
+        return;
+      }
+
+      const adminIdentity = await wallet.get('admin');
+      if (!adminIdentity) {
+        console.log('[Fabric] Admin identity not found. Enrolling admin first...');
+        await this.enrollAdmin(ccp);
+      }
+
+      // Get CA directly from connection profile
+      const caNames = Object.keys(ccp.certificateAuthorities || {});
+      if (caNames.length === 0) {
+        throw new Error('No Certificate Authority found in connection profile');
+      }
+
+      const caName = caNames[0];
+      const caInfo = ccp.certificateAuthorities[caName];
+      
+      // Handle both HTTP and HTTPS CAs
+      let caOptions = { verify: false };
+      if (caInfo.tlsCACerts && caInfo.tlsCACerts.pem) {
+        caOptions.trustedRoots = caInfo.tlsCACerts.pem;
+      }
+
+      const ca = new FabricCAServices(caInfo.url, caOptions, caInfo.caName || caName);
+
+      // Build admin user from wallet identity
+      const adminWalletIdentity = await wallet.get('admin');
+      const provider = wallet.getProviderRegistry().getProvider(adminWalletIdentity.type);
+      const adminUser = await provider.getUserContext(adminWalletIdentity, 'admin');
+
+      // Register the user
+      const secret = await ca.register({
+        enrollmentID: username,
+        role: 'client'
+      }, adminUser);
+
+      // Enroll the user
+      const enrollment = await ca.enroll({
+        enrollmentID: username,
+        enrollmentSecret: secret
+      });
+
+      const x509Identity = {
+        credentials: {
+          certificate: enrollment.certificate,
+          privateKey: enrollment.key.toBytes(),
+        },
+        mspId: config.fabric.mspId,
+        type: 'X.509',
+      };
+
+      await wallet.put(username, x509Identity);
+      console.log(`[Fabric] User "${username}" registered and enrolled`);
+    } catch (error) {
+      console.error(`[Fabric] Failed to register user "${username}":`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Ensure admin identity exists in wallet (auto-restore from permanent backup)
+   */
+  async ensureAdminIdentity() {
+    try {
+      const identity = await this.wallet.get('admin');
+      if (identity) {
+        return; // Admin identity already exists
+      }
+      
+      // Admin identity missing - restore from permanent backup
+      logger.info('[Fabric] Admin identity not found, restoring from permanent backup...');
+      
+      const cryptoPath = path.resolve(__dirname, '..', '..', 'crypto-config-backup');
+      const certPath = path.join(cryptoPath, 'users', 'Admin@upps.akreditasi.local', 'msp', 'signcerts', 'Admin@upps.akreditasi.local-cert.pem');
+      const keyPath = path.join(cryptoPath, 'users', 'Admin@upps.akreditasi.local', 'msp', 'keystore');
+      
+      logger.info(`[Fabric] Looking for certificate at: ${certPath}`);
+      
+      // Check if backup exists
+      if (!fs.existsSync(certPath)) {
+        logger.error(`[Fabric] Certificate not found at: ${certPath}`);
+        logger.error(`[Fabric] Please run: ./update-crypto-backup.sh`);
+        throw new Error('Permanent crypto backup not found. Run ./update-crypto-backup.sh first.');
+      }
+      
+      // Read certificate and private key
+      const certificate = fs.readFileSync(certPath).toString();
+      const keyFiles = fs.readdirSync(keyPath);
+      const privateKey = fs.readFileSync(path.join(keyPath, keyFiles[0])).toString();
+      
+      // Create identity
+      const adminIdentity = {
+        credentials: {
+          certificate: certificate,
+          privateKey: privateKey,
+        },
+        mspId: 'UPPSMSP',
+        type: 'X.509',
+      };
+      
+      // Import to wallet
+      await this.wallet.put('admin', adminIdentity);
+      logger.info('[Fabric] ✅ Admin identity restored successfully from permanent backup');
+      
+    } catch (error) {
+      logger.error(`[Fabric] Failed to ensure admin identity: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Connect to Fabric network
+   */
+  async connect() {
+    try {
+      logger.info(`[Fabric] Attempting to load connection profile from: ${this.connectionProfilePath}`);
+      
+      // Load connection profile
+      const ccpJSON = fs.readFileSync(this.connectionProfilePath, 'utf8');
+      this.ccp = JSON.parse(ccpJSON);
+      logger.info('[Fabric] Connection profile loaded successfully');
+      
+      // Load wallet
+      this.wallet = await Wallets.newFileSystemWallet(this.walletPath);
+      logger.info(`[Fabric] Wallet loaded from: ${this.walletPath}`);
+      
+      // Ensure admin identity exists (auto-restore if missing)
+      await this.ensureAdminIdentity();
+      
+      // Check if admin exists in wallet
+      const identity = await this.wallet.get('admin');
+      if (!identity) {
+        throw new Error('Admin identity not found in wallet. Run create-permanent-admin.js first.');
+      }
+      logger.info('[Fabric] Admin identity verified:', identity.type);
+
+      // Create a new gateway for connecting to the peer node
+      this.gateway = new Gateway();
+      await this.gateway.connect(this.ccp, {
+        wallet: this.wallet,
+        identity: 'admin',
+        discovery: { 
+          enabled: false,  // Disable discovery to avoid "access denied" 
+          asLocalhost: true 
+        }
+      });
+      logger.info('[Fabric] Gateway connected successfully (static discovery)');
+
+      // Get the network (channel)
+      this.network = await this.gateway.getNetwork(config.fabric.channelName);
+      logger.info(`[Fabric] Network channel "${config.fabric.channelName}" retrieved`);
+
+      // Get the contract (chaincode)
+      this.contract = this.network.getContract(config.fabric.chaincodeName);
+      logger.info(`[Fabric] Contract "${config.fabric.chaincodeName}" retrieved`);
+
+      this.isConnected = true;
+      console.log(`[Fabric] ✅ Connected to channel "${config.fabric.channelName}", chaincode "${config.fabric.chaincodeName}"`);
+    } catch (error) {
+      console.error('[Fabric] Connection failed:', error.message);
+      this.isConnected = false;
+      throw new Error(`Cannot connect to Fabric: ${error.message}`);
+    }
+  }
+
+  /**
+   * Disconnect from Fabric network
+   */
+  async disconnect() {
+    if (this.gateway) {
+      await this.gateway.disconnect();
+      this.isConnected = false;
+      console.log('[Fabric] Disconnected from network');
+    }
+  }
+
+  /**
+   * Submit a new submission to blockchain
+   */
+  async submitSubmission(submissionData) {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      // Handle both submissionId and id properties
+      const submissionId = submissionData.submissionId || submissionData.id;
+      
+      if (!submissionId) {
+        throw new Error('Submission ID is required');
+      }
+
+      // Prepare submission data - ensure all fields are included
+      const submissionObj = typeof submissionData === 'string' ? JSON.parse(submissionData) : submissionData;
+      
+      // Clean up submission object for blockchain storage
+      const cleanSubmission = {
+        submissionId: submissionId,
+        programStudi: submissionObj.programStudi || '',
+        institusi: submissionObj.institusi || '',
+        programType: submissionObj.programType || 'S',
+        documents: submissionObj.documents || [],
+        status: submissionObj.status || 'completed',
+        ai: submissionObj.ai || null,  // Include AI recommendation with scoring
+        createdAt: submissionObj.createdAt,
+        updatedAt: submissionObj.updatedAt
+      };
+      
+      const submissionJSON = JSON.stringify(cleanSubmission);
+      
+      console.log(`[Fabric] Submitting transaction: CreateSubmission for ${submissionId}`);
+      console.log(`[Fabric] Submission data: programStudi="${cleanSubmission.programStudi}", institusi="${cleanSubmission.institusi}"`);
+      console.log(`[Fabric] Documents: ${cleanSubmission.documents.length}, AI: ${!!cleanSubmission.ai}, Scoring: ${!!(cleanSubmission.ai?.scoring)}`);
+      
+      // Simple approach: just use submitTransaction without explicit targeting
+      // SDK will handle peer selection based on endorsement policy
+      console.log('[Fabric] Submitting transaction to available peers...');
+      
+      const result = await this.contract.submitTransaction(
+        'CreateSubmission',
+        submissionId,
+        submissionJSON
+      );
+
+      console.log(`[Fabric] ✅ Submission "${submissionData.id}" stored on blockchain`);
+      
+      // Handle result which might be undefined or empty
+      let data = null;
+      if (result && result.length > 0) {
+        try {
+          data = JSON.parse(result.toString());
+        } catch (e) {
+          data = result.toString();
+        }
+      }
+      
+      return {
+        success: true,
+        transactionId: submissionData.id,
+        data: data
+      };
+    } catch (error) {
+      console.error('[Fabric] Failed to submit submission:', error.message);
+      
+      // Log detailed error info
+      if (error.endorsements) {
+        console.error('[Fabric] Endorsements:', error.endorsements);
+      }
+      if (error.errors) {
+        console.error('[Fabric] Detailed errors:', JSON.stringify(error.errors));
+      }
+      if (error.responses) {
+        console.error('[Fabric] Peer responses:', error.responses);
+      }
+      
+      // Check if it's an endorsement error
+      if (error.message && error.message.includes('No valid responses')) {
+        console.error('[Fabric] This is an endorsement error - peers may not be responding correctly');
+        console.error('[Fabric] Try checking peer logs: docker logs peer0.sekretariat.akreditasi.local');
+      }
+      
+      throw new Error(`Blockchain submission failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get submission by ID from blockchain
+   */
+  async getSubmission(submissionId) {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      const result = await this.contract.evaluateTransaction('getSubmission', submissionId);
+      const submission = JSON.parse(result.toString());
+
+      console.log(`[Fabric] Retrieved submission "${submissionId}" from blockchain`);
+      return submission;
+    } catch (error) {
+      console.error(`[Fabric] Failed to get submission "${submissionId}":`, error.message);
+      throw new Error(`Blockchain query failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all submissions from blockchain
+   */
+  async getAllSubmissions() {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      const result = await this.contract.evaluateTransaction('QueryAllSubmissions');
+      const submissions = JSON.parse(result.toString());
+
+      console.log(`[Fabric] Retrieved ${submissions.length} submissions from blockchain`);
+      return submissions;
+    } catch (error) {
+      console.error('[Fabric] Failed to get all submissions:', error.message);
+      throw new Error(`Blockchain query failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update submission on blockchain
+   */
+  async updateSubmission(submissionId, updates) {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      const updatesJSON = JSON.stringify(updates);
+      const result = await this.contract.submitTransaction(
+        'updateSubmission',
+        submissionId,
+        updatesJSON
+      );
+
+      console.log(`[Fabric] Submission "${submissionId}" updated on blockchain`);
+      return {
+        success: true,
+        transactionId: submissionId,
+        data: JSON.parse(result.toString())
+      };
+    } catch (error) {
+      console.error(`[Fabric] Failed to update submission "${submissionId}":`, error.message);
+      throw new Error(`Blockchain update failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete submission from blockchain
+   */
+  async deleteSubmission(submissionId) {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      await this.contract.submitTransaction('deleteSubmission', submissionId);
+
+      console.log(`[Fabric] Submission "${submissionId}" deleted from blockchain`);
+      return {
+        success: true,
+        transactionId: submissionId
+      };
+    } catch (error) {
+      console.error(`[Fabric] Failed to delete submission "${submissionId}":`, error.message);
+      throw new Error(`Blockchain delete failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Query submissions by program studi
+   */
+  async getSubmissionsByProgramStudi(programStudi) {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      const result = await this.contract.evaluateTransaction(
+        'querySubmissionsByProgramStudi',
+        programStudi
+      );
+      const submissions = JSON.parse(result.toString());
+
+      console.log(`[Fabric] Found ${submissions.length} submissions for "${programStudi}"`);
+      return submissions;
+    } catch (error) {
+      console.error(`[Fabric] Failed to query by program studi:`, error.message);
+      throw new Error(`Blockchain query failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if service is healthy
+   */
+  async healthCheck() {
+    try {
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      return {
+        connected: this.isConnected,
+        channel: config.fabric.channelName,
+        chaincode: config.fabric.chaincodeName,
+        status: 'healthy'
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        status: 'unhealthy',
+        error: error.message
+      };
+    }
+  }
+}
+
+module.exports = new FabricService();

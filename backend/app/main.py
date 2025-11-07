@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import upload, submissions, websocket
+from app.routers import upload, submissions, websocket, scoring
 
 app = FastAPI(
     title="Accreditation System API",
@@ -34,6 +34,7 @@ async def log_requests(request, call_next):
 app.include_router(upload.router)
 app.include_router(submissions.router)
 app.include_router(websocket.router)
+app.include_router(scoring.router)
 
 @app.get("/")
 async def root():

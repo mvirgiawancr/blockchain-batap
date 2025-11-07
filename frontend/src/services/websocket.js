@@ -25,8 +25,14 @@ class WebSocketService {
         const data = JSON.parse(event.data);
         console.log('WebSocket message:', data);
         
-        if (data.event) {
-          this.emit(data.event, data.payload || data);
+        // Handle different message types from backend
+        const messageType = data.type || data.event;
+        if (messageType) {
+          // Emit specific event
+          this.emit(messageType, data);
+          
+          // Also emit generic 'message' event
+          this.emit('message', data);
         }
       } catch (error) {
         console.error('WebSocket message parse error:', error);

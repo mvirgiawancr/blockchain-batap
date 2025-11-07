@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class Document(BaseModel):
@@ -17,6 +17,12 @@ class AIRecommendation(BaseModel):
     lkpsDataCompleteness: dict = Field(default_factory=dict, description="Kelengkapan data LKPS")
     flags: List[str] = Field(default_factory=list, description="Temuan/observasi dari analisis")
     recommendations: List[str] = Field(default_factory=list, description="Rekomendasi perbaikan")
+    scoreCompleteness: float = Field(0.0, description="Skor kelengkapan dokumen")
+    analyzedAt: Optional[str] = Field(None, description="Waktu analisis AI")
+    # Full scoring data
+    scoring: Optional[Dict[str, Any]] = Field(default=None, description="Hasil perhitungan skoring lengkap BAN-PT")
+    scoring_analysis: Optional[Dict[str, Any]] = Field(default=None, description="Analisis scoring AI")
+    scoring_error: Optional[str] = Field(default=None, description="Error scoring jika ada")
 
 class Decision(BaseModel):
     result: str  # "approved" or "rejected"
@@ -45,7 +51,7 @@ class SubmissionResponse(BaseModel):
     institusi: str
     documents: List[Document]
     status: str
-    version: int
+    version: int = 1  # Default value for backward compatibility
     ai: Optional[AIRecommendation] = None
     decision: Optional[Decision] = None
     createdAt: str
