@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createSubmission } from '../services/api';
 import wsService from '../services/websocket';
 import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download } from 'lucide-react';
+import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 
 export default function UPPSDashboard() {
   const [formData, setFormData] = useState({
@@ -18,6 +19,10 @@ export default function UPPSDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({ type: '', message: '' });
+  const notificationCounterRef = useRef(0); // Counter untuk unique ID
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     wsService.connect('upps');
@@ -36,14 +41,102 @@ export default function UPPSDashboard() {
     });
 
     // Listen for upload progress updates
-    wsService.on('UploadProgress', (data) => {
-      console.log('[Frontend] Upload progress update:', data);
-      const { step, status, message } = data;
+    wsService.on('upload_progress', (data) => {
+      console.log('[Frontend] Upload progress:', data);
+      const { stage, progress, message, details } = data.data || data;
       
-      if (status === 'processing') {
-        updateProgress(step, 'processing', message);
-      } else if (status === 'completed') {
-        updateProgress(step, 'completed', message);
+      // Update progress steps based on stage
+      if (stage === 'started') {
+        updateProgress(1, 'processing', 'Memulai verifikasi...');
+      } else if (stage === 'analysis_starting') {
+        updateProgress(1, 'completed', 'LED terverifikasi');
+        updateProgress(2, 'completed', 'LKPS terverifikasi');
+        updateProgress(3, 'processing', 'Analisis AI dimulai...');
+      } else if (stage === 'scoring') {
+        updateProgress(3, 'completed', 'Analisis AI selesai');
+        updateProgress(4, 'processing', 'Menghitung skor LAM-TEK...');
+      } else if (stage === 'blockchain') {
+        updateProgress(4, 'completed', 'Skoring selesai');
+        updateProgress(5, 'completed', 'Upload IPFS selesai');
+        updateProgress(6, 'processing', 'Menyimpan ke blockchain...');
+      } else if (stage === 'blockchain_complete') {
+        updateProgress(6, 'completed', 'Tersimpan di blockchain');
+      }
+      
+      if (message) {
+        addNotification(message, 'info');
+      }
+    });
+
+    // Listen for analysis progress
+    wsService.on('analysis_progress', (data) => {
+      console.log('[Frontend] Analysis progress:', data);
+      const { stage, message, progress } = data.data || data;
+      
+      if (stage === 'extracting') {
+        updateProgress(3, 'processing', 'Menganalisis dokumen dengan AI...');
+      } else if (stage === 'analysis_complete') {
+        updateProgress(3, 'completed', message || 'Analisis AI selesai');
+      }
+      
+      if (message) {
+        addNotification(message, 'info');
+      }
+    });
+
+    // Listen for scoring updates
+    wsService.on('scoring_update', (data) => {
+      console.log('[Frontend] Scoring update:', data);
+      const scoring = data.data || data;
+      updateProgress(4, 'completed', `Skor: ${scoring.finalScore}/${scoring.maxPossibleScore} (${scoring.akreditasi})`);
+      addNotification(`Scoring complete! Final Score: ${scoring.finalScore}/${scoring.maxPossibleScore} (${scoring.percentage}%) - ${scoring.akreditasi}`, 'success');
+      
+      // Update result with scoring data if we already have a result
+      if (result) {
+        console.log('[Frontend] Updating existing result with scoring data');
+        setResult(prev => ({
+          ...prev,
+          ai: {
+            ...(prev?.ai || {}),
+            scoring: scoring
+          }
+        }));
+      }
+    });
+
+    // Listen for success
+    wsService.on('success', (data) => {
+      console.log('[Frontend] Success:', data);
+      const { message, submission } = data.data || data;
+      
+      // If we get submission data via WebSocket, set it as result
+      if (submission) {
+        console.log('[Frontend] Setting result from WebSocket:', submission);
+        setResult(submission);
+        
+        // Stop timer
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+        }
+        
+        // Show success and close modal after delay
+        setTimeout(() => {
+          setShowModal(false);
+          setUploading(false);
+        }, 2000);
+      }
+      
+      if (message) {
+        addNotification(message, 'success');
+      }
+    });
+
+    // Listen for errors
+    wsService.on('error', (data) => {
+      console.log('[Frontend] Error:', data);
+      const { message } = data.error || data;
+      if (message) {
+        addNotification(message, 'error');
       }
     });
 
@@ -53,7 +146,9 @@ export default function UPPSDashboard() {
   }, []);
 
   const addNotification = (message, type = 'info') => {
-    const notification = { id: Date.now(), message, type };
+    // Use timestamp + counter to ensure uniqueness
+    notificationCounterRef.current += 1;
+    const notification = { id: `${Date.now()}-${notificationCounterRef.current}`, message, type };
     setNotifications(prev => [notification, ...prev].slice(0, 5));
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
@@ -100,6 +195,19 @@ export default function UPPSDashboard() {
     setError(null);
     setResult(null);
     
+    // Start timer
+    const start = Date.now();
+    setStartTime(start);
+    setElapsedTime(0);
+    
+    // Start timer interval (update every second)
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    
     // Reset progress
     setUploadProgress({
       step: 0,
@@ -144,16 +252,20 @@ export default function UPPSDashboard() {
       
       // Debug scoring data
       if (response.ai) {
-        console.log('[Frontend] AI data:', response.ai);
+        console.log('[Frontend] AI data received:', response.ai);
+        console.log('[Frontend] AI keys:', Object.keys(response.ai));
         if (response.ai.scoring) {
-          console.log('[Frontend] Scoring data found:', response.ai.scoring);
-          console.log('[Frontend] Scoring results:', response.ai.scoring.results);
-          console.log('[Frontend] Results length:', response.ai.scoring.results?.length || 0);
+          console.log('[Frontend] ✅ Scoring data found:', response.ai.scoring);
+          console.log('[Frontend] Scoring grade:', response.ai.scoring.grade);
+          console.log('[Frontend] Scoring overallScore:', response.ai.scoring.overallScore);
+          console.log('[Frontend] Scoring method:', response.ai.scoring.method);
+          console.log('[Frontend] Criteria scores:', response.ai.scoring.criteriaScores);
         } else {
-          console.log('[Frontend] No scoring data in AI response');
+          console.log('[Frontend] ❌ No scoring data in AI response - ai.scoring is undefined');
+          console.log('[Frontend] Available ai fields:', Object.keys(response.ai));
         }
       } else {
-        console.log('[Frontend] No AI data in response');
+        console.log('[Frontend] ❌ No AI data in response at all');
       }
       
       // Mark all steps as completed
@@ -166,26 +278,28 @@ export default function UPPSDashboard() {
       
       setResult(response);
       
-      // Show success modal
+      // Show success modal briefly, then hide to show result
       setModalContent({
         type: 'success',
         message: 'Dokumen berhasil diverifikasi dan diupload! Semua dokumen valid.'
       });
       addNotification('Upload berhasil! Dokumen telah diverifikasi.', 'success');
       
-      setFormData({ programStudi: '', institusi: '', programType: 'S' });
-      setLedFile(null);
-      setLkpsFile(null);
-      setAdditionalFiles([]);
+      // Stop timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+      const totalTime = Math.floor((Date.now() - startTime) / 1000);
+      console.log(`[Frontend] Total processing time: ${totalTime} seconds`);
       
-      // Force immediate display of result - no need to wait
-      setShowModal(false);  // Close progress modal immediately
-      
-      // Auto close success modal after showing immediately
+      // Close modal after 2 seconds to show result
       setTimeout(() => {
-        // Result is already set and visible
-        console.log('[Frontend] Upload completed successfully, result displayed');
-      }, 100);
+        setShowModal(false);
+        console.log('[Frontend] Upload completed successfully, showing result');
+      }, 2000);
+      
+      // Reset form but keep result visible
+      // Don't reset form immediately, let user see the result first
     } catch (err) {
       let errorMsg = 'Terjadi kesalahan yang tidak diketahui.';
 
@@ -198,7 +312,15 @@ export default function UPPSDashboard() {
           errorMsg = `Server mengembalikan status ${err.response.status}.`;
         }
       } else if (err.message === 'Network Error') {
-        errorMsg = 'Tidak dapat terhubung ke backend. Pastikan server FastAPI sedang berjalan.';
+        errorMsg = 'Tidak dapat terhubung ke backend. Pastikan server Express.js sedang berjalan di http://localhost:8000';
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        // Timeout is OK - WebSocket will send updates
+        console.log('[Frontend] HTTP request timeout - relying on WebSocket for updates');
+        addNotification('Proses berlanjut di backend. Tunggu update melalui WebSocket...', 'info');
+        
+        // Don't show error modal, keep progress modal open
+        // WebSocket will handle the rest
+        return; // Exit without setting error
       } else if (err.message) {
         errorMsg = err.message;
       }
@@ -211,10 +333,24 @@ export default function UPPSDashboard() {
         message: `Validasi Gagal!\n\n${errorMsg}\n\nPastikan dokumen yang diupload adalah LED dan LKPS yang valid.`
       });
       addNotification('Upload gagal: ' + errorMsg, 'error');
+      
+      // Stop timer on error
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     } finally {
       setUploading(false);
     }
   };
+  
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
 
   const getNotificationColor = (type) => {
     const colors = {
@@ -240,7 +376,7 @@ export default function UPPSDashboard() {
                       <Clock className="w-16 h-16 text-blue-600 animate-spin" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-sm font-bold text-blue-600">
-                          {uploadProgress.step}/5
+                          {uploadProgress.step}/6
                         </span>
                       </div>
                     </div>
@@ -251,6 +387,13 @@ export default function UPPSDashboard() {
                   <p className="text-gray-600">
                     Mohon tunggu, sistem sedang memverifikasi dan menganalisis dokumen Anda
                   </p>
+                  {/* Time tracker */}
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">
+                      Waktu proses: {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="space-y-3">
@@ -595,34 +738,34 @@ export default function UPPSDashboard() {
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
                 <p className="text-sm text-purple-700 font-medium mb-1">Kelengkapan Dokumen</p>
                 <div className="flex items-center gap-2 mt-2">
-                  {result.ai.hasLED && (
+                  {result?.ai?.hasLED && (
                     <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
                       ✓ LED
                     </span>
                   )}
-                  {result.ai.hasLKPS && (
+                  {result?.ai?.hasLKPS && (
                     <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
                       ✓ LKPS
                     </span>
                   )}
                 </div>
               </div>
-              {result.ai.scoring && (
+              {result.ai?.scoring && (
                 <div className="col-span-full">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h4 className="text-lg font-semibold text-blue-900">🎯 Hasil Scoring LAM-TEK 2025</h4>
                         <p className="text-sm text-blue-700">
-                          Metode: {result.ai.scoring.method || 'LAM-TEK 2025'}
+                          Metode: {result.ai?.scoring?.method || 'LAM-TEK 2025'}
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="text-4xl font-bold text-blue-900">
-                          {result.ai.scoring.overall_percentage.toFixed(1)}%
+                        <div className="text-5xl font-bold text-blue-900">
+                          {(result.ai?.scoring?.overallScore || 0).toFixed(2)} / 4.00
                         </div>
-                        <div className="text-sm text-blue-700">
-                          ({result.ai.scoring.total_score.toFixed(1)}/{result.ai.scoring.total_indicators} butir)
+                        <div className="text-sm text-blue-700 mt-1">
+                          Overall Score: {(result.ai?.scoring?.percentage || 0).toFixed(1)}%
                         </div>
                       </div>
                     </div>
@@ -630,15 +773,17 @@ export default function UPPSDashboard() {
                     {/* Grade Display - Prominent */}
                     <div className="text-center mb-4">
                       <span className={`inline-block px-8 py-4 rounded-2xl text-3xl font-bold ${
-                        result.ai.scoring.grade === 'A' || result.ai.scoring.overall_grade === 'A' ? 'bg-green-600 text-white' :
-                        result.ai.scoring.grade === 'B' || result.ai.scoring.overall_grade === 'B' ? 'bg-blue-600 text-white' :
-                        result.ai.scoring.grade === 'C' || result.ai.scoring.overall_grade === 'C' ? 'bg-yellow-600 text-white' :
-                        result.ai.scoring.grade === 'D' || result.ai.scoring.overall_grade === 'D' ? 'bg-orange-600 text-white' :
+                        result.ai?.scoring?.grade === 'A' ? 'bg-green-600 text-white' :
+                        result.ai?.scoring?.grade === 'B' ? 'bg-blue-600 text-white' :
+                        result.ai?.scoring?.grade === 'C' ? 'bg-yellow-600 text-white' :
+                        result.ai?.scoring?.grade === 'D' ? 'bg-orange-600 text-white' :
                         'bg-red-600 text-white'
                       }`}>
-                        Grade: {result.ai.scoring.grade || result.ai.scoring.overall_grade}
-                        {result.ai.scoring.grade_description && ` (${result.ai.scoring.grade_description})`}
+                        Grade: {result.ai?.scoring?.grade || 'E'}
                       </span>
+                      <div className="mt-2 text-xl font-semibold text-blue-800">
+                        {result.ai?.scoring?.akreditasi || 'Tidak Terakreditasi'}
+                      </div>
                     </div>
                     
                     {/* Progress Bar */}
@@ -646,9 +791,9 @@ export default function UPPSDashboard() {
                       <div className="w-full bg-blue-200 rounded-full h-6">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full transition-all duration-1000 flex items-center justify-center"
-                          style={{ width: `${result.ai.scoring.overall_percentage}%` }}
+                          style={{ width: `${(result.ai?.scoring?.percentage || 0)}%` }}
                         >
-                          <span className="text-white text-sm font-bold">{result.ai.scoring.overall_percentage.toFixed(1)}%</span>
+                          <span className="text-white text-sm font-bold">{(result.ai?.scoring?.percentage || 0).toFixed(1)}%</span>
                         </div>
                       </div>
                     </div>
@@ -656,24 +801,35 @@ export default function UPPSDashboard() {
                     {/* LAM-TEK Summary */}
                     <div className="text-center text-blue-800">
                       <p className="text-lg">
-                        <span className="font-bold">{result.ai.scoring.total_indicators}</span> butir penilaian LAM-TEK
+                        <span className="font-bold">7 Kriteria</span> Akreditasi LAM-TEK 2025
                       </p>
                       <p className="text-sm mt-1">
-                        Skor total: <span className="font-bold">{result.ai.scoring.total_score.toFixed(1)}</span> dari {result.ai.scoring.total_indicators}
+                        Rata-rata: <span className="font-bold">{(result.ai?.scoring?.overallScore || 0).toFixed(2)}</span> / 4.00
                       </p>
-                      {result.ai.scoring.lamtek_details && (
-                        <p className="text-xs mt-2 text-blue-600">
-                          Task 1: {result.ai.scoring.lamtek_details.summary?.task1_score || 0} | 
-                          Task 2: {result.ai.scoring.lamtek_details.summary?.task2_score || 0} | 
-                          Task 3: {result.ai.scoring.lamtek_details.summary?.task3_score || 0} | 
-                          Task 4: {result.ai.scoring.lamtek_details.summary?.task4_score || 0}
-                        </p>
+                      {result.ai?.scoring?.summary && (
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-white/50 rounded-lg p-2">
+                            <div className="text-green-700 font-bold">✓ Kriteria ≥ 3.5</div>
+                            <div className="text-xl font-bold">{result.ai?.scoring?.summary?.criteriaAbove3_5 || 0}</div>
+                          </div>
+                          <div className="bg-white/50 rounded-lg p-2">
+                            <div className="text-red-700 font-bold">✗ Kriteria &lt; 2.0</div>
+                            <div className="text-xl font-bold">{result.ai?.scoring?.summary?.criteriaBellow2_0 || 0}</div>
+                          </div>
+                        </div>
                       )}
                     </div>
+                    
+                    {/* Detailed Criteria Breakdown with Nested Dropdowns */}
+                    {result.ai?.scoring && (
+                      <div className="mt-6">
+                        <ScoringDetailDropdown scoring={result.ai.scoring} />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-              {!result.ai.scoring && (
+              {!result.ai?.scoring && (
                 <div className="col-span-full">
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-dashed border-gray-300">
                     <h4 className="text-lg font-semibold text-gray-700 mb-2">🎯 Hasil Scoring Otomatis</h4>
@@ -691,7 +847,7 @@ export default function UPPSDashboard() {
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-3">📄 Dokumen Terupload</h4>
                 <div className="space-y-3">
-                  {result.documents.map((doc, idx) => (
+                  {(result?.documents || []).map((doc, idx) => (
                     <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -733,7 +889,7 @@ export default function UPPSDashboard() {
                 </div>
               </div>
 
-              {result.ai.recommendations && result.ai.recommendations.length > 0 && (
+              {result?.ai?.recommendations && result.ai.recommendations.length > 0 && (
                 <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
                   <h4 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
                     💡 Rekomendasi AI

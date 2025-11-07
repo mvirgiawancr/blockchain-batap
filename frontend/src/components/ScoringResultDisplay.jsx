@@ -15,16 +15,29 @@ const ScoringResultDisplay = ({ scoringResult }) => {
 
   const { 
     overall_percentage,
+    overallScore,
+    percentage,
     grade,
-    method
+    method,
+    akreditasi,
+    criteriaScores,
+    summary
   } = scoringResult;
 
-  const percentage = overall_percentage || 0;
-  const finalGrade = grade || "C";
+  // Support both old and new data structure
+  const finalPercentage = percentage || overall_percentage || 0;
+  const finalScore = overallScore || (finalPercentage / 100 * 4) || 0;
+  const finalGrade = grade || "E";
   const finalMethod = method || "LAM-TEK 2025";
+  const finalAkreditasi = akreditasi || (
+    finalGrade === 'A' ? 'Unggul' :
+    finalGrade === 'B' ? 'Baik Sekali' :
+    finalGrade === 'C' ? 'Baik' :
+    finalGrade === 'D' ? 'Minimum' : 'Tidak Terakreditasi'
+  );
   
-  // Convert to 4.0 scale based on percentage (more accurate for LAM-TEK)
-  const scoreOn4Scale = percentage ? (percentage / 100 * 4).toFixed(2) : '0.00';
+  // Use overallScore directly (0-4 scale)
+  const scoreOn4Scale = (finalScore || 0).toFixed(2);
   
   // Determine grade color
   const getGradeColor = (grade) => {
@@ -52,55 +65,33 @@ const ScoringResultDisplay = ({ scoringResult }) => {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          {/* Grade Display */}
-          <div className="text-center">
-            <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${gradeColor} flex items-center justify-center shadow-lg`}>
-              <span className="text-2xl font-bold text-white">{finalGrade}</span>
-            </div>
-            <p className="text-sm text-gray-600 mt-1 font-medium">Grade</p>
+        {/* Score Display - Only */}
+        <div className="text-center">
+          <div className="bg-white rounded-xl p-4 shadow-md border-2 border-blue-200">
+            <div className="text-3xl font-bold text-blue-900">{scoreOn4Scale}</div>
+            <div className="text-sm text-blue-600 mt-1">/ 4.0</div>
           </div>
-          
-          {/* Score Display */}
-          <div className="text-center">
-            <div className="bg-white rounded-xl p-3 shadow-md border-2 border-blue-200">
-              <div className="text-2xl font-bold text-blue-900">{scoreOn4Scale}</div>
-              <div className="text-sm text-blue-600">/ 4.0</div>
-            </div>
-            <p className="text-sm text-gray-600 mt-1 font-medium">Skor</p>
-          </div>
-          
-          {/* Percentage Display */}
-          <div className="text-center">
-            <div className="bg-white rounded-xl p-3 shadow-md border-2 border-blue-200">
-              <div className="text-2xl font-bold text-blue-900">{percentage.toFixed(1)}</div>
-              <div className="text-sm text-blue-600">%</div>
-            </div>
-            <p className="text-sm text-gray-600 mt-1 font-medium">Persentase</p>
-          </div>
+          <p className="text-sm text-gray-600 mt-2 font-medium">Skor</p>
         </div>
       </div>
       
-      {/* Grade Description */}
-      <div className="mt-4 p-3 bg-white rounded-xl border border-blue-200">
-        <div className="flex items-center gap-2">
-          <Award className="w-5 h-5 text-blue-600" />
-          <span className="text-sm font-medium text-gray-700">
-            Interpretasi: 
-            <span className={`ml-1 font-semibold ${
-              finalGrade === 'A' ? 'text-emerald-600' :
-              finalGrade === 'B' ? 'text-blue-600' :
-              finalGrade === 'C' ? 'text-yellow-600' :
-              finalGrade === 'D' ? 'text-orange-600' : 'text-gray-600'
-            }`}>
-              {finalGrade === 'A' ? 'Unggul' :
-               finalGrade === 'B' ? 'Sangat Baik' :
-               finalGrade === 'C' ? 'Baik' :
-               finalGrade === 'D' ? 'Cukup' : 'Perlu Perbaikan'}
-            </span>
-          </span>
+      {/* Summary Stats */}
+      {summary && (
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg p-3 border border-blue-200 text-center">
+            <div className="text-xs text-gray-600 mb-1">Total Butir</div>
+            <div className="text-lg font-bold text-blue-900">{summary.totalButir || 0}</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-3 border border-green-200 text-center">
+            <div className="text-xs text-green-700 mb-1">Kriteria ≥ 3.5</div>
+            <div className="text-lg font-bold text-green-700">{summary.criteriaAbove3_5 || 0}</div>
+          </div>
+          <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-center">
+            <div className="text-xs text-red-700 mb-1">Kriteria &lt; 2.0</div>
+            <div className="text-lg font-bold text-red-700">{summary.criteriaBellow2_0 || 0}</div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

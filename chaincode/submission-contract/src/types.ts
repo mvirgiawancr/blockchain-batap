@@ -12,11 +12,15 @@ export interface Document {
 }
 
 export interface AIRecommendation {
+    hasLED?: boolean;
+    hasLKPS?: boolean;
+    readyForScoring?: boolean;
+    notes?: string;
     scoreCompleteness: number;
     flags: string[];
     recommendations: string[];
     analyzedAt: string;
-    scoring?: ScoringResult;
+    scoring?: any;  // Allow any structure for full LAM-TEK scoring
     scoring_summary?: ScoringResult;  // Support for simplified scoring format
 }
 
@@ -46,6 +50,7 @@ export interface Submission {
     submissionId: string;
     programStudi: string;
     institusi: string;
+    programType?: string;  // S, M, D, D1, D2, D3, STr, MTr, DTr, PPI
     documents: Document[];
     status: 'under_review' | 'approved' | 'rejected';
     version: number;

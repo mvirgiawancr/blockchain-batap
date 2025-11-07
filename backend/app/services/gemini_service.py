@@ -2,7 +2,12 @@ import google.generativeai as genai
 from typing import Dict, Any, List
 from app.config import settings
 import json
-from app.services.scoring_service import ScoringService
+import io
+import time
+import asyncio
+import traceback
+from PyPDF2 import PdfReader
+from openpyxl import load_workbook
 
 class GeminiService:
     """Service for AI analysis using Google Gemini"""
@@ -10,7 +15,186 @@ class GeminiService:
     def __init__(self):
         genai.configure(api_key=settings.GEMINI_API_KEY)
         self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
-    
+
+    def _get_field_descriptions_led(self, criterion_num: int) -> str:
+        """Get detailed field descriptions for LED data"""
+        descriptions = {
+            1: '''- vmts_unik_spesifik (string): Jelaskan secara singkat keunikan/kekhasan VMTS berdasarkan teks.
+- vmts_dukungan_renstra_kurikulum (string): Jelaskan secara singkat bagaimana VMTS didukung oleh renstra dan kurikulum.
+- vmts_stakeholder_internal (string): Sebutkan bukti keterlibatan stakeholder internal (dosen, mahasiswa, tendik) dalam penyusunan VMTS.
+- vmts_stakeholder_eksternal (string): Sebutkan bukti keterlibatan stakeholder eksternal (lulusan, pengguna) dalam penyusunan VMTS.
+- vmts_sosialisasi (string): Jelaskan secara singkat metode sosialisasi VMTS yang dijelaskan dalam dokumen.
+- vmts_pemahaman (string): Jelaskan bukti adanya pemahaman VMTS oleh sivitas akademika.
+- vmts_pencapaian_konkret (string): Sebutkan satu atau dua contoh pencapaian konkret dari implementasi VMTS.
+- vmts_dampak_berkelanjutan (string): Jelaskan dampak berkelanjutan yang dihasilkan dari pencapaian VMTS.''',
+            2: '''- tata_pamong_kelengkapan (string): Jelaskan bukti kelengkapan struktur organisasi dan tata pamong.
+- tata_pamong_governance (string): Jelaskan bukti penerapan prinsip Good University Governance (transparan, akuntabel, dll).
+- komitmen_pimpinan (string): Jelaskan bukti komitmen pimpinan UPPS.
+- kemampuan_manajerial (string): Jelaskan bukti kemampuan manajerial pimpinan UPPS.
+- pengelolaan_keuangan (string): Jelaskan bukti adanya sistem pengelolaan keuangan yang transparan dan akuntabel.''',
+            3: '''- pemutakhiran_kurikulum (string): Jelaskan bukti adanya proses pemutakhiran kurikulum yang melibatkan stakeholder.
+- kesesuaian_profil_cpl (string): Jelaskan kesesuaian antara profil lulusan dengan CPL.
+- rps_kelengkapan (string): Jelaskan kelengkapan komponen dalam dokumen RPS.
+- proses_pembelajaran_efektivitas (string): Jelaskan metode pembelajaran yang berpusat pada mahasiswa (SCL).
+- suasana_akademik_pengelolaan (string): Jelaskan cara UPPS mengelola dan mengembangkan suasana akademik.
+- kesesuaian_penelitian (string): Jelaskan kesesuaian penelitian dengan peta jalan.
+- kesesuaian_pkm (string): Jelaskan kesesuaian PkM dengan peta jalan.''',
+            5: '''- sarana_prasarana_akademik (string): Deskripsikan secara singkat sarana prasarana utama untuk kegiatan akademik.
+- sarana_prasarana_non_akademik (string): Deskripsikan secara singkat sarana prasarana untuk kegiatan non-akademik.
+- k3l (string): Jelaskan bukti implementasi sistem K3L.''',
+            7: '''- keberadaan_unit_spmi (string): Sebutkan nama unit penjaminan mutu yang dijelaskan.
+- ketersediaan_perangkat_spmi (string): Sebutkan dokumen-dokumen SPMI yang tersedia.
+- keterlaksanaan_spmi (string): Jelaskan bukti keterlaksanaan siklus SPMI (PPEPP).
+- evaluasi_capaian_kinerja (string): Jelaskan mekanisme evaluasi capaian kinerja.
+- kepuasan_pemangku_kepentingan (string): Jelaskan metode pengukuran kepuasan pemangku kepentingan.'''
+        }
+        return descriptions.get(criterion_num, "No LED fields for this criterion")
+"No LED fields for this criterion")
+
+    def _get_lkps_extraction_prompt(self, criterion_num: int, lkps_content_snippet: str) -> str:
+        """Generates a highly specific and structured prompt for LKPS data extraction for a given criterion."""
+        
+        prompts = {
+            2: {
+                "fields": {
+                    "kerjasama_pendidikan": "(number) Jumlah kerjasama PENDIDIKAN dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                    "kerjasama_penelitian": "(number) Jumlah kerjasama PENELITIAN dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                    "kerjasama_pkm": "(number) Jumlah kerjasama PKM dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                    "kerjasama_internasional": "(number) Jumlah kerjasama tingkat INTERNASIONAL (RI) dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                    "kerjasama_nasional": "(number) Jumlah kerjasama tingkat NASIONAL (RN) dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                    "kerjasama_wilayah": "(number) Jumlah kerjasama tingkat LOKAL/WILAYAH (RW) dari Tabel 4. Sum dari TS, TS-1, TS-2.",
+                },
+                "example": {"kerjasama_pendidikan": 131, "kerjasama_internasional": 34}
+            },
+            3: {
+                "fields": {
+                    "persentase_bahan_ajar_penelitian_pkm": "(number) Persentase bahan ajar dari penelitian/PkM (0-100) dari Butir 14. Cari angka persentase.",
+                    "pjp": "(number) PJP - Persentase pembelajaran berbasis praktik (0-100) dari Butir 17. Cari angka persentase.",
+                    "basic_sciences_sks": "(number) Jumlah SKS mata kuliah sains dasar dari Butir 18. Cari angka total SKS.",
+                    "ppdmhs": "(number) PPDMHS - Persentase praktik dalam mata kuliah sains (0-100) dari Butir 19. Cari angka persentase.",
+                    "pkdmhs": "(number) PKDMHS - Persentase kerja praktik/magang (0-100) dari Butir 20. Cari angka persentase."
+                },
+                "example": {"persentase_bahan_ajar_penelitian_pkm": 20.0, "pjp": 30, "basic_sciences_sks": 24, "ppdmhs": 15, "pkdmhs": 10}
+            },
+            4: {
+                "fields": {
+                    "ndtps": "(number) NDTPS - Jumlah Dosen Tetap Program Studi. Cari di 'Tabel 3.a.1' pada baris 'Jumlah' atau 'Total'.",
+                    "pdtt": "(number) PDTT - Persentase dosen tidak tetap (0-100). Cari di 'Butir 24' atau hitung dari 'Tabel 3.a.1' jika ada data dosen tidak tetap.",
+                    "pds3": "(number) PDS3 - Persentase dosen S3/doktor (0-100). Cari di 'Tabel 3.a.1' pada kolom 'Pendidikan' atau 'Kualifikasi Akademik', hitung persentase S3 dari total dosen.",
+                    "pgblkl": "(number) PGBLKL - Persentase Guru Besar + Lektor Kepala (0-100). Cari di 'Tabel 3.a.1' pada kolom 'Jabatan Akademik', hitung persentase GB+LK dari total dosen.",
+                    "rbk_dtps": "(number) RBK - Rata-rata beban kerja DTPS per semester dari Butir 27. Cari angka rata-rata.",
+                    "kinerja_penelitian_dtps_ri": "(number) Jumlah penelitian DTPS tingkat INTERNASIONAL (RI) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "kinerja_penelitian_dtps_rn": "(number) Jumlah penelitian DTPS tingkat NASIONAL (RN) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "kinerja_penelitian_dtps_rw": "(number) Jumlah penelitian DTPS tingkat LOKAL (RW) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "kinerja_pkm_dtps_ri": "(number) Jumlah PkM DTPS tingkat INTERNASIONAL (RI) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "kinerja_pkm_dtps_rn": "(number) Jumlah PkM DTPS tingkat NASIONAL (RN) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "kinerja_pkm_dtps_rw": "(number) Jumlah PkM DTPS tingkat LOKAL (RW) dari Tabel 3.b.1. Sum dari TS, TS-1, TS-2.",
+                    "publikasi_ilmiah_dtps_ri": "(number) Jumlah publikasi ilmiah DTPS tingkat INTERNASIONAL (RI) dari Tabel 3.b.2. Sum dari TS, TS-1, TS-2.",
+                    "publikasi_ilmiah_dtps_rn": "(number) Jumlah publikasi ilmiah DTPS tingkat NASIONAL (RN) dari Tabel 3.b.2. Sum dari TS, TS-1, TS-2.",
+                    "publikasi_ilmiah_dtps_rw": "(number) Jumlah publikasi ilmiah DTPS tingkat LOKAL (RW) dari Tabel 3.b.2. Sum dari TS, TS-1, TS-2.",
+                    "rlp_dtps": "(number) RLP - Rasio luaran penelitian per DTPS dari Butir 33. Cari angka rasio."
+                },
+                "example": {"ndtps": 29, "pdtt": 5, "pds3": 100.0, "pgblkl": 82.76, "kinerja_penelitian_dtps_rn": 12, "rlp_dtps": 0.5}
+            },
+            6: {
+                "fields": {
+                    "rmd": "(number) RMD - Rasio jumlah mahasiswa terhadap NDTPS dari Butir 37. Cari angka rasio.",
+                    "pma": "(number) PMA - Persentase mahasiswa asing (0-100) dari Butir 38. Cari angka persentase.",
+                    "ripk": "(number) RIPK - Rata-rata IPK lulusan (0.0-4.0) dari Butir 39. Cari angka rata-rata.",
+                    "prestasi_akademik_ri": "(number) Jumlah prestasi AKADEMIK tingkat INTERNASIONAL (RI) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "prestasi_akademik_rn": "(number) Jumlah prestasi AKADEMIK tingkat NASIONAL (RN) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "prestasi_akademik_rw": "(number) Jumlah prestasi AKADEMIK tingkat LOKAL (RW) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "prestasi_non_akademik_ri": "(number) Jumlah prestasi NON-AKADEMIK tingkat INTERNASIONAL (RI) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "prestasi_non_akademik_rn": "(number) Jumlah prestasi NON-AKADEMIK tingkat NASIONAL (RN) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "prestasi_non_akademik_rw": "(number) Jumlah prestasi NON-AKADEMIK tingkat LOKAL (RW) dari Tabel 6.a. Sum dari TS, TS-1, TS-2.",
+                    "ptw": "(number) PTW - Persentase lulusan tepat waktu (0-100) dari Butir 47. Cari angka persentase.",
+                    "publikasi_mahasiswa_ri": "(number) Jumlah publikasi mahasiswa INTERNASIONAL (RI) dari Tabel 6.b. Sum dari TS, TS-1, TS-2.",
+                    "publikasi_mahasiswa_rn": "(number) Jumlah publikasi mahasiswa NASIONAL (RN) dari Tabel 6.b. Sum dari TS, TS-1, TS-2.",
+                    "publikasi_mahasiswa_rw": "(number) Jumlah publikasi mahasiswa LOKAL (RW) dari Tabel 6.b. Sum dari TS, TS-1, TS-2.",
+                    "wt": "(number) WT - Rata-rata waktu tunggu kerja dalam bulan dari Butir 50. Cari angka rata-rata.",
+                    "kbk": "(number) KBK - Persentase kesesuaian bidang kerja (0-100) dari Butir 51. Cari angka persentase.",
+                    "tingkat_tempat_kerja_ri": "(number) Jumlah lulusan bekerja tingkat INTERNASIONAL dari Butir 51. Sum dari TS, TS-1, TS-2.",
+                    "tingkat_tempat_kerja_rn": "(number) Jumlah lulusan bekerja tingkat NASIONAL dari Butir 51. Sum dari TS, TS-1, TS-2.",
+                    "tingkat_tempat_kerja_rw": "(number) Jumlah lulusan bekerja tingkat LOKAL dari Butir 51. Sum dari TS, TS-1, TS-2.",
+                    "kepuasan_pengguna_a1": "(number) Jumlah responden SANGAT BAIK untuk aspek 1 (Etika) dari Tabel Kepuasan Pengguna. Sum dari TS, TS-1, TS-2.",
+                    "kepuasan_pengguna_b1": "(number) Jumlah responden BAIK untuk aspek 1 (Etika). Sum dari TS, TS-1, TS-2.",
+                    "kepuasan_pengguna_c1": "(number) Jumlah responden CUKUP untuk aspek 1 (Etika). Sum dari TS, TS-1, TS-2.",
+                    "kepuasan_pengguna_d1": "(number) Jumlah responden KURANG untuk aspek 1 (Etika). Sum dari TS, TS-1, TS-2."
+                },
+                "example": {"rmd": 20, "pma": 5, "ripk": 3.51, "prestasi_akademik_rn": 3, "wt": 3, "kbk": 75, "tingkat_tempat_kerja_rn": 50, "kepuasan_pengguna_a1": 50}
+            }
+        }
+
+        prompt_data = prompts.get(criterion_num)
+        if not prompt_data:
+            return None
+
+        field_definitions = "\n".join([f'- `{key}`: {desc}' for key, desc in prompt_data["fields"].items()])
+
+        prompt = f"""# OBJECTIVE
+Extract specific NUMERICAL data points from the provided LKPS document snippet for Criterion {criterion_num}.
+
+# EXTRACTION RULES
+1. Analyze the text, focusing on tables and numbered lists (`Butir`).
+2. For each field, find the corresponding numerical value. If data spans multiple years (TS, TS-1, TS-2), SUM the values unless it's a ratio or percentage.
+3. **RETURN ONLY NUMBERS.** Do not return text, descriptions, or formulas.
+4. If a value is not found or not applicable, use `0`.
+5. Ensure percentages are numbers from 0-100 (e.g., "85%" -> `85.0`).
+6. For fields like PDS3, PGBLKL, calculate the percentage from the raw counts in the table.
+
+# LKPS DOCUMENT SNIPPET
+```
+{lkps_content_snippet}
+```
+
+# FIELDS TO EXTRACT (Criterion {criterion_num})
+{field_definitions}
+
+# OUTPUT FORMAT
+Return **ONLY a single JSON object** with the key `lkps_data` containing the extracted fields. Do not add any explanations, markdown, or other text.
+
+Example:
+```json
+{{
+  "lkps_data": {json.dumps(prompt_data["example"])}
+}}
+```
+"""
+        return prompt
+
+    def _get_specific_lkps_prompt(self, lkps_content_snippet: str, fields: Dict[str, str], example: Dict[str, Any]) -> str:
+        """Generates a focused LKPS extraction prompt for a specific subset of fields."""
+        field_definitions = "\n".join([f'- `{key}`: {desc}' for key, desc in fields.items()])
+
+        prompt = f"""# OBJECTIVE
+Extract specific NUMERICAL data points from the provided LKPS document snippet.
+
+# EXTRACTION RULES
+1. Analyze the text, focusing on tables (especially "Tabel 4").
+2. For each field, find the corresponding numerical value. SUM values across years (TS, TS-1, TS-2) if present.
+3. **RETURN ONLY NUMBERS.** Do not return text.
+4. If a value is not found, use `0`.
+
+# LKPS DOCUMENT SNIPPET
+```
+{lkps_content_snippet}
+```
+
+# FIELDS TO EXTRACT
+{field_definitions}
+
+# OUTPUT FORMAT
+Return **ONLY a single JSON object** with the key `lkps_data` containing the extracted fields.
+
+Example:
+```json
+{{
+  "lkps_data": {json.dumps(example)}
+}}
+```
+"""
+        return prompt
+
     async def verify_document_type(
         self,
         filename: str,
@@ -19,426 +203,32 @@ class GeminiService:
     ) -> Dict[str, Any]:
         """
         Verify if uploaded document matches expected type (LED/LKPS)
-        
-        Args:
-            filename: Name of the file
-            expected_type: Expected document type (LED/LKPS)
-            file_content: File content in bytes
-        
-        Returns:
-            Verification result with confidence score
         """
         try:
-            print(f"[Gemini] Verifying document type: {filename} -> expected: {expected_type}")
-            
-            # Extract text from file
             text_content = ""
             if filename.lower().endswith('.pdf'):
-                print(f"[Gemini] Extracting text from PDF...")
                 text_content = await self.extract_text_from_pdf(file_content)
-                print(f"[Gemini] PDF text extracted: {len(text_content)} chars")
             elif filename.lower().endswith(('.xlsx', '.xls', '.csv')):
-                print(f"[Gemini] Extracting text from Excel/CSV...")
-                text_content = await self.extract_text_from_excel(file_content)
-                print(f"[Gemini] Excel/CSV text extracted: {len(text_content)} chars")
-                
-                # Debug: Show first 500 chars of extracted content
-                if text_content:
-                    print(f"[Gemini] First 500 chars: {text_content[:500]}")
-                else:
-                    print(f"[Gemini] WARNING: No text extracted from Excel/CSV file!")
+                text_content = await self.extract_text_from_excel(file_content, filename)
             
-            # Simple keyword-based validation as fallback
             text_lower = text_content.lower()
             
             if expected_type == "LED":
-                # Check for LED keywords - updated for real document
-                led_keywords = [
-                    "laporan evaluasi diri", "led", "evaluasi diri",
-                    "program studi", "akreditasi", "ban-pt",
-                    "visi misi", "tujuan", "strategi"
-                ]
-                found = any(keyword in text_lower for keyword in led_keywords)
-                
-                if found:
-                    return {
-                        "isValid": True,
-                        "confidence": 0.95,
-                        "detectedType": "LED",
-                        "reason": "Dokumen mengandung format LED (Laporan Evaluasi Diri)"
-                    }
-                else:
-                    return {
-                        "isValid": False,
-                        "confidence": 0.3,
-                        "detectedType": "OTHER",
-                        "reason": "Dokumen tidak mengandung format LED yang dikenali"
-                    }
+                led_keywords = ["laporan evaluasi diri", "led", "evaluasi diri", "program studi", "akreditasi", "visi misi"]
+                if any(keyword in text_lower for keyword in led_keywords):
+                    return {"isValid": True, "confidence": 0.95, "detectedType": "LED", "reason": "Dokumen mengandung format LED."}
             
             elif expected_type == "LKPS":
-                # Check for LKPS keywords - updated for real CSV format
-                lkps_keywords = [
-                    "laporan kinerja program studi", "lkps", "kinerja program",
-                    "akreditasi program studi", "lamtek", "lam-tek", 
-                    "teknologi industri pertanian", "institut pertanian bogor",
-                    "program akademik", "perguruan tinggi", "unit pengelola"
-                ]
-                found = any(keyword in text_lower for keyword in lkps_keywords)
-                
-                if found:
-                    return {
-                        "isValid": True,
-                        "confidence": 0.95,
-                        "detectedType": "LKPS",
-                        "reason": "Dokumen mengandung format LKPS LAM-TEK"
-                    }
-                else:
-                    return {
-                        "isValid": False,
-                        "confidence": 0.3,
-                        "detectedType": "OTHER",
-                        "reason": "Dokumen tidak mengandung format LKPS yang dikenali"
-                    }
-            
-            # If we can't determine, use AI with enhanced validation
-            prompt = f"""
-Anda adalah validator dokumen akreditasi. Verifikasi apakah dokumen ini adalah {expected_type}.
+                lkps_keywords = ["laporan kinerja program studi", "lkps", "lam-tek", "data dosen", "kinerja program"]
+                if any(keyword in text_lower for keyword in lkps_keywords):
+                    return {"isValid": True, "confidence": 0.95, "detectedType": "LKPS", "reason": "Dokumen mengandung format LKPS."}
 
-Nama File: {filename}
-Expected Type: {expected_type}
+            return {"isValid": False, "confidence": 0.4, "detectedType": "OTHER", "reason": f"Dokumen tidak mengandung kata kunci untuk {expected_type}."}
 
-Cuplikan Isi Dokumen:
-{text_content[:3000]}
-
-Kriteria Validasi:
-- LED: Jika ada teks "Laporan Evaluasi Diri", "LED", "evaluasi diri", "visi misi", "program studi" di dokumen, maka VALID
-- LKPS: Jika ada teks "LKPS", "LAM-TEK", "LAMTEK", "akreditasi program studi", "program akademik", "perguruan tinggi" di dokumen, maka VALID
-
-KHUSUS untuk file CSV/Excel LKPS:
-- File CSV dengan header "AKREDITASI PROGRAM STUDI" adalah LKPS VALID
-- File yang mengandung "Institut Pertanian Bogor", "Teknologi Industri Pertanian" adalah LKPS VALID
-- File yang mengandung struktur LAM-TEK adalah LKPS VALID
-
-Tugas:
-Cek apakah dokumen mengandung teks sesuai dengan tipe yang diharapkan ({expected_type}).
-Jika ada indikasi dokumen akreditasi, set isValid=true dan confidence=0.9 atau lebih.
-
-Output format JSON:
-{{
-  "isValid": true/false,
-  "confidence": 0.95,
-  "detectedType": "LED/LKPS/OTHER",
-  "reason": "penjelasan singkat"
-}}
-
-Hanya berikan JSON, tanpa teks tambahan.
-"""
-            
-            response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            
-            # Extract JSON
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-            
-            result = json.loads(result_text)
-            
-            # Validate structure
-            if "isValid" not in result:
-                result["isValid"] = False
-            if "confidence" not in result:
-                result["confidence"] = 0.0
-            if "detectedType" not in result:
-                result["detectedType"] = "UNKNOWN"
-            if "reason" not in result:
-                result["reason"] = "Tidak dapat mendeteksi tipe dokumen"
-            
-            return result
-            
         except Exception as e:
             print(f"Error in document verification: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Return keyword-based fallback
-            return {
-                "isValid": False,
-                "confidence": 0.0,
-                "detectedType": "ERROR",
-                "reason": f"Error saat verifikasi: {str(e)}"
-            }
+            return {"isValid": False, "confidence": 0.0, "detectedType": "ERROR", "reason": str(e)}
 
-    async def analyze_documents(
-        self,
-        program_studi: str,
-        institusi: str,
-        documents: List[Dict[str, Any]],
-        file_contents: Dict[str, str] = None
-    ) -> Dict[str, Any]:
-        """
-        Analyze document completeness and quality using Gemini AI with scoring matrix
-        
-        Args:
-            program_studi: Name of the study program
-            institusi: Institution name
-            documents: List of document metadata
-            file_contents: Optional dict of file contents for deeper analysis
-        
-        Returns:
-            AI recommendation with score and flags
-        """
-        
-        print(f"[Gemini] Starting document analysis for {program_studi} - {institusi}")
-        print(f"[Gemini] Documents count: {len(documents)}")
-        
-        # Load LED and LKPS content if available
-        led_content = ""
-        lkps_content = ""
-        led_metadata = {}
-        lkps_metadata = {}
-        
-        # Get document metadata
-        for doc in documents:
-            if doc.get("type") == "LED":
-                led_metadata = {
-                    "filename": doc.get("filename", ""),
-                    "verified": doc.get("verified", False),
-                    "confidence": doc.get("confidence", 0.0)
-                }
-            elif doc.get("type") == "LKPS":
-                lkps_metadata = {
-                    "filename": doc.get("filename", ""),
-                    "verified": doc.get("verified", False),
-                    "confidence": doc.get("confidence", 0.0)
-                }
-        
-        if file_contents:
-            print(f"[Gemini] File contents provided: {list(file_contents.keys())}")
-            for doc_type, content in file_contents.items():
-                if "LED" in doc_type:
-                    led_content = content  # Use full extracted content (30k chars max)
-                    print(f"[Gemini] LED content loaded: {len(led_content)} chars")
-                elif "LKPS" in doc_type:
-                    lkps_content = content  # Use full extracted content
-                    print(f"[Gemini] LKPS content loaded: {len(lkps_content)} chars")
-        
-        # Extract file size info for better scoring
-        led_size_mb = 0
-        lkps_size_mb = 0
-        for doc in documents:
-            if doc.get("type") == "LED":
-                led_size_mb = doc.get("size_mb", 0)
-            elif doc.get("type") == "LKPS":
-                lkps_size_mb = doc.get("size_mb", 0)
-        
-        prompt = f"""
-Anda adalah sistem AI asesor akreditasi program studi yang bertugas menilai KELENGKAPAN dokumen LED dan LKPS berdasarkan standar BAN-PT.
-
-DEFINISI KELENGKAPAN:
-- LED harus mencakup 9 KRITERIA AKREDITASI (lihat matriks di bawah)
-- LKPS harus berisi DATA KUANTITATIF yang mendukung LED
-- Skor ditentukan dari JUMLAH KRITERIA yang terdokumentasi, BUKAN ukuran file
-
-Program Studi: {program_studi}
-Institusi: {institusi}
-
-Dokumen yang diupload:
-{json.dumps(documents, indent=2)}
-
-CATATAN: Ukuran file LED {led_size_mb}MB dan LKPS {lkps_size_mb}MB (sebagai referensi)
-
-MATRIKS PENILAIAN LED (Laporan Evaluasi Diri):
-LED harus mencakup analisis terhadap 9 kriteria akreditasi:
-1. VISI, MISI, TUJUAN DAN STRATEGI (Bobot: 8.3%)
-   - Ketepatan rumusan visi, misi, tujuan
-   - Strategi pencapaian dan sosialisasi
-   
-2. TATA PAMONG, TATA KELOLA, DAN KERJASAMA (Bobot: 11.1%)
-   - Sistem tata pamong dan kepemimpinan
-   - Kerjasama dalam dan luar negeri
-   
-3. MAHASISWA (Bobot: 11.1%)
-   - Sistem rekrutmen dan seleksi
-   - Layanan kemahasiswaan
-   
-4. SUMBER DAYA MANUSIA (Bobot: 16.7%)
-   - Kualifikasi dan kompetensi dosen
-   - Rasio dosen-mahasiswa
-   - Tenaga kependidikan
-   
-5. KEUANGAN, SARANA DAN PRASARANA (Bobot: 11.1%)
-   - Pengelolaan keuangan dan pendanaan program studi
-   - Biaya operasional pendidikan (BOP) per mahasiswa
-   - Sumber pendanaan (BPPTN, DM, hibah)
-   - Sarana pembelajaran: ruang kuliah, laboratorium, perpustakaan
-   - Prasarana pendukung: pilot plant, cyber center, infrastruktur TI
-   - Efisiensi pengelolaan anggaran dan fasilitas
-   KEYWORDS: "biaya operasional", "BOP", "BPPTN", "dana masyarakat", "hibah", 
-            "laboratorium", "ruang kuliah", "perpustakaan", "pilot plant", 
-            "cyber center", "infrastruktur", "sarana prasarana", "fasilitas",
-            "keuangan", "pendanaan", "anggaran"
-   
-6. PENDIDIKAN (Bobot: 19.4%)
-   - Kurikulum dan pembelajaran
-   - Suasana akademik
-   - Integrasi kegiatan penelitian/PkM
-   
-7. PENELITIAN (Bobot: 8.3%)
-   - Mutu, relevansi, dan keberlanjutan penelitian
-   - Publikasi ilmiah
-   
-8. PENGABDIAN KEPADA MASYARAKAT (Bobot: 5.6%)
-   - Mutu, relevansi, dan keberlanjutan PkM
-   
-9. LUARAN DAN CAPAIAN TRIDHARMA (Bobot: 8.3%)
-   - Capaian pembelajaran lulusan
-   - Kinerja dan prestasi mahasiswa/alumni
-
-MATRIKS PENILAIAN LKPS (Laporan Kinerja Program Studi):
-LKPS harus berisi data kuantitatif yang mendukung analisis LED, meliputi:
-- Data mahasiswa (penerimaan, status, lulusan)
-- Data dosen (kualifikasi, kegiatan, publikasi)
-- Data keuangan dan sarana prasarana
-- Data penelitian dan pengabdian masyarakat
-- Data capaian pembelajaran dan lulusan
-
-{"LED Content (FULL DOCUMENT): " + led_content[:10000] if led_content else "LED content not provided"}
-
-{"LKPS Content (FULL WORKBOOK): " + lkps_content[:8000] if lkps_content else "LKPS content not provided"}
-
-TUGAS ANALISIS - VALIDITAS DAN KELENGKAPAN:
-1. Verifikasi keberadaan LED dan LKPS (WAJIB)
-2. Analisis konten LED untuk deteksi 9 kriteria akreditasi
-3. Identifikasi kriteria mana saja yang TERDETEKSI vs TIDAK TERDETEKSI
-4. Berikan flags dan recommendations konstruktif
-
-CARA DETEKSI 9 KRITERIA AKREDITASI:
-Cari kata kunci atau konteks dari konten LED:
-
-1. VISI, MISI, TUJUAN → kata kunci: visi, misi, tujuan, strategi
-2. TATA PAMONG, KERJASAMA → kata kunci: tata pamong, kepemimpinan, kerjasama, MoU
-3. MAHASISWA → kata kunci: mahasiswa, rekrutmen, seleksi, layanan kemahasiswaan
-4. SUMBER DAYA MANUSIA → kata kunci: dosen, tendik, kualifikasi, rasio dosen
-5. KEUANGAN, SARANA PRASARANA → kata kunci: "biaya operasional", "BOP", "BPPTN", 
-   "dana masyarakat", "hibah", "anggaran", "laboratorium", "ruang kuliah", 
-   "perpustakaan", "pilot plant", "cyber center", "infrastruktur", "fasilitas",
-   "Rp", "miliar", "juta", "sarana prasarana"
-6. PENDIDIKAN → kata kunci: kurikulum, pembelajaran, capaian pembelajaran, RPS
-7. PENELITIAN → kata kunci: penelitian, publikasi, sitasi, jurnal
-8. PENGABDIAN MASYARAKAT → kata kunci: pengabdian, PkM, masyarakat, community service
-9. LUARAN DAN CAPAIAN → kata kunci: lulusan, alumni, IPK, masa studi, tracer study
-
-CATATAN PENTING:
-- Kriteria tidak harus eksplisit disebutkan, bisa tersirat dari konteks
-- Preview sudah sampling strategis (awal + tengah + akhir dokumen)
-- Jika 7-8 kriteria terdeteksi, kemungkinan yang lain ada di bagian tidak ter-sample
-- Berikan benefit of doubt untuk dokumen yang terstruktur baik
-
-TUGAS ANALISIS (WAJIB LENGKAPI SEMUA):
-1. Verifikasi keberadaan LED dan LKPS
-2. **Identifikasi kriteria yang terdeteksi** di ledCriteriaCoverage (true/false)
-3. **Identifikasi kelengkapan data LKPS** di lkpsDataCompleteness (true/false)
-4. **WAJIB: Berikan minimal 3-5 flags** (temuan penting: kriteria apa saja yang terdeteksi/tidak terdeteksi)
-5. **WAJIB: Berikan minimal 3-5 recommendations** (saran untuk melengkapi kriteria yang kurang)
-
-Format Output JSON (WAJIB LENGKAP):
-{{
-  "hasLED": true,
-  "hasLKPS": true,
-  "ledCriteriaCoverage": {{
-    "visiMisi": true,
-    "tataPamong": true,
-    "mahasiswa": false,
-    "sdm": true,
-    "keuanganSarpras": false,
-    "pendidikan": true,
-    "penelitian": false,
-    "pengabdian": false,
-    "luaranCapaian": true
-  }},
-  "lkpsDataCompleteness": {{
-    "dataMahasiswa": true,
-    "dataDosen": true,
-    "dataKeuangan": false,
-    "datapenelitian": true,
-    "dataPengabdian": false
-  }},
-  "flags": [
-    "Terdeteksi 8 dari 9 kriteria akreditasi di LED",
-    "Kriteria 8 (Pengabdian Masyarakat) tidak ditemukan dalam sampling",
-    "LKPS berisi data mahasiswa, dosen, dan penelitian yang lengkap",
-    "Struktur dokumen LED sangat baik dan sistematis",
-    "Data keuangan di LKPS perlu diverifikasi kelengkapannya"
-  ],
-  "recommendations": [
-    "Lengkapi dokumentasi Kriteria 8 (Pengabdian Masyarakat) di LED",
-    "Pastikan konsistensi data antara LED dan LKPS",
-    "Tambahkan data keuangan 3 tahun terakhir di LKPS jika belum ada",
-    "Verifikasi kelengkapan data sarana prasarana",
-    "Siapkan bukti pendukung untuk setiap kriteria"
-  ]
-}}
-
-PENTING: 
-- Berikan HANYA JSON output, tanpa markdown atau teks tambahan
-- WAJIB isi array "flags" dengan minimal 2-3 item (temuan/observasi)
-- WAJIB isi array "recommendations" dengan minimal 3-5 item (saran konstruktif)
-- Jika dokumen lengkap, berikan flags positif dan recommendations preventif
-"""
-        
-        try:
-            print(f"[Gemini] Sending analysis request to Gemini AI...")
-            response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            print(f"[Gemini] Received response from Gemini AI ({len(result_text)} chars)")
-            
-            # Extract JSON from response
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-            
-            print(f"[Gemini] Parsing JSON response...")
-            result = json.loads(result_text)
-            print(f"[Gemini] ✓ Analysis complete")
-            
-            # Validate and ensure all required fields
-            if "hasLED" not in result:
-                result["hasLED"] = False
-            if "hasLKPS" not in result:
-                result["hasLKPS"] = False
-            if "flags" not in result:
-                result["flags"] = []
-            if "recommendations" not in result:
-                result["recommendations"] = []
-            if "ledCriteriaCoverage" not in result:
-                result["ledCriteriaCoverage"] = {}
-            if "lkpsDataCompleteness" not in result:
-                result["lkpsDataCompleteness"] = {}
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error in Gemini analysis: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Return default cautious response
-            return {
-                "hasLED": True,  # Assume true since document passed validation
-                "hasLKPS": True,
-                "ledCriteriaCoverage": {},
-                "lkpsDataCompleteness": {},
-                "flags": ["Gagal melakukan analisis AI mendalam", f"Error: {str(e)}"],
-                "recommendations": [
-                    "Mohon review manual kelengkapan dokumen",
-                    "Pastikan LED mencakup 9 kriteria akreditasi",
-                    "Pastikan LKPS berisi data kuantitatif lengkap"
-                ]
-            }
-    
     async def analyze_documents_for_scoring(
         self,
         program_studi: str,
@@ -448,376 +238,275 @@ PENTING:
         program_type: str = "S"
     ) -> Dict[str, Any]:
         """
-        LAM-TEK 2025 Accreditation Assessor AI
-        Advanced context engineering untuk ekstraksi data akreditasi yang akurat
+        LAM-TEK 2025 Accreditation Assessor AI for 7 criteria.
         """
-        
         print(f"[LAM-TEK] Starting LAM-TEK 2025 analysis for {program_studi} ({program_type}) - {institusi}")
-        
-        # Define butir counts for the f-string
-        butir_counts = {'S': 60, 'M': 55, 'D': 53, 'D1': 56, 'D2': 56, 'D3': 56, 'STr': 64, 'MTr': 58, 'DTr': 56, 'PPI': 54}
-        
-        # Enhanced prompt dengan context engineering seperti contoh profesor
-        prompt = f"""
-PERSONA:
-You are LAM-TEK AccreditationBot, an expert AI Assessor for Lembaga Akreditasi Mandiri Program Studi Keteknikan (LAM-TEK). Your purpose is to deeply understand and apply the LAM-TEK 2025 grading methodology for Program Studi accreditation based on the official instrument set.
 
-CORE OBJECTIVE:
-Your primary objective is to learn, internalize, and apply the complete LAM-TEK 2025 grading methodology for {program_type} program ({program_studi}). You must extract precise quantitative data from LKPS and qualitative evidence from LED, following the official LAM-TEK 2025 structure.
+        criteria_config = {
+            1: {"name": "Diferensiasi Misi", "led_keys": ["vmts_unik_spesifik", "vmts_dukungan_renstra_kurikulum", "vmts_linearitas_pt", "vmts_kesesuaian_renstra", "vmts_kesesuaian_kurikulum", "vmts_stakeholder_internal", "vmts_stakeholder_eksternal", "vmts_sosialisasi", "vmts_pemahaman", "vmts_pencapaian_konkret", "vmts_dampak_berkelanjutan"], "lkps_keys": []},
+            2: {"name": "Akuntabilitas", "led_keys": ["tata_pamong_kelengkapan", "tata_pamong_governance", "komitmen_pimpinan", "kemampuan_manajerial", "pengelolaan_keuangan"], "lkps_keys": ["jumlah_dtps", "kerjasama_pendidikan", "kerjasama_penelitian", "kerjasama_pkm", "kerjasama_internasional", "kerjasama_nasional", "kerjasama_wilayah"]},
+            3: {"name": "Relevansi Pendidikan, Penelitian, dan PkM", "led_keys": ["pemutakhiran_kurikulum", "profil_lulusan", "kesesuaian_profil_cpl", "kesesuaian_cpl_standar_kompetensi", "rps_kelengkapan", "rps_tinjauan_rutin", "proses_pembelajaran_efektivitas", "proses_pembelajaran_tinjauan_rutin", "capstone_design", "suasana_akademik_pengelolaan", "suasana_akademik_integritas", "kesesuaian_penelitian", "kesesuaian_pkm"], "lkps_keys": ["persentase_bahan_ajar_penelitian_pkm", "pjp", "basic_sciences_sks", "ppdmhs", "pkdmhs"]},
+            4: {"name": "Sumber Daya Manusia", "led_keys": [], "lkps_keys": ["ndtps", "pdtt", "pds3", "pgblkl", "rbk_dtps", "kinerja_penelitian_dtps_ri", "kinerja_penelitian_dtps_rn", "kinerja_penelitian_dtps_rw", "kinerja_pkm_dtps_ri", "kinerja_pkm_dtps_rn", "kinerja_pkm_dtps_rw", "publikasi_ilmiah_dtps_ri", "publikasi_ilmiah_dtps_rn", "publikasi_ilmiah_dtps_rw", "rlp_dtps"]},
+            5: {"name": "Sarana, Prasarana, dan K3L", "led_keys": ["sarana_prasarana_akademik", "sarana_prasarana_non_akademik", "k3l"], "lkps_keys": []},
+            6: {"name": "Mahasiswa dan Luaran Mahasiswa", "led_keys": [], "lkps_keys": ["rmd", "pma", "ripk", "prestasi_akademik_ri", "prestasi_akademik_rn", "prestasi_akademik_rw", "prestasi_non_akademik_ri", "prestasi_non_akademik_rn", "prestasi_non_akademik_rw", "ptw", "publikasi_mahasiswa_ri", "publikasi_mahasiswa_rn", "publikasi_mahasiswa_rw", "wt", "kbk", "tingkat_tempat_kerja_ri", "tingkat_tempat_kerja_rn", "tingkat_tempat_kerja_rw"] + [f'kepuasan_pengguna_{cat}{i}' for cat in "abcd" for i in range(1, 2)]},
+            7: {"name": "Sistem Penjaminan Mutu", "led_keys": ["keberadaan_unit_spmi", "ketersediaan_perangkat_spmi", "keterlaksanaan_spmi", "evaluasi_capaian_kinerja", "kepuasan_pemangku_kepentingan"], "lkps_keys": []}
+        }
 
-PROGRAM CONTEXT:
-- Program Studi: {program_studi}
-- Institusi: {institusi}
-- Jenis Program: {program_type} (Program {'Sarjana' if program_type == 'S' else 'Magister' if program_type == 'M' else 'Doktor' if program_type == 'D' else 'Diploma' if program_type.startswith('D') else 'Sarjana Terapan' if program_type == 'STr' else 'PPI' if program_type == 'PPI' else 'Unknown'})
-- Jumlah Butir: {butir_counts.get(program_type, 60)}
+        return await self._multi_request_extraction(
+            led_content, lkps_content, program_studi, institusi, program_type, criteria_config
+        )
 
-KNOWLEDGE BASE (LAM-TEK 2025):
-1. LKPS (Laporan Kinerja Program Studi): Quantitative data source with specific table references
-2. LED (Laporan Evaluasi Diri): Qualitative self-evaluation narrative and supporting evidence
-3. DTPS: Dosen Tetap Perguruan Tinggi yang ditugaskan sebagai pengampu mata kuliah di Program Studi
-4. Butir Penilaian: Specific assessment items with differentiated thresholds by program type
+    def _find_relevant_snippet(self, content: str, keywords: List[str], window_size: int = 15000) -> str:
+        """
+        Finds snippets of text around given keywords.
+        """
+        snippets = []
+        found_keywords = set()
+        lower_content = content.lower()
 
-DIFFERENTIAL THRESHOLDS BY PROGRAM TYPE:
-BOP (Biaya Operasional Pendidikan):
-- D1,D2,D3,S,STr,PPI: Skor 4 jika BOP ≥ Rp 40.000.000; Skor = BOP/10.000.000 jika kurang
-- M,MTr,D,DTr: Skor 4 jika BOP ≥ Rp 28.000.000; Skor = BOP/7.000.000 jika kurang
+        for keyword in keywords:
+            try:
+                idx = lower_content.find(keyword.lower())
+                
+                if idx != -1:
+                    is_new = True
+                    for found_key in found_keywords:
+                        found_key_idx = lower_content.find(found_key.lower())
+                        if abs(found_key_idx - idx) < window_size / 2:
+                            is_new = False
+                            break
+                    
+                    if is_new:
+                        start = max(0, idx - int(window_size * 0.25))
+                        end = min(len(content), idx + int(window_size * 0.75))
+                        snippets.append(f"--- SNIPPET RELEVAN DARI DOKUMEN UNTUK KATA KUNCI '{keyword}' ---\n{content[start:end]}")
+                        found_keywords.add(keyword)
 
-DPD (Dana Penelitian DTPS):
-- D1,D2,D3,S,STr,PPI: Skor 4 jika DPD ≥ Rp 30.000.000; Skor = (2×DPD)/15.000.000 jika kurang
-- M,MTr,D,DTr: Skor 4 jika DPD ≥ Rp 20.000.000; Skor = (2×DPD)/10.000.000 jika kurang
+            except Exception:
+                continue
 
-FAKTOR KUANTITATIF untuk Rumus Interpolasi:
-Kerjasama: 
-- S,STr,M,MTr,PPI: a=2, b=6, c=8
-- D,DTr: a=3, b=8, c=10
+        if snippets:
+            print(f"[LAM-TEK] Ditemukan snippet relevan untuk kata kunci: {list(found_keywords)}")
+            return "\n\n".join(snippets)
+        else:
+            print(f"[LAM-TEK] Peringatan: Tidak ada kata kunci relevan yang ditemukan. Menggunakan {window_size} karakter pertama.")
+            return content[:window_size]
 
-Publikasi DTPS:
-- S,PPI: a=0.5, b=1, c=2
-- M: a=0.5, b=4, c=4  
-- D: a=0.5, b=6, c=4
+    async def _multi_request_extraction(
+        self, led_content, lkps_content, program_studi, institusi, program_type, criteria_config
+    ) -> Dict[str, Any]:
+        final_led_data = {}
+        final_lkps_data = {}
+        errors = []
 
-WORKFLOW (Chain of Thought):
-1. IDENTIFY Program Type: Determine exact scoring rules for {program_type}
-2. TRACE Data Requirements: Map each variable to specific LKPS table/LED section
-3. EXTRACT Quantitative Data: Pull precise numbers from LKPS content
-4. EXTRACT Qualitative Evidence: Analyze LED narrative for compliance indicators
-5. APPLY Differential Logic: Use program-specific thresholds and formulas
-6. VALIDATE Constraints: Apply score limits and discrete logic where applicable
+        print(f"[LAM-TEK] Memulai ekstraksi multi-permintaan dengan alur baru...")
 
-LED CONTENT ANALYSIS (Qualitative Evidence):
-{led_content[:25000] if led_content else "LED not provided"}
+        # --- LANGKAH 1: Ekstraksi Kriteria 4 (SDM) untuk mendapatkan NDTPS ---
+        print("[LAM-TEK] [PRIORITAS] Menganalisis Kriteria 4: Sumber Daya Manusia untuk NDTPS...")
+        try:
+            lkps_keyword_map_k4 = ["Tabel 3.a.1", "Dosen Tetap", "NDTPS"]
+            lkps_snippet_k4 = self._find_relevant_snippet(lkps_content, lkps_keyword_map_k4, window_size=20000)
+            lkps_prompt_k4 = self._get_lkps_extraction_prompt(4, lkps_snippet_k4)
+            
+            if lkps_prompt_k4:
+                lkps_response_text_k4 = await self._generate_gemini_response(lkps_prompt_k4)
+                lkps_data_k4 = self._parse_json_response(lkps_response_text_k4, "lkps_data")
+                final_lkps_data.update(lkps_data_k4)
+                ndtps_value = final_lkps_data.get("ndtps", 0)
+                print(f"[LAM-TEK] ✓ Ekstraksi NDTPS selesai. Nilai NDTPS: {ndtps_value}")
+            else:
+                errors.append("Gagal membuat prompt untuk Kriteria 4.")
 
-LKPS CONTENT ANALYSIS (Quantitative Data Source):
-{lkps_content[:15000] if lkps_content else "LKPS not provided"}
+        except Exception as e:
+            error_msg = f"Kriteria 4 (Prioritas NDTPS) gagal: {str(e)}"
+            print(f"[LAM-TEK] ✗ {error_msg}")
+            errors.append(error_msg)
 
-DATA EXTRACTION INSTRUCTIONS:
-1. PRIORITAS: LED untuk konteks kualitatif, LKPS untuk data kuantitatif
-2. KERJASAMA: Cari "Jumlah Kerjasama Tingkat [Level]" di LKPS atau narasi kerjasama di LED
-   - Format LKPS: "Jumlah Kerjasama Tingkat Internasional", "Jumlah Kerjasama Tingkat Nasional", "Jumlah Kerjasama Tingkat Lokal/Wilayah"
-   - PATTERN RECOGNITION: Data mungkin dipisah dengan tab characters atau multiple spaces
-   - Contoh format: "Jumlah Kerjasama Tingkat Internasional\t\t\t0"
-   - Contoh format: "Jumlah Kerjasama Tingkat Nasional			38"
-   - EXTRACT: Angka setelah teks label, abaikan tab/space characters
-   - MAPPING: ri=Internasional, rn=Nasional, rl=Lokal/Wilayah
-3. BOP: Cari "biaya operasional" atau "BOP" dalam konteks per mahasiswa per tahun
-4. DTPS: Cari data dosen tetap, publikasi, dan penelitian
-5. MAHASISWA: Cari data rekrutmen, lulusan, waktu tunggu, IPK, masa studi
-6. KERJASAMA PKM: Cari "Jumlah Kerjasama PkM" untuk data pengabdian masyarakat
+        # --- LANGKAH 2: Loop untuk kriteria lainnya ---
+        lkps_keyword_map = {
+            2: ["Tabel 4", "Kerjasama", "Jumlah Kerjasama", "Mitra Kerjasama"],
+            3: ["Butir 14", "Butir 17", "integrasi penelitian", "praktikum"],
+            6: ["Tabel 6.a", "Tabel 6.b", "Prestasi Akademik", "Publikasi Mahasiswa", "Kepuasan Pengguna"],
+        }
 
-REQUIRED OUTPUT STRUCTURE (LAM-TEK 2025 Format):
+        criteria_to_process = [1, 2, 3, 5, 6, 7] # Semua kecuali 4
+        for i in criteria_to_process:
+            criterion = criteria_config[i]
+            criterion_name = criterion["name"]
+            
+            await asyncio.sleep(2) # Jeda antar permintaan
+
+            # Special handling for Criterion 2 to avoid MAX_TOKENS error
+            if i == 2:
+                print("[LAM-TEK] Menerapkan strategi permintaan terpisah untuk Kriteria 2...")
+                try:
+                    # Define the snippet first, as it's needed for both sub-requests
+                    keywords = lkps_keyword_map.get(i, [])
+                    lkps_snippet = self._find_relevant_snippet(lkps_content, keywords, window_size=15000)
+
+                    # Request 2a: Pendidikan, Penelitian, PkM
+                    fields_2a = {"kerjasama_pendidikan": "(number) Jumlah kerjasama PENDIDIKAN.", "kerjasama_penelitian": "(number) Jumlah kerjasama PENELITIAN.", "kerjasama_pkm": "(number) Jumlah kerjasama PKM."}
+                    prompt_2a = self._get_specific_lkps_prompt(lkps_snippet, fields_2a, {"kerjasama_pendidikan": 10, "kerjasama_penelitian": 5})
+                    response_2a = await self._generate_gemini_response(prompt_2a)
+                    data_2a = self._parse_json_response(response_2a, "lkps_data")
+                    final_lkps_data.update(data_2a)
+                    print("[LAM-TEK] ✓ Bagian 2a (Pendidikan, Penelitian, PkM) selesai.")
+
+                    await asyncio.sleep(2) # Jeda kecil
+
+                    # Request 2b: Internasional, Nasional, Wilayah
+                    fields_2b = {"kerjasama_internasional": "(number) Jumlah kerjasama tingkat INTERNASIONAL (RI).", "kerjasama_nasional": "(number) Jumlah kerjasama tingkat NASIONAL (RN).", "kerjasama_wilayah": "(number) Jumlah kerjasama tingkat LOKAL/WILAYAH (RW)."}
+                    prompt_2b = self._get_specific_lkps_prompt(lkps_snippet, fields_2b, {"kerjasama_internasional": 4, "kerjasama_nasional": 20})
+                    response_2b = await self._generate_gemini_response(prompt_2b)
+                    data_2b = self._parse_json_response(response_2b, "lkps_data")
+                    final_lkps_data.update(data_2b)
+                    print("[LAM-TEK] ✓ Bagian 2b (Internasional, Nasional, Wilayah) selesai.")
+
+                    # Handle LED data for Kriteria 2 as well
+                    if criterion["led_keys"]:
+                        led_snippet = led_content[:25000]
+                        led_prompt = self._get_led_extraction_prompt(i, led_snippet)
+                        led_response_text = await self._generate_gemini_response(led_prompt)
+                        led_data = self._parse_json_response(led_response_text, "led_data")
+                        final_led_data.update(led_data)
+
+                    print(f"[LAM-TEK] ✓ Ekstraksi Kriteria {i} selesai.")
+                    continue # Lanjutkan ke loop berikutnya
+                except Exception as e:
+                    error_msg = f"Kriteria {i} ({criterion_name}) gagal: {str(e)}"
+                    print(f"[LAM-TEK] ✗ {error_msg}")
+                    errors.append(error_msg)
+                    continue
+
+        print(f"[LAM-TEK] Ekstraksi multi-permintaan selesai! (7 Kriteria LAM-TEK 2025)")
+        print(f"[LAM-TEK] - Ekstrak {len(final_led_data)} field LED")
+        print(f"[LAM-TEK] - Ekstrak {len(final_lkps_data)} field LKPS")
+
+        return {
+            "led_data": final_led_data,
+            "lkps_data": final_lkps_data,
+            "scoring_readiness": {"ready_for_lamtek_scoring": not errors, "error": "; ".join(errors) if errors else None}
+        }
+
+    def _get_led_extraction_prompt(self, criterion_num: int, led_content_snippet: str) -> str:
+        field_definitions = self._get_field_descriptions_led(criterion_num)
+        return f"""# OBJECTIVE
+Extract qualitative information from the LED document for Criterion {criterion_num}.
+
+# LED DOCUMENT SNIPPET
+```
+{led_content_snippet}
+```
+
+# FIELDS TO EXTRACT
+Based on the text, provide a summary or boolean value for each field:
+{field_definitions}
+
+# OUTPUT FORMAT
+Return **ONLY a single JSON object** with the key `led_data`.
+Example:
+```json
 {{
-  "program_analysis": {{
-    "program_type": "{program_type}",
-    "program_name": "{program_studi}",
-    "institution": "{institusi}",
-    "total_butir": {{'S': 60, 'M': 55, 'D': 53, 'D1': 56, 'D2': 56, 'D3': 56, 'STr': 64, 'MTr': 58, 'DTr': 56, 'PPI': 54}}.get(program_type, 60),
-    "threshold_category": "{'low_level' if program_type in ['D1','D2','D3','S','STr','PPI'] else 'high_level'}"
-  }},
   "led_data": {{
-    "vmts_components": {{
-      "liniaritas_visi": true,
-      "kesesuaian_renstra": true,
-      "kesesuaian_kurikulum": true,
-      "tinjauan_berkala": true
-    }},
-    "tata_pamong_evidence": {{
-      "kepemimpinan": true,
-      "sistem_penjaminan_mutu": true,
-      "pengelolaan_program": true
-    }},
-    "kerjasama_narrative": {{
-      "kerjasama_internasional_mentioned": false,
-      "kerjasama_nasional_count": 0,
-      "kerjasama_lokal_count": 0,
-      "mou_evidence": false
-    }}
-  }},
-  "lkps_data": {{
-    "bop_value": [EXTRACT_EXACT_RUPIAH_VALUE],
-    "dpd_total": [EXTRACT_RESEARCH_FUND_TOTAL],
-    "dpd_per_dtps": [CALCULATE_DPD_PER_DTPS],
-    "jumlah_mahasiswa": [EXACT_STUDENT_COUNT],
-    "jumlah_dtps": [EXACT_DTPS_COUNT],
-    "rmd": [CALCULATE_STUDENT_DTPS_RATIO],
-    "waktu_tunggu_lulusan": [MONTHS_AVERAGE],
-    "ipk_rata2": [EXACT_GPA_AVERAGE],
-    "masa_studi_rata2": [SEMESTER_AVERAGE],
-    "tingkat_kelulusan": [PERCENTAGE],
-    "tingkat_serapan": [PERCENTAGE],
-    "jumlah_kerjasama_institusi": {{
-      "ri": [EXTRACT_FROM_"Jumlah_Kerjasama_Tingkat_Internasional"],
-      "rn": [EXTRACT_FROM_"Jumlah_Kerjasama_Tingkat_Nasional"], 
-      "rl": [EXTRACT_FROM_"Jumlah_Kerjasama_Tingkat_Lokal/Wilayah"],
-      "pkm_total": [EXTRACT_FROM_"Jumlah_Kerjasama_PkM"]
-    }},
-    "publikasi_dtps": {{
-      "internasional": [COUNT],
-      "nasional": [COUNT],
-      "jurnal_terakreditasi": [COUNT]
-    }},
-    "sarana_prasarana": {{
-      "jumlah_ruang_kuliah": [COUNT],
-      "jumlah_laboratorium": [COUNT],
-      "luas_ruang_per_mahasiswa": [SQUARE_METER],
-      "jumlah_buku_perpustakaan": [COUNT]
-    }}
-  }},
-  "data_quality": {{
-    "completeness_score": 0.95,
-    "confidence_level": "high",
-    "program_type_confidence": 0.98,
-    "missing_critical_data": [],
-    "data_source_traceability": [
-      "BOP: Extracted from LKPS section [X]",
-      "Kerjasama: Found in LED analysis section [Y]",
-      "DTPS: Calculated from LKPS table [Z]"
-    ]
-  }},
-  "scoring_readiness": {{
-    "ready_for_lamtek_scoring": true,
-    "butir_data_completeness": 0.90,
-    "differential_threshold_applied": true,
-    "program_specific_rules_identified": true
+    "vmts_unik_spesifik": "Visi PS S2 TIP adalah menjadi program studi unggul...",
+    "vmts_sosialisasi": true
   }}
 }}
-
-CRITICAL REQUIREMENTS:
-1. EXACT NUMBERS: Extract precise numerical values, not estimates
-2. PROGRAM DIFFERENTIATION: Apply {program_type}-specific rules and thresholds
-3. DATA TRACEABILITY: Document where each value was found
-4. FORMULA READINESS: Ensure data is structured for LAM-TEK interpolation formulas
-5. QUALITY ASSURANCE: High confidence scores only for verified data
-6. KERJASAMA EXTRACTION: Look for exact patterns:
-   - "Jumlah Kerjasama Tingkat Internasional" followed by number
-   - "Jumlah Kerjasama Tingkat Nasional" followed by number
-   - "Jumlah Kerjasama Tingkat Lokal" or "Lokal/Wilayah" followed by number
-   - Extract numbers after tab characters or multiple spaces
-7. PATTERN MATCHING: Use regex-like thinking for "Tingkat [Level]\\s+\\d+" patterns
-
-VALIDATION CHECKLIST:
-✓ Program type correctly identified as {program_type}
-✓ Threshold category properly assigned
-✓ All numerical data extracted with source references
-✓ Kerjasama data mapped to RI/RN/RL structure
-✓ BOP value ready for {program_type}-specific calculation
-✓ DPD value ready for differential threshold application
-
-Extract data dengan precision tinggi sesuai metodologi LAM-TEK 2025. Berikan HANYA JSON output tanpa markdown atau penjelasan tambahan.
+```
 """
-        
+
+    async def _generate_gemini_response(self, prompt: str) -> str:
         try:
-            print(f"[LAM-TEK] Sending enhanced analysis request...")
-            response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            print(f"[LAM-TEK] Received response ({len(result_text)} chars)")
-            
-            # Extract JSON from response
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-            
-            result = json.loads(result_text)
-            print(f"[LAM-TEK] ✓ Enhanced analysis complete")
-            
-            # Validate and ensure all required fields
-            if "program_analysis" not in result:
-                result["program_analysis"] = {"program_type": program_type}
-            if "led_data" not in result:
-                result["led_data"] = {}
-            if "lkps_data" not in result:
-                result["lkps_data"] = {}
-            if "scoring_readiness" not in result:
-                result["scoring_readiness"] = {"ready_for_lamtek_scoring": True}
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error in LAM-TEK enhanced analysis: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Return structured fallback response
-            return {
-                "program_analysis": {
-                    "program_type": program_type,
-                    "program_name": program_studi,
-                    "institution": institusi,
-                    "error": str(e)
-                },
-                "led_data": {},
-                "lkps_data": {},
-                "data_quality": {
-                    "completeness_score": 0.0,
-                    "confidence_level": "low",
-                    "error": str(e)
-                },
-                "scoring_readiness": {
-                    "ready_for_lamtek_scoring": False,
-                    "error": f"Analysis failed: {str(e)}"
-                }
+            generation_config = {
+                "temperature": 0.0,
+                "max_output_tokens": 8192,
             }
+            response = await self.model.generate_content_async(prompt, generation_config=generation_config)
+            
+            # Robustness check: Handle empty responses from the API
+            if not response.parts:
+                print(f"[LAM-TEK] ⚠️ Peringatan: Menerima respons kosong dari API.")
+                try:
+                    # Log the reason if available, often due to safety filters
+                    finish_reason = response.candidates[0].finish_reason
+                    print(f"[LAM-TEK] Alasan Selesai (Finish Reason): {finish_reason.name}")
+                except (IndexError, AttributeError):
+                    pass # Ignore if we can't get the reason
+                return '{}' # Return empty JSON object to prevent crash
+
+            return response.text
+        except Exception as e:
+            print(f"[LAM-TEK] ✗ Error saat menghasilkan konten Gemini: {e}")
+            # In case of other errors, also return an empty JSON to be safe
+            return '{}'
+
+    def _parse_json_response(self, response_text: str, data_key: str) -> dict:
+        try:
+            start = response_text.find('{')
+            end = response_text.rfind('}')
+            if start == -1 or end == -1 or end < start:
+                print(f"[LAM-TEK] ✗ Could not find a valid JSON object in the response for key '{data_key}'.")
+                print(f"[LAM-TEK] Problematic response snippet: {response_text[:500]}")
+                return {}
+
+            json_str = response_text[start:end+1]
+            data = json.loads(json_str)
+            
+            if data_key in data:
+                return data.get(data_key, {})
+            else:
+                return data
+
+        except (json.JSONDecodeError, IndexError) as e:
+            print(f"[LAM-TEK] ✗ JSON parsing failed for key '{data_key}': {e}")
+            print(f"[LAM-TEK] Problematic response snippet: {response_text[:500]}")
+            return {}
 
     async def extract_text_from_pdf(self, pdf_content: bytes) -> str:
-        """Extract text from PDF for comprehensive analysis - reads entire document"""
+        text = ""
         try:
-            print(f"[Gemini] extract_text_from_pdf: Starting FULL PDF extraction ({len(pdf_content)} bytes)")
-            import asyncio
-            from PyPDF2 import PdfReader
-            import io
-            
-            def _extract():
-                print(f"[Gemini] extract_text_from_pdf: Reading PDF...")
-                pdf_file = io.BytesIO(pdf_content)
-                reader = PdfReader(pdf_file)
-                total_pages = len(reader.pages)
-                print(f"[Gemini] extract_text_from_pdf: PDF has {total_pages} pages")
-                
-                # NEW STRATEGY: Extract ALL pages for comprehensive analysis
-                print(f"[Gemini] extract_text_from_pdf: Extracting ALL {total_pages} pages for comprehensive analysis...")
-                
-                text = ""
-                for i in range(total_pages):
-                    try:
-                        page_text = reader.pages[i].extract_text()
-                        text += f"\n--- Halaman {i+1} ---\n{page_text}\n"
-                        
-                        # Progress logging every 50 pages
-                        if (i + 1) % 50 == 0:
-                            print(f"[Gemini] extract_text_from_pdf: Processed {i+1}/{total_pages} pages ({len(text)} chars so far)")
-                        
-                        # REMOVED LIMIT: Extract ALL content for comprehensive analysis
-                        # No character limits - AI needs full document access
-                            
-                    except Exception as page_error:
-                        print(f"[Gemini] extract_text_from_pdf: Error on page {i+1}: {page_error}")
-                        continue
-                
-                print(f"[Gemini] extract_text_from_pdf: Extraction complete, {len(text)} chars from {total_pages} pages")
-                return text  # Return full extracted text (up to 150k chars)
-            
-            # Run blocking I/O in thread pool
-            print(f"[Gemini] extract_text_from_pdf: Running in thread pool...")
-            result = await asyncio.to_thread(_extract)
-            print(f"[Gemini] extract_text_from_pdf: ✓ Done - Full document extracted")
-            return result
+            pdf_file = io.BytesIO(pdf_content)
+            reader = PdfReader(pdf_file)
+            for page in reader.pages:
+                text += page.extract_text() or ""
         except Exception as e:
-            print(f"[Gemini] extract_text_from_pdf: Error - {e}")
-            import traceback
-            traceback.print_exc()
-            return ""
+            print(f"Error extracting text from PDF: {e}")
+        return text
     
-    async def extract_text_from_excel(self, excel_content: bytes) -> str:
-        """Extract text from Excel/CSV for comprehensive analysis"""
+    async def extract_text_from_excel(self, file_content: bytes, filename: str) -> str:
+        text = ""
         try:
-            print(f"[Gemini] extract_text_from_excel: Starting FULL Excel/CSV extraction ({len(excel_content)} bytes)")
-            import asyncio
-            from openpyxl import load_workbook
-            import io
-            import csv
+            file_io = io.BytesIO(file_content)
             
-            def _extract():
-                # Try to detect if it's CSV first
-                try:
-                    content_str = excel_content.decode('utf-8', errors='ignore')
-                    # Remove BOM if present
-                    if content_str.startswith('\ufeff'):
-                        content_str = content_str[1:]
-                    
-                    content_lower = content_str.lower()
-                    
-                    # More comprehensive CSV detection
-                    is_csv = (',' in content_str and (
-                        'akreditasi program studi' in content_lower or 
-                        'lkps' in content_lower or 
-                        'lamtek' in content_lower or
-                        'lam-tek' in content_lower or
-                        'program akademik' in content_lower or
-                        'perguruan tinggi' in content_lower
-                    ))
-                    
-                    if is_csv:
-                        print(f"[Gemini] extract_text_from_excel: Detected CSV format with accreditation content")
-                        # Process as CSV
-                        lines = content_str.split('\n')
-                        text = ""
-                        for i, line in enumerate(lines[:500]):  # First 500 lines
-                            if line.strip():
-                                text += f"Row {i+1}: {line.strip()}\n"
-                        print(f"[Gemini] extract_text_from_excel: CSV extraction complete, {len(text)} chars")
-                        return text
-                except Exception as csv_error:
-                    print(f"[Gemini] extract_text_from_excel: CSV processing failed: {csv_error}")
-                
-                # Process as Excel
-                try:
-                    print(f"[Gemini] extract_text_from_excel: Loading workbook...")
-                    excel_file = io.BytesIO(excel_content)
-                    workbook = load_workbook(excel_file)
-                    print(f"[Gemini] extract_text_from_excel: Workbook has {len(workbook.sheetnames)} sheets")
-                    
-                    text = ""
-                    # Process ALL sheets for comprehensive data extraction
-                    for sheet_idx, sheet_name in enumerate(workbook.sheetnames):
-                        sheet = workbook[sheet_name]
-                        print(f"[Gemini] extract_text_from_excel: Processing sheet '{sheet_name}' ({sheet_idx+1}/{len(workbook.sheetnames)})...")
-                        
-                        sheet_text = f"\n=== SHEET: {sheet_name} ===\n"
-                        row_count = 0
-                        
-                        for row in sheet.iter_rows(values_only=True):
-                            if row_count > 200:  # Limit per sheet to avoid excessive data
-                                break
-                            
-                            row_text = " | ".join([str(cell) if cell is not None else "" for cell in row])
-                            if row_text.strip():  # Only add non-empty rows
-                                sheet_text += row_text + "\n"
-                            row_count += 1
-                        
-                        text += sheet_text
-                        
-                        # Progress logging
-                        if (sheet_idx + 1) % 10 == 0:
-                            print(f"[Gemini] extract_text_from_excel: Processed {sheet_idx+1}/{len(workbook.sheetnames)} sheets")
-                        
-                        # REMOVED LIMIT: Extract ALL Excel/CSV content for comprehensive analysis
-                        # No character limits - AI needs full document access
-                    
-                    print(f"[Gemini] extract_text_from_excel: Extraction complete, {len(text)} chars from {len(workbook.sheetnames)} sheets")
-                    return text
-                except Exception as excel_error:
-                    print(f"[Gemini] extract_text_from_excel: Excel processing failed: {excel_error}")
-                    return ""
+            if filename.lower().endswith('.csv'):
+                # Handle CSV files
+                file_io.seek(0)
+                # Decode bytes to string for csv.reader
+                csv_text = file_io.read().decode('utf-8', errors='replace')
+                reader = csv.reader(csv_text.splitlines())
+                for row in reader:
+                    # Join cells with a space, and rows with a newline
+                    text += " ".join(cell for cell in row if cell) + "\n"
+                print(f"[Gemini] DEBUG: First 1000 chars of CSV extracted text:\n{text[:1000]}")
             
-            # Run blocking I/O in thread pool
-            print(f"[Gemini] extract_text_from_excel: Running in thread pool...")
-            result = await asyncio.to_thread(_extract)
-            print(f"[Gemini] extract_text_from_excel: ✓ Done - Full workbook/CSV extracted")
-            return result
+            elif filename.lower().endswith(('.xlsx', '.xls')):
+                # Handle Excel files with openpyxl
+                workbook = load_workbook(file_io)
+                for sheet_name in workbook.sheetnames:
+                    sheet = workbook[sheet_name]
+                    for row in sheet.iter_rows():
+                        row_text = []
+                        for cell in row:
+                            if cell.value:
+                                row_text.append(str(cell.value))
+                        if row_text:
+                            text += " ".join(row_text) + "\n"
+            else:
+                print(f"[Gemini] Unsupported file type for excel extraction: {filename}")
+
         except Exception as e:
-            print(f"[Gemini] extract_text_from_excel: Error - {e}")
-            import traceback
+            print(f"Error extracting text from Excel/CSV: {e}")
             traceback.print_exc()
-            return ""
+        return text
 
 gemini_service = GeminiService()

@@ -27,22 +27,18 @@ export class SubmissionContract extends Contract {
      * Create a new submission record
      * @param ctx - Transaction context
      * @param submissionId - Unique identifier for submission
-     * @param programStudi - Program name
-     * @param institusi - Institution name
-     * @param documentsJson - JSON string of documents array
+     * @param submissionJson - Full submission JSON (includes programStudi, institusi, documents, ai, scoring, etc)
      */
     @Transaction()
     @Returns('string')
     public async CreateSubmission(
         ctx: Context,
         submissionId: string,
-        programStudi: string,
-        institusi: string,
-        documentsJson: string
+        submissionJson: string
     ): Promise<string> {
         console.info('============= START : Create Submission ===========');
-        console.info(`Creating submission: ${submissionId} for ${programStudi} at ${institusi}`);
-        console.info(`Documents JSON length: ${documentsJson.length}`);
+        console.info(`Creating submission: ${submissionId}`);
+        console.info(`Submission JSON length: ${submissionJson.length}`);
 
         // Check if submission already exists
         const exists = await this.SubmissionExists(ctx, submissionId);
@@ -50,8 +46,8 @@ export class SubmissionContract extends Contract {
             throw new Error(`Submission ${submissionId} already exists`);
         }
 
-        // Parse documents JSON directly (no base64 encoding)
-        const documents: Document[] = JSON.parse(documentsJson);
+        // Parse full submission JSON
+        const submissionData = JSON.parse(submissionJson);
 
         // Use transaction timestamp for deterministic execution across peers
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -59,23 +55,28 @@ export class SubmissionContract extends Contract {
 
         const submission: Submission = {
             submissionId,
-            programStudi,
-            institusi,
-            documents,
-            status: 'under_review',
+            programStudi: submissionData.programStudi,
+            institusi: submissionData.institusi,
+            documents: submissionData.documents || [],
+            status: submissionData.status || 'under_review',
             version: 1,
             createdAt: timestamp,
             updatedAt: timestamp,
-            docType: 'submission'
+            docType: 'submission',
+            // Include AI recommendation and scoring if present
+            ai: submissionData.ai || undefined,
+            programType: submissionData.programType || undefined
         };
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
+        console.info(`Submission stored with AI: ${!!submission.ai}, Scoring: ${!!(submission.ai?.scoring)}`);
+
         // Emit event
         const event: SubmissionCreatedEvent = {
             submissionId,
-            programStudi,
-            institusi,
+            programStudi: submission.programStudi,
+            institusi: submission.institusi,
             at: submission.createdAt
         };
         ctx.stub.setEvent('SubmissionCreated', Buffer.from(JSON.stringify(event)));
@@ -109,12 +110,16 @@ export class SubmissionContract extends Contract {
         const timestamp = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
 
         submission.ai = {
+            hasLED: aiPayload.hasLED !== undefined ? aiPayload.hasLED : false,
+            hasLKPS: aiPayload.hasLKPS !== undefined ? aiPayload.hasLKPS : false,
+            readyForScoring: aiPayload.readyForScoring || false,
+            notes: aiPayload.notes || '',
             scoreCompleteness: aiPayload.scoreCompleteness || 0,
             flags: aiPayload.flags || [],
             recommendations: aiPayload.recommendations || [],
             scoring: aiPayload.scoring || aiPayload.scoring_summary,  // Support both scoring and scoring_summary
             scoring_summary: aiPayload.scoring_summary,  // Also store scoring_summary explicitly
-            analyzedAt: timestamp
+            analyzedAt: aiPayload.analyzedAt || timestamp
         };
         submission.updatedAt = timestamp;
 

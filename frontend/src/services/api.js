@@ -50,12 +50,18 @@ export const getSubmissionById = async (submissionId) => {
   return response.data;
 };
 
-export const createSubmission = async (formData) => {
+export const createSubmission = async (formData, onProgress = null) => {
   const response = await api.post('/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: 180000 // 3 minutes for large file uploads with full document analysis
+    timeout: 300000, // 5 minutes for large file uploads with full AI analysis
+    onUploadProgress: (progressEvent) => {
+      if (onProgress) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress({ stage: 'uploading', progress: percentCompleted });
+      }
+    }
   });
   return response.data;
 };
