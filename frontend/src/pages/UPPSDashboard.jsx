@@ -469,7 +469,7 @@ export default function UPPSDashboard() {
                   </div>
                 </div>
                 <h3 className="text-2xl font-bold text-green-700 mb-2">
-                  Upload Berhasil!
+                  Unggah Berhasil!
                 </h3>
                 <p className="text-gray-600 whitespace-pre-line">
                   {modalContent.message}
@@ -535,7 +535,7 @@ export default function UPPSDashboard() {
             <FileText className="w-10 h-10 text-blue-600" />
             Dashboard UPPS
           </h1>
-          <p className="text-lg text-gray-600">Upload dan Verifikasi Dokumen Akreditasi</p>
+          <p className="text-lg text-gray-600">Unggah dan Verifikasi Dokumen Akreditasi</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
@@ -545,9 +545,9 @@ export default function UPPSDashboard() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Upload Dokumen Akreditasi
+                Unggah Dokumen Akreditasi
               </h2>
-              <p className="text-sm text-gray-600">LED dan LKPS wajib diupload untuk proses akreditasi</p>
+              <p className="text-sm text-gray-600">LED dan LKPS wajib diunggah untuk proses akreditasi</p>
             </div>
           </div>
 
@@ -703,7 +703,7 @@ export default function UPPSDashboard() {
               ) : (
                 <>
                   <Upload className="w-6 h-6" />
-                  <span>Upload Dokumen</span>
+                  <span>Unggah Dokumen</span>
                 </>
               )}
             </button>
@@ -718,7 +718,7 @@ export default function UPPSDashboard() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-green-700">
-                  Upload Berhasil!
+                  Unggah Berhasil!
                 </h3>
                 <p className="text-gray-600">Dokumen telah diverifikasi dan tersimpan</p>
               </div>

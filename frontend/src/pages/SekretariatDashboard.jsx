@@ -99,17 +99,17 @@ export default function SekretariatDashboard() {
       under_review: { 
         bg: 'bg-gradient-to-r from-yellow-400 to-orange-500', 
         icon: Clock,
-        text: 'Under Review' 
+        text: 'Sedang Ditinjau' 
       },
       approved: { 
         bg: 'bg-gradient-to-r from-green-400 to-emerald-600', 
         icon: CheckCircle,
-        text: 'Approved' 
+        text: 'Disetujui' 
       },
       rejected: { 
         bg: 'bg-gradient-to-r from-red-400 to-rose-600', 
         icon: XCircle,
-        text: 'Rejected' 
+        text: 'Ditolak' 
       }
     };
 
@@ -201,7 +201,7 @@ export default function SekretariatDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Total Submissions</p>
+                <p className="text-sm text-gray-600 font-medium">Total Submission</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -213,7 +213,7 @@ export default function SekretariatDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-yellow-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Pending Review</p>
+                <p className="text-sm text-gray-600 font-medium">Menunggu Tinjauan</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.pending}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -225,7 +225,7 @@ export default function SekretariatDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Approved</p>
+                <p className="text-sm text-gray-600 font-medium">Disetujui</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.approved}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -237,7 +237,7 @@ export default function SekretariatDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Rejected</p>
+                <p className="text-sm text-gray-600 font-medium">Ditolak</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.rejected}</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -261,7 +261,7 @@ export default function SekretariatDashboard() {
               }`}
             >
               <Clock size={18} />
-              Pending Review
+              Menunggu Tinjauan
             </button>
             <button
               onClick={() => setFilter('approved')}
@@ -272,7 +272,7 @@ export default function SekretariatDashboard() {
               }`}
             >
               <CheckCircle size={18} />
-              Approved
+              Disetujui
             </button>
             <button
               onClick={() => setFilter('rejected')}
@@ -283,7 +283,7 @@ export default function SekretariatDashboard() {
               }`}
             >
               <XCircle size={18} />
-              Rejected
+              Ditolak
             </button>
           </div>
           
@@ -298,7 +298,7 @@ export default function SekretariatDashboard() {
         {loading ? (
           <div className="text-center py-12">
             <RefreshCw className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading submissions...</p>
+            <p className="text-gray-600 text-lg">Memuat submission...</p>
           </div>
         ) : !Array.isArray(submissions) || submissions.length === 0 ? (
           <div className="text-center py-12">
@@ -415,7 +415,7 @@ export default function SekretariatDashboard() {
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-purple-600" />
-                    Documents
+                    Dokumen
                   </h4>
                   <div className="space-y-3">
                     {sub.documents.map((doc, idx) => (
@@ -437,7 +437,7 @@ export default function SekretariatDashboard() {
                             className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-semibold text-sm"
                           >
                             <Download size={16} />
-                            Download
+                            Unduh
                           </a>
                         </div>
                       </div>
@@ -467,7 +467,7 @@ export default function SekretariatDashboard() {
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 transition-all shadow-lg flex items-center justify-center gap-2"
                           >
                             <CheckCircle size={20} />
-                            Approve
+                            Setujui
                           </button>
                           <button
                             onClick={() => handleDecision(sub.submissionId, 'rejected')}
@@ -475,7 +475,7 @@ export default function SekretariatDashboard() {
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-rose-700 disabled:from-gray-400 disabled:to-gray-500 transition-all shadow-lg flex items-center justify-center gap-2"
                           >
                             <XCircle size={20} />
-                            Reject
+                            Tolak
                           </button>
                           <button
                             onClick={() => {
@@ -484,7 +484,7 @@ export default function SekretariatDashboard() {
                             }}
                             className="px-6 py-3 bg-gray-600 text-white font-bold rounded-xl hover:bg-gray-700 transition-all shadow-lg"
                           >
-                            Cancel
+                            Batal
                           </button>
                         </div>
                       </div>
@@ -493,7 +493,7 @@ export default function SekretariatDashboard() {
                         onClick={() => setSelectedSubmission(sub.submissionId)}
                         className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
                       >
-                        Make Decision
+                        Buat Keputusan
                       </button>
                     )}
                   </div>
@@ -504,26 +504,26 @@ export default function SekretariatDashboard() {
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 border-2 border-indigo-200">
                     <h4 className="text-lg font-bold text-indigo-900 mb-3 flex items-center gap-2">
                       <Award className="w-6 h-6" />
-                      Final Decision
+                      Keputusan Akhir
                     </h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-700 font-medium">Result:</span>
+                        <span className="text-gray-700 font-medium">Hasil:</span>
                         <span className={`px-4 py-1 rounded-full text-sm font-semibold ${
                           sub.decision.result === 'approved' 
                             ? 'bg-green-100 text-green-700' 
                             : 'bg-red-100 text-red-700'
                         }`}>
-                          {sub.decision.result.toUpperCase()}
+                          {sub.decision.result === 'approved' ? 'DISETUJUI' : 'DITOLAK'}
                         </span>
                       </div>
                       <div className="bg-white rounded-lg p-3">
-                        <p className="text-sm text-gray-600 font-medium mb-1">Notes:</p>
+                        <p className="text-sm text-gray-600 font-medium mb-1">Catatan:</p>
                         <p className="text-gray-800">{sub.decision.notes}</p>
                       </div>
                       <div className="flex justify-between text-sm text-gray-600">
-                        <span><strong>Decided by:</strong> {sub.decision.decidedBy}</span>
-                        <span><strong>Date:</strong> {new Date(sub.decision.decidedAt).toLocaleString('id-ID')}</span>
+                        <span><strong>Diputuskan oleh:</strong> {sub.decision.decidedBy}</span>
+                        <span><strong>Tanggal:</strong> {new Date(sub.decision.decidedAt).toLocaleString('id-ID')}</span>
                       </div>
                     </div>
                   </div>

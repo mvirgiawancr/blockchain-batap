@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentasi Sistem Akreditasi Blockchain LAM-TEK 2025</title>
+    <style>
+        @page {
+            size: tabloid portrait;
+            margin: 1cm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+            padding: 15px;
+            max-width: 10.5in;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 20pt;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .header .subtitle {
+            font-size: 11pt;
+            color: #34495e;
+            font-style: italic;
+        }
+
+        h2 {
+            font-size: 15pt;
+            color: #2c3e50;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 4px;
+        }
+
+        h3 {
+            font-size: 12pt;
+            color: #34495e;
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+
+        h4 {
+            font-size: 10pt;
+            color: #555;
+            margin-top: 10px;
+            margin-bottom: 6px;
+        }
+
+        p {
+            text-align: justify;
+            margin-bottom: 8px;
+            font-size: 9pt;
+        }
+
+        .section {
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }
+
+        .img-placeholder {
+            background: #ecf0f1;
+            border: 2px dashed #95a5a6;
+            padding: 25px;
+            text-align: center;
+            margin: 12px 0;
+            border-radius: 6px;
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 9pt;
+        }
+
+        .architecture-diagram {
+            min-height: 280px;
+        }
+
+        .usecase-diagram {
+            min-height: 300px;
+        }
+
+        .sequence-diagram {
+            min-height: 320px;
+        }
+
+        .deployment-diagram {
+            min-height: 240px;
+        }
+
+        .screenshot-placeholder {
+            min-height: 120px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 8pt;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #bdc3c7;
+        }
+
+        th {
+            background-color: #34495e;
+            color: white;
+            padding: 6px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 5px;
+            background-color: white;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f8f9fa;
+        }
+
+        .flow-box {
+            border: 2px solid #3498db;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background-color: #eaf2f8;
+        }
+
+        .numbered-list {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .numbered-list li {
+            margin-bottom: 5px;
+            font-size: 9pt;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .tech-item {
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+
+        .tech-item strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 9pt;
+        }
+
+        .tech-item p {
+            font-size: 8pt;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .feature-item {
+            border-left: 4px solid #3498db;
+            padding: 8px 10px;
+            background-color: #f8f9fa;
+            font-size: 8pt;
+        }
+
+        .feature-item strong {
+            font-size: 9pt;
+        }
+
+        .user-guide-step {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #27ae60;
+        }
+
+        .user-guide-step .step-number {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            text-align: center;
+            border-radius: 50%;
+            margin-right: 6px;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .user-guide-step h4 {
+            display: inline-block;
+            margin: 0;
+            color: #27ae60;
+            font-size: 9pt;
+        }
+
+        .user-guide-step p,
+        .user-guide-step ul {
+            margin-top: 6px;
+            margin-left: 28px;
+            font-size: 8pt;
+        }
+
+        .user-guide-step ul {
+            list-style-type: disc;
+            padding-left: 12px;
+        }
+
+        .user-guide-step ul li {
+            margin-bottom: 2px;
+        }
+
+        .user-guide-step code {
+            display: inline-block;
+            margin: 2px 0;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 8pt;
+            color: #c7254e;
+        }
+
+        .criteria-table td:first-child {
+            font-weight: bold;
+            text-align: center;
+            background-color: #3498db !important;
+            color: white;
+        }
+
+        /* Kompak untuk Section 8 - Panduan Aplikasi */
+        .user-guide-step .img-placeholder {
+            min-height: 100px;
+            padding: 15px;
+            margin: 6px 0;
+            font-size: 8pt;
+        }
+
+        .footer {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px solid #2c3e50;
+            text-align: center;
+            font-size: 8pt;
+            color: #7f8c8d;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            h2 {
+                page-break-after: avoid;
+            }
+
+            table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>SISTEM AKREDITASI TERDESENTRALISASI</h1>
+        <div class="subtitle">Blockchain-based Accreditation Management System with AI</div>
+        <div class="subtitle">LAM-TEK 2025 - 7 Kriteria Akreditasi</div>
+    </div>
+
+    <!-- 1. PENDAHULUAN -->
+    <div class="section">
+        <h2>1. PENDAHULUAN</h2>
+
+        <h3>1.1 Latar Belakang</h3>
+        <p>
+            Sistem Akreditasi Terdesentralisasi merupakan sebuah platform berbasis blockchain yang dikembangkan untuk
+            mendukung
+            proses akreditasi program studi di lingkungan LAM-TEK (Lembaga Akreditasi Mandiri Teknik). Sistem ini
+            mengintegrasikan
+            teknologi Hyperledger Fabric untuk menjamin transparansi dan immutability data, IPFS untuk penyimpanan
+            dokumen
+            terdesentralisasi, dan Google Gemini AI untuk analisis dokumen otomatis berdasarkan 7 Kriteria LAM-TEK 2025.
+        </p>
+
+        <h3>1.2 Tujuan Sistem</h3>
+        <ol class="numbered-list">
+            <li>Menyediakan platform terdesentralisasi untuk pengelolaan dokumen akreditasi (LED dan LKPS)</li>
+            <li>Memanfaatkan teknologi blockchain untuk menjamin integritas dan ketertelusuran data akreditasi</li>
+            <li>Mengotomasi proses analisis kelengkapan dokumen menggunakan Artificial Intelligence</li>
+            <li>Memfasilitasi verifikasi dan approval dokumen oleh Sekretariat LAM-TEK</li>
+            <li>Memberikan notifikasi real-time kepada stakeholder melalui WebSocket</li>
+            <li>Menerapkan sistem penilaian berdasarkan 7 Kriteria LAM-TEK 2025</li>
+        </ol>
+
+        <h3>1.3 Ruang Lingkup</h3>
+        <p>
+            Sistem ini mencakup implementasi Proof of Concept (PoC) Fase 1 yang meliputi:
+        </p>
+        <ul class="numbered-list">
+            <li>Upload dan validasi dokumen LED (Laporan Evaluasi Diri) dan LKPS (Laporan Kinerja Program Studi)</li>
+            <li>Penyimpanan metadata dokumen di blockchain Hyperledger Fabric</li>
+            <li>Penyimpanan file dokumen di IPFS melalui layanan Pinata</li>
+            <li>Analisis otomatis menggunakan Google Gemini AI</li>
+            <li>Sistem approval/rejection oleh Sekretariat</li>
+            <li>Perhitungan skor berdasarkan 7 Kriteria LAM-TEK 2025</li>
+            <li>Notifikasi real-time menggunakan WebSocket</li>
+        </ul>
+    </div>
+
+    <!-- 2. ARSITEKTUR SISTEM -->
+    <div class="section">
+        <h2>2. ARSITEKTUR SISTEM</h2>
+
+        <h3>2.1 Diagram Arsitektur</h3>
+        <div class="img-placeholder architecture-diagram">
+            <strong>📊 GAMBAR 2.1: Arsitektur Sistem</strong><br><br>
+            Diagram menampilkan:<br>
+            - Frontend (React) → Backend (Express.js) → Blockchain (Hyperledger Fabric)<br>
+            - Integrasi dengan Google Gemini AI<br>
+            - Penyimpanan di IPFS/Pinata<br>
+            - Database CouchDB untuk world state<br>
+            - WebSocket untuk real-time notifications
+        </div>
+
+        <h3>2.2 Komponen Sistem</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Komponen</th>
+                    <th>Teknologi</th>
+                    <th>Fungsi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Frontend</strong></td>
+                    <td>React + Vite</td>
+                    <td>Antarmuka pengguna untuk UPPS & Sekretariat</td>
+                </tr>
+                <tr>
+                    <td><strong>Backend API</strong></td>
+                    <td>Express.js + Node.js</td>
+                    <td>Layer API dan orkestrasi layanan</td>
+                </tr>
+                <tr>
+                    <td><strong>Blockchain</strong></td>
+                    <td>Hyperledger Fabric 2.5.12</td>
+                    <td>Ledger immutable untuk metadata submission</td>
+                </tr>
+                <tr>
+                    <td><strong>Smart Contract</strong></td>
+                    <td>TypeScript (Chaincode)</td>
+                    <td>Logika bisnis akreditasi di blockchain</td>
+                </tr>
+                <tr>
+                    <td><strong>Storage</strong></td>
+                    <td>IPFS (Pinata)</td>
+                    <td>Penyimpanan file terdesentralisasi</td>
+                </tr>
+                <tr>
+                    <td><strong>AI Service</strong></td>
+                    <td>Google Gemini 2.5 Flash</td>
+                    <td>Analisis kelengkapan dokumen LED/LKPS Dan Skoring</td>
+                </tr>
+                <tr>
+                    <td><strong>Database</strong></td>
+                    <td>CouchDB</td>
+                    <td>World state database Fabric</td>
+                </tr>
+                <tr>
+                    <td><strong>Real-time</strong></td>
+                    <td>WebSocket</td>
+                    <td>Notifikasi event-driven</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>2.3 Organisasi Blockchain</h3>
+        <p>
+            Jaringan Hyperledger Fabric terdiri dari 3 organisasi:
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Organisasi</th>
+                    <th>Domain</th>
+                    <th>Peran</th>
+                    <th>Jumlah Peer</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Orderer</strong></td>
+                    <td>orderer.akreditasi.local</td>
+                    <td>Konsensus dan ordering transaksi</td>
+                    <td>1 orderer (solo)</td>
+                </tr>
+                <tr>
+                    <td><strong>UPPS</strong></td>
+                    <td>upps.akreditasi.local</td>
+                    <td>Unit Pengelola Program Studi (submit dokumen)</td>
+                    <td>1 peer + CouchDB</td>
+                </tr>
+                <tr>
+                    <td><strong>Sekretariat</strong></td>
+                    <td>sekretariat.akreditasi.local</td>
+                    <td>Verifikasi dan approval dokumen</td>
+                    <td>1 peer + CouchDB</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>2.4 7 Kriteria LAM-TEK 2025</h3>
+
+        <table class="criteria-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">No</th>
+                    <th style="width: 15%;">Kode</th>
+                    <th style="width: 35%;">Nama Kriteria</th>
+                    <th>Deskripsi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>DM</td>
+                    <td>Diferensiasi Misi</td>
+                    <td>Visi, Misi, Tujuan, dan Sasaran (VMTS) program studi</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>AK</td>
+                    <td>Akuntabilitas</td>
+                    <td>Tata pamong, BOP, DPD, dan Kerjasama institusi</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>REL</td>
+                    <td>Relevansi Pendidikan, Penelitian, dan PkM</td>
+                    <td>Kurikulum, pembelajaran, penelitian, dan pengabdian masyarakat</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>SDM</td>
+                    <td>Sumber Daya Manusia</td>
+                    <td>DTPS, kualifikasi dosen, publikasi, dan kinerja penelitian</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>SARPRAS</td>
+                    <td>Sarana, Prasarana, dan K3L</td>
+                    <td>Fasilitas pembelajaran, laboratorium, dan lingkungan</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>MHS</td>
+                    <td>Mahasiswa dan Luaran</td>
+                    <td>RMD, prestasi mahasiswa, waktu tunggu lulusan</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>SPM</td>
+                    <td>Sistem Penjaminan Mutu</td>
+                    <td>SPMI (Sistem Penjaminan Mutu Internal) dan kepuasan</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. USE CASE DIAGRAM -->
+    <div class="section">
+        <h2>3. USE CASE SISTEM</h2>
+
+        <div class="img-placeholder usecase-diagram">
+            <strong>📊 GAMBAR 3.1: Use Case Diagram</strong><br><br>
+            Aktor:<br>
+            1. UPPS (Unit Pengelola Program Studi)<br>
+            2. Sekretariat LAM-TEK<br>
+            3. Sistem AI (Gemini)<br><br>
+            Use Cases:<br>
+            - Upload Dokumen LED/LKPS<br>
+            - View Submissions<br>
+            - Analyze Document (AI)<br>
+            - Approve/Reject Submission<br>
+            - View Scoring Results<br>
+            - Receive Notifications
+        </div>
+
+        <h3>3.1 Deskripsi Use Case</h3>
+
+        <h4>UC-01: Upload Dokumen</h4>
+        <table>
+            <tr>
+                <td style="width: 25%; background-color: #ecf0f1;"><strong>Aktor</strong></td>
+                <td>UPPS</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Deskripsi</strong></td>
+                <td>UPPS mengupload dokumen LED dan LKPS untuk program studi yang akan diakreditasi</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Precondition</strong></td>
+                <td>UPPS memiliki dokumen LED (PDF) dan LKPS (Excel) yang siap diupload</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Main Flow</strong></td>
+                <td>
+                    1. UPPS mengisi form program studi dan institusi<br>
+                    2. UPPS memilih file LED dan LKPS<br>
+                    3. Sistem memvalidasi format dan ukuran file<br>
+                    4. Sistem mengupload file ke IPFS/Pinata<br>
+                    5. Sistem menyimpan metadata ke blockchain<br>
+                    6. AI menganalisis dokumen secara otomatis<br>
+                    7. Sistem mengirim notifikasi ke UPPS
+                </td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Postcondition</strong></td>
+                <td>Submission tersimpan dengan status "under_review"</td>
+            </tr>
+        </table>
+
+        <h4>UC-02: Verifikasi Dokumen</h4>
+        <table>
+            <tr>
+                <td style="width: 25%; background-color: #ecf0f1;"><strong>Aktor</strong></td>
+                <td>Sekretariat LAM-TEK</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Deskripsi</strong></td>
+                <td>Sekretariat melakukan verifikasi dan memberikan keputusan terhadap submission</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Precondition</strong></td>
+                <td>Submission dalam status "under_review"</td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Main Flow</strong></td>
+                <td>
+                    1. Sekretariat melihat daftar submission<br>
+                    2. Sekretariat melihat detail submission dan hasil AI<br>
+                    3. Sekretariat mengunduh dokumen dari IPFS<br>
+                    4. Sekretariat melakukan verifikasi manual<br>
+                    5. Sekretariat memberikan keputusan (approve/reject)<br>
+                    6. Sistem update status di blockchain<br>
+                    7. Sistem mengirim notifikasi ke UPPS
+                </td>
+            </tr>
+            <tr>
+                <td style="background-color: #ecf0f1;"><strong>Postcondition</strong></td>
+                <td>Status submission berubah menjadi "approved" atau "rejected"</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 4. SEQUENCE DIAGRAM -->
+    <div class="section">
+        <h2>4. SEQUENCE DIAGRAM</h2>
+
+        <h3>4.1 Proses Upload Dokumen</h3>
+        <div class="img-placeholder sequence-diagram">
+            <strong>📊 GAMBAR 4.1: Sequence Diagram - Upload Dokumen</strong><br><br>
+            Interaksi:<br>
+            UPPS → Frontend → Backend API → Pinata Service → IPFS<br>
+            Backend API → Gemini AI Service → Analisis Dokumen<br>
+            Backend API → Fabric Service → Blockchain<br>
+            Backend API → WebSocket Service → UPPS (Notification)
+        </div>
+
+        <h3>4.2 Proses Verifikasi Sekretariat</h3>
+        <div class="img-placeholder sequence-diagram">
+            <strong>📊 GAMBAR 4.2: Sequence Diagram - Verifikasi Dokumen</strong><br><br>
+            Interaksi:<br>
+            Sekretariat → Frontend → Backend API → Fabric Service<br>
+            Backend API → Blockchain (Query Submission)<br>
+            Sekretariat → Backend API → Fabric Service (Set Decision)<br>
+            Backend API → WebSocket Service → UPPS & Sekretariat (Notification)
+        </div>
+    </div>
+
+    <!-- 5. DEPLOYMENT DIAGRAM -->
+    <div class="section">
+        <h2>5. DEPLOYMENT DIAGRAM</h2>
+
+        <div class="img-placeholder deployment-diagram">
+            <strong>📊 GAMBAR 5.1: Deployment Diagram</strong><br><br>
+            Node Deployment:<br>
+            - Client Browser (React Frontend)<br>
+            - Application Server (Express.js Backend)<br>
+            - Blockchain Network (Hyperledger Fabric - 3 orgs)<br>
+            - IPFS Network (Pinata Gateway)<br>
+            - AI Service (Google Gemini API)<br>
+            - Database Server (CouchDB x2)
+        </div>
+
+        <h3>5.1 Spesifikasi Deployment</h3>
+
+        <div class="tech-stack">
+            <div class="tech-item">
+                <strong>Frontend Server</strong>
+                <p>React 18.x + Vite<br>
+                    Port: 3000/5173<br>
+                    Environment: Development/Production</p>
+            </div>
+            <div class="tech-item">
+                <strong>Backend Server</strong>
+                <p>Node.js 18+ + Express.js<br>
+                    Port: 8000<br>
+                    API Prefix: /api/v1</p>
+            </div>
+            <div class="tech-item">
+                <strong>Blockchain Network</strong>
+                <p>Hyperledger Fabric 2.5.12<br>
+                    Channel: akreditasi<br>
+                    Chaincode: submission-contract</p>
+            </div>
+            <div class="tech-item">
+                <strong>External Services</strong>
+                <p>Pinata IPFS Gateway<br>
+                    Google Gemini API<br>
+                    WebSocket (ws://)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. FITUR SISTEM -->
+    <div class="section">
+        <h2>6. FITUR SISTEM</h2>
+
+        <div class="feature-grid">
+            <div class="feature-item">
+                <strong>🔐 Blockchain Integration</strong>
+                <p>Immutable ledger, transaction history, role-based access control</p>
+            </div>
+            <div class="feature-item">
+                <strong>🤖 AI-Powered Analysis</strong>
+                <p>Automatic completeness check, quality recommendations, intelligent flagging</p>
+            </div>
+            <div class="feature-item">
+                <strong>📁 Decentralized Storage</strong>
+                <p>IPFS file storage, content-addressed retrieval, SHA-256 verification</p>
+            </div>
+            <div class="feature-item">
+                <strong>🔔 Real-time Notifications</strong>
+                <p>WebSocket updates, event-driven architecture, live status changes</p>
+            </div>
+            <div class="feature-item">
+                <strong>📊 Comprehensive Scoring</strong>
+                <p>7 Kriteria LAM-TEK 2025, BOP calculation, 3D interpolation formula</p>
+            </div>
+            <div class="feature-item">
+                <strong>🔒 Security Features</strong>
+                <p>Helmet security headers, CORS protection, rate limiting, input validation</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. API ENDPOINTS -->
+    <div class="section">
+        <h2>7. API ENDPOINTS</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Method</th>
+                    <th style="width: 35%;">Endpoint</th>
+                    <th>Deskripsi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/health</code></td>
+                    <td>Health check sistem</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1</code></td>
+                    <td>Informasi API dan 7 kriteria</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/api/v1/upload</code></td>
+                    <td>Upload dokumen LED/LKPS</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1/submissions</code></td>
+                    <td>List semua submission</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1/submissions/:id</code></td>
+                    <td>Detail submission by ID</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1/submissions/stats</code></td>
+                    <td>Statistik submission</td>
+                </tr>
+                <tr>
+                    <td><code>PUT</code></td>
+                    <td><code>/api/v1/submissions/:id</code></td>
+                    <td>Update submission</td>
+                </tr>
+                <tr>
+                    <td><code>DELETE</code></td>
+                    <td><code>/api/v1/submissions/:id</code></td>
+                    <td>Hapus submission</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/api/v1/scoring/calculate</code></td>
+                    <td>Hitung skor LAM-TEK</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/api/v1/scoring/custom</code></td>
+                    <td>Custom scoring</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1/scoring/:id</code></td>
+                    <td>Get skor by submission ID</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/v1/scoring</code></td>
+                    <td>Formula dan threshold</td>
+                </tr>
+                <tr>
+                    <td><code>WS</code></td>
+                    <td><code>/ws</code></td>
+                    <td>WebSocket connection</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 8. BUKU PANDUAN APLIKASI
+    <div class="section" style="page-break-before: always;">
+        <h2>8. BUKU PANDUAN APLIKASI</h2>
+
+        <h3>8.1 Instalasi dan Konfigurasi</h3>
+
+        <div class="user-guide-step">
+            <span class="step-number">1</span>
+            <h4>Persiapan Environment & Clone Repository</h4>
+            <p>Pastikan sistem memiliki: <strong>Node.js 18+</strong>, <strong>Docker & Docker Compose</strong>,
+                <strong>Fablo</strong>
+            </p>
+            <p>Clone repository:
+                <code>git clone https://github.com/mvirgiawancr/blockchain-batap.git && cd blockchain-batap</code>
+            </p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Verifikasi instalasi dan git clone
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">2</span>
+            <h4>Setup Hyperledger Fabric Network</h4>
+            <p>Deploy jaringan blockchain: <code>fablo up</code></p>
+            <p>Membuat 3 organisasi (Orderer, UPPS, Sekretariat), channel "akreditasi", dan deploy chaincode
+                "submission-contract"</p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Fablo network running successfully
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">3</span>
+            <h4>Konfigurasi Backend & Frontend</h4>
+            <p><strong>Backend:</strong> <code>cd backend-express && npm install && cp .env.example .env</code></p>
+            <p>Edit <code>.env</code>: Set <strong>GEMINI_API_KEY</strong>, <strong>PINATA_JWT</strong>,
+                <strong>PORT=8000</strong>
+            </p>
+            <p><strong>Frontend:</strong> <code>cd frontend && npm install && cp .env.example .env</code></p>
+            <p>Set <code>VITE_API_BASE_URL=http://localhost:8000</code></p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: File .env di VS Code
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">4</span>
+            <h4>Menjalankan Aplikasi</h4>
+            <p><strong>Terminal 1 - Backend:</strong> <code>cd backend-express && npm run dev</code></p>
+            <p><strong>Terminal 2 - Frontend:</strong> <code>cd frontend && npm run dev</code></p>
+            <p><strong>Akses:</strong> Frontend (http://localhost:5173), Backend API (http://localhost:8000), API Docs
+                (http://localhost:8000/api/v1)</p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: 2 terminal menjalankan backend dan frontend
+            </div>
+        </div>
+
+        <h3>8.2 Panduan Pengguna UPPS</h3>
+
+        <div class="user-guide-step">
+            <span class="step-number">1</span>
+            <h4>Akses Dashboard & Upload Dokumen</h4>
+            <p>Buka <code>http://localhost:5173</code>. Isi form: Program Studi, Institusi, Tipe Program (S/M/D/STr/dll)
+            </p>
+            <p>Pilih file LED (PDF, max 50MB) dan LKPS (Excel, max 50MB), lalu klik <strong>Submit</strong></p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Form upload dengan field terisi
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">2</span>
+            <h4>Proses Upload & Analisis AI</h4>
+            <p>Sistem akan: Validasi file → Upload ke IPFS/Pinata → Generate SHA-256 hash → Simpan ke blockchain →
+                Analisis AI (5-30 detik)</p>
+            <p><strong>Hasil:</strong> Skor Kelengkapan (0-100%), Status Dokumen, Flags, Recommendations, Ready for
+                Scoring</p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Detail submission dengan hasil AI
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">3</span>
+            <h4>Monitoring Status</h4>
+            <p><strong>Under Review</strong> (⏳) → Menunggu verifikasi Sekretariat</p>
+            <p><strong>Approved</strong> (✅) → Disetujui oleh Sekretariat</p>
+            <p><strong>Rejected</strong> (❌) → Ditolak oleh Sekretariat. Notifikasi real-time saat status berubah</p>
+        </div>
+
+        <h3>8.3 Panduan Pengguna Sekretariat</h3>
+
+        <div class="user-guide-step">
+            <span class="step-number">1</span>
+            <h4>Akses Dashboard & Review Submission</h4>
+            <p>Buka <code>http://localhost:5173/sekretariat</code>. Dashboard menampilkan semua submission dengan filter
+                status</p>
+            <p>Klik submission untuk detail: Info Program, Dokumen, Hasil AI, Blockchain Info, File Hash (SHA-256)</p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Dashboard Sekretariat
+            </div>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">2</span>
+            <h4>Download & Verifikasi Dokumen</h4>
+            <p>Klik <strong>Download LED</strong> dan <strong>Download LKPS</strong> dari IPFS. Verifikasi hash SHA-256
+                dan review konten sesuai 7 Kriteria LAM-TEK 2025</p>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">3</span>
+            <h4>Memberikan Keputusan</h4>
+            <p>Pilih <strong>Approve</strong> (jika lengkap) atau <strong>Reject</strong> (jika tidak memenuhi syarat)
+            </p>
+            <p>Isi <strong>Notes</strong> (alasan keputusan) dan <strong>Decided By</strong> (nama verifikator), lalu
+                klik <strong>Submit Decision</strong></p>
+            <p>Sistem akan: Update status di blockchain → Kirim notifikasi WebSocket ke UPPS → Log history</p>
+            <div class="img-placeholder screenshot-placeholder">
+                Screenshot: Form decision dan notifikasi
+            </div>
+        </div>
+
+        <h3>8.4 Monitoring dan Troubleshooting</h3>
+
+        <div class="user-guide-step">
+            <span class="step-number">1</span>
+            <h4>Melihat Logs & Monitoring</h4>
+            <p><strong>Logs:</strong> <code>tail -f backend-express/logs/combined.log</code></p>
+            <p><strong>Blockchain:</strong> Akses <code>http://localhost:8080</code> (Fablo REST API) untuk view blocks,
+                transactions, chaincode</p>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">2</span>
+            <h4>Testing API</h4>
+            <p>Test endpoint: <code>cd backend-express && ./test_api.sh</code></p>
+            <p>Manual test: <code>curl http://localhost:8000/health</code></p>
+        </div>
+
+        <div class="user-guide-step">
+            <span class="step-number">3</span>
+            <h4>Troubleshooting</h4>
+            <p><strong>"Cannot connect to blockchain"</strong> → Solusi: <code>fablo down && fablo up</code></p>
+            <p><strong>"IPFS upload failed"</strong> → Solusi: Verifikasi PINATA_JWT di .env</p>
+            <p><strong>"WebSocket refused"</strong> → Solusi: Pastikan backend running dan CORS configured</p>
+        </div>
+    </div> -->
+
+    <!-- 9. KESIMPULAN -->
+    <div class="section">
+        <h2>8. KESIMPULAN</h2>
+
+        <h3>9.1 Hasil Implementasi</h3>
+        <p>
+            Sistem Akreditasi Terdesentralisasi telah berhasil diimplementasikan dengan fitur-fitur utama:
+        </p>
+        <ul class="numbered-list">
+            <li>Upload dan penyimpanan dokumen LED/LKPS menggunakan IPFS/Pinata</li>
+            <li>Pencatatan metadata immutable di blockchain Hyperledger Fabric</li>
+            <li>Analisis otomatis dokumen menggunakan Google Gemini AI</li>
+            <li>Sistem verifikasi dan approval oleh Sekretariat LAM-TEK</li>
+            <li>Perhitungan skor berdasarkan 7 Kriteria LAM-TEK 2025</li>
+            <li>Notifikasi real-time melalui WebSocket</li>
+            <li>Keamanan dengan Helmet, CORS, rate limiting, dan validasi input</li>
+        </ul>
+
+        <h3>9.2 Keunggulan Sistem</h3>
+        <ul class="numbered-list">
+            <li><strong>Transparansi:</strong> Semua transaksi tercatat di blockchain yang dapat diaudit</li>
+            <li><strong>Integritas Data:</strong> SHA-256 hash memastikan dokumen tidak diubah</li>
+            <li><strong>Efisiensi:</strong> AI mengurangi waktu analisis manual dokumen</li>
+            <li><strong>Desentralisasi:</strong> Tidak ada single point of failure</li>
+            <li><strong>Real-time:</strong> WebSocket memberikan update instant kepada user</li>
+        </ul>
+
+        <h3>9.3 Pengembangan Selanjutnya</h3>
+        <p>Untuk fase berikutnya, disarankan implementasi:</p>
+        <ul class="numbered-list">
+            <li>Sistem autentikasi dan otorisasi berbasis role</li>
+            <li>Dashboard analytics untuk monitoring performa program studi</li>
+            <li>Export report dalam format PDF/Excel</li>
+            <li>Integrasi dengan sistem informasi akademik (SISTER, PDDikti)</li>
+            <li>Multi-language support (Indonesia, English)</li>
+            <li>Mobile application (React Native)</li>
+            <li>Enhanced AI dengan fine-tuning model khusus LAM-TEK</li>
+        </ul>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p><strong>Sistem Akreditasi Terdesentralisasi LAM-TEK 2025</strong></p>
+        <p>Dokumentasi versi 1.0.0 | Tanggal: 7 November 2025</p>
+        <p>Repository: github.com/mvirgiawancr/blockchain-batap</p>
+    </div>
+</body>
+
+</html>
