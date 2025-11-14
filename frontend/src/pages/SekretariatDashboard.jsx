@@ -326,14 +326,14 @@ export default function SekretariatDashboard() {
                         <strong>ID:</strong> {sub.submissionId}
                       </span>
                       <span className="bg-blue-50 px-3 py-1 rounded-lg text-blue-700">
-                        <strong>Version:</strong> {sub.version}
+                        <strong>Versi:</strong> {sub.version}
                       </span>
                       <span className="bg-purple-50 px-3 py-1 rounded-lg text-purple-700">
-                        <strong>Created:</strong> {new Date(sub.createdAt).toLocaleDateString('id-ID', { 
+                        <strong>Dibuat:</strong> {new Date(sub.createdAt).toLocaleDateString('id-ID', { 
                           year: 'numeric', month: 'short', day: 'numeric', 
                           hour: '2-digit', minute: '2-digit' 
                         })}
-                      </span>
+                      </span>TEKNIK INDUSTRI PERTANIAN 
                     </div>
                   </div>
                   <div>
