@@ -410,21 +410,56 @@ Return ONLY the JSON, no markdown, no explanation.`;
   }
 
   /**
-   * Generate Gemini response
+   * Generate Gemini response with retry logic
    */
-  async generateGeminiResponse(prompt) {
+  async generateGeminiResponse(prompt, maxRetries = 3) {
     if (!this.model) {
       throw new Error('Gemini API not configured');
     }
 
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
-      console.error('[Gemini] Error generating content:', error.message);
-      throw error;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[Gemini] Generating content (attempt ${attempt}/${maxRetries})...`);
+        
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        console.log(`[Gemini] ✅ Content generated successfully (${text.length} chars)`);
+        return text;
+        
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || String(error);
+        
+        // Check if it's a retryable error (503, 429, overloaded)
+        const isRetryable = 
+          errorMsg.includes('503') ||
+          errorMsg.includes('429') || 
+          errorMsg.includes('overloaded') ||
+          errorMsg.includes('quota') ||
+          errorMsg.includes('rate limit');
+        
+        if (!isRetryable || attempt === maxRetries) {
+          console.error(`[Gemini] ❌ Error generating content (attempt ${attempt}/${maxRetries}):`, errorMsg);
+          throw error;
+        }
+        
+        // Calculate exponential backoff delay
+        const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10 seconds
+        
+        console.warn(`[Gemini] ⚠️  ${errorMsg}`);
+        console.log(`[Gemini] Retrying in ${delayMs}ms... (attempt ${attempt}/${maxRetries})`);
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
+    
+    // If all retries failed
+    throw lastError;
   }
 
   /**
