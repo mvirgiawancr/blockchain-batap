@@ -1,16 +1,14 @@
-# .dockerignore untuk backend-express
+# .dockerignore untuk frontend
 node_modules
 npm-debug.log
 .env
-.env.*
+.env.local
+.env.development
 .git
 .gitignore
 *.md
-logs
-*.log
 .DS_Store
+dist-ssr
 coverage
 .vscode
 .idea
-wallet/*
-!wallet/.gitkeep
