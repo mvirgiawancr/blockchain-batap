@@ -27,7 +27,9 @@ export default function UPPSDashboard() {
   // Function to download document
   const handleDownload = async (submissionId, documentType, filename) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/download/${submissionId}/${documentType}`);
+      // Use API base URL from environment variable (works in both dev and production)
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE_URL}/download/${submissionId}/${documentType}`);
       
       if (!response.ok) {
         const error = await response.json();
