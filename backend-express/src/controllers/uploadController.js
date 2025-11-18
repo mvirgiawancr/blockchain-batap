@@ -243,9 +243,20 @@ const uploadDocuments = async (req, res, next) => {
         }
       } catch (error) {
         logger.error('AI analysis failed:', error);
+        
+        // Send error notification to user via WebSocket
+        websocketService.sendError(userId, {
+          stage: 'analysis',
+          message: 'AI analysis failed. Document uploaded without scoring.',
+          details: error.message
+        });
+        
         aiRecommendation = new AIRecommendation({
+          hasLED: !!ledContent,
+          hasLKPS: !!lkpsContent,
           readyForScoring: false,
-          notes: `AI analysis error: ${error.message}`
+          notes: `AI analysis error: ${error.message}. Mohon coba upload ulang atau hubungi administrator.`,
+          analyzedAt: new Date().toISOString()
         });
       }
     }

@@ -249,23 +249,26 @@ export default function UPPSDashboard() {
       console.log('[Frontend] Calling createSubmission API...');
       const response = await createSubmission(formDataToSend);
       console.log('[Frontend] Upload response received:', response);
+      console.log('[Frontend] Full response structure:', JSON.stringify(response, null, 2));
+      
+      // Backend sends data in response.submission
+      const submissionData = response.submission || response;
+      console.log('[Frontend] Submission data:', submissionData);
       
       // Debug scoring data
-      if (response.ai) {
-        console.log('[Frontend] AI data received:', response.ai);
-        console.log('[Frontend] AI keys:', Object.keys(response.ai));
-        if (response.ai.scoring) {
-          console.log('[Frontend] ✅ Scoring data found:', response.ai.scoring);
-          console.log('[Frontend] Scoring grade:', response.ai.scoring.grade);
-          console.log('[Frontend] Scoring overallScore:', response.ai.scoring.overallScore);
-          console.log('[Frontend] Scoring method:', response.ai.scoring.method);
-          console.log('[Frontend] Criteria scores:', response.ai.scoring.criteriaScores);
+      if (submissionData.ai) {
+        console.log('[Frontend] ✅ AI data found in submission');
+        console.log('[Frontend] AI keys:', Object.keys(submissionData.ai));
+        if (submissionData.ai.scoring) {
+          console.log('[Frontend] ✅✅ Scoring data found:', submissionData.ai.scoring);
+          console.log('[Frontend] Scoring grade:', submissionData.ai.scoring.grade);
+          console.log('[Frontend] Scoring overallScore:', submissionData.ai.scoring.overallScore);
         } else {
-          console.log('[Frontend] ❌ No scoring data in AI response - ai.scoring is undefined');
-          console.log('[Frontend] Available ai fields:', Object.keys(response.ai));
+          console.log('[Frontend] ❌ No scoring in submission.ai');
+          console.log('[Frontend] AI notes:', submissionData.ai.notes);
         }
       } else {
-        console.log('[Frontend] ❌ No AI data in response at all');
+        console.log('[Frontend] ❌ No AI data in submission');
       }
       
       // Mark all steps as completed
@@ -276,7 +279,7 @@ export default function UPPSDashboard() {
       updateProgress(5, 'completed', 'Upload ke IPFS selesai');
       updateProgress(6, 'completed', 'Upload berhasil - Scoring tersedia');
       
-      setResult(response);
+      setResult(submissionData);
       
       // Show success modal briefly, then hide to show result
       setModalContent({

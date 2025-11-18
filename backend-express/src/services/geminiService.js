@@ -652,11 +652,20 @@ Return ONLY the JSON, no markdown, no explanation.`;
 
       console.log(`[Gemini] Extraction complete! LED fields: ${Object.keys(finalLedData).length}, LKPS fields: ${Object.keys(finalLkpsData).length}`);
 
+      // Check if we got any meaningful data
+      const hasData = Object.keys(finalLedData).length > 0 || Object.keys(finalLkpsData).length > 0;
+      
+      // If no data extracted and there are errors, throw to trigger error handling
+      if (!hasData && errors.length > 0) {
+        console.error('[Gemini] ❌ No data extracted and has errors. Analysis failed.');
+        throw new Error(`AI analysis failed: ${errors.join('; ')}`);
+      }
+
       return {
         led_data: finalLedData,
         lkps_data: finalLkpsData,
         scoring_readiness: {
-          ready_for_lamtek_scoring: errors.length === 0,
+          ready_for_lamtek_scoring: hasData && errors.length === 0,
           error: errors.length > 0 ? errors.join('; ') : null
         }
       };
