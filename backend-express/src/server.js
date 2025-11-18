@@ -18,6 +18,7 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 const uploadRoutes = require('./routes/upload');
 const submissionRoutes = require('./routes/submissions');
 const scoringRoutes = require('./routes/scoring');
+const downloadRoutes = require('./routes/download');
 
 // Import WebSocket
 const websocketModule = require('./routes/websocket');
@@ -71,7 +72,8 @@ app.get(config.server.apiPrefix, (req, res) => {
       health: '/health',
       upload: `${config.server.apiPrefix}/upload`,
       submissions: `${config.server.apiPrefix}/submissions`,
-      scoring: `${config.server.apiPrefix}/scoring`
+      scoring: `${config.server.apiPrefix}/scoring`,
+      download: `${config.server.apiPrefix}/download/:submissionId/:documentType`
     }
   });
 });
@@ -80,6 +82,7 @@ app.get(config.server.apiPrefix, (req, res) => {
 app.use(`${config.server.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.server.apiPrefix}/submissions`, submissionRoutes);
 app.use(`${config.server.apiPrefix}/scoring`, scoringRoutes);
+app.use(`${config.server.apiPrefix}/download`, downloadRoutes);
 
 // Error handling middleware
 app.use(notFound);

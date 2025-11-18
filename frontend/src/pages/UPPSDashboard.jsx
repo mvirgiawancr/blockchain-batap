@@ -24,6 +24,39 @@ export default function UPPSDashboard() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerIntervalRef = useRef(null);
 
+  // Function to download document
+  const handleDownload = async (submissionId, documentType, filename) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/download/${submissionId}/${documentType}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        addNotification(`Download failed: ${error.message}`, 'error');
+        return;
+      }
+
+      // Get blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      addNotification(`${documentType} downloaded successfully`, 'success');
+    } catch (error) {
+      console.error('Download error:', error);
+      addNotification(`Download failed: ${error.message}`, 'error');
+    }
+  };
+
   useEffect(() => {
     wsService.connect('upps');
 
@@ -88,8 +121,8 @@ export default function UPPSDashboard() {
     wsService.on('scoring_update', (data) => {
       console.log('[Frontend] Scoring update:', data);
       const scoring = data.data || data;
-      updateProgress(4, 'completed', `Skor: ${scoring.finalScore}/${scoring.maxPossibleScore} (${scoring.akreditasi})`);
-      addNotification(`Scoring complete! Final Score: ${scoring.finalScore}/${scoring.maxPossibleScore} (${scoring.percentage}%) - ${scoring.akreditasi}`, 'success');
+      updateProgress(4, 'completed', `Skor: ${scoring.finalScore.toFixed(2)}/${scoring.maxPossibleScore}`);
+      addNotification(`Scoring complete! Final Score: ${scoring.finalScore.toFixed(2)}/${scoring.maxPossibleScore} (Overall: ${scoring.overallScore.toFixed(2)}/4.00)`, 'success');
       
       // Update result with scoring data if we already have a result
       if (result) {
@@ -768,59 +801,35 @@ export default function UPPSDashboard() {
                           {(result.ai?.scoring?.overallScore || 0).toFixed(2)} / 4.00
                         </div>
                         <div className="text-sm text-blue-700 mt-1">
-                          Overall Score: {(result.ai?.scoring?.percentage || 0).toFixed(1)}%
+                          Rata-rata Skor 7 Kriteria
                         </div>
                       </div>
                     </div>
                     
-                    {/* Grade Display - Prominent */}
+                    {/* Summary Stats */}
                     <div className="text-center mb-4">
-                      <span className={`inline-block px-8 py-4 rounded-2xl text-3xl font-bold ${
-                        result.ai?.scoring?.grade === 'A' ? 'bg-green-600 text-white' :
-                        result.ai?.scoring?.grade === 'B' ? 'bg-blue-600 text-white' :
-                        result.ai?.scoring?.grade === 'C' ? 'bg-yellow-600 text-white' :
-                        result.ai?.scoring?.grade === 'D' ? 'bg-orange-600 text-white' :
-                        'bg-red-600 text-white'
-                      }`}>
-                        Grade: {result.ai?.scoring?.grade || 'E'}
-                      </span>
-                      <div className="mt-2 text-xl font-semibold text-blue-800">
-                        {result.ai?.scoring?.akreditasi || 'Tidak Terakreditasi'}
-                      </div>
-                    </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="w-full bg-blue-200 rounded-full h-6">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full transition-all duration-1000 flex items-center justify-center"
-                          style={{ width: `${(result.ai?.scoring?.percentage || 0)}%` }}
-                        >
-                          <span className="text-white text-sm font-bold">{(result.ai?.scoring?.percentage || 0).toFixed(1)}%</span>
+                      {result.ai?.scoring?.summary && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-white/50 rounded-lg p-4">
+                            <div className="text-green-700 font-semibold text-sm">Kriteria ≥ 3.5</div>
+                            <div className="text-3xl font-bold text-green-800">{result.ai?.scoring?.summary?.criteriaAbove3_5 || 0}</div>
+                          </div>
+                          <div className="bg-white/50 rounded-lg p-4">
+                            <div className="text-red-700 font-semibold text-sm">Kriteria &lt; 2.0</div>
+                            <div className="text-3xl font-bold text-red-800">{result.ai?.scoring?.summary?.criteriaBellow2_0 || 0}</div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     
                     {/* LAM-TEK Summary */}
-                    <div className="text-center text-blue-800">
+                    <div className="text-center text-blue-800 bg-white/50 rounded-lg p-3">
                       <p className="text-lg">
                         <span className="font-bold">7 Kriteria</span> Akreditasi LAM-TEK 2025
                       </p>
                       <p className="text-sm mt-1">
-                        Rata-rata: <span className="font-bold">{(result.ai?.scoring?.overallScore || 0).toFixed(2)}</span> / 4.00
+                        Skor Total: <span className="font-bold">{(result.ai?.scoring?.finalScore || 0).toFixed(2)}</span> / {result.ai?.scoring?.maxPossibleScore || 220}
                       </p>
-                      {result.ai?.scoring?.summary && (
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                          <div className="bg-white/50 rounded-lg p-2">
-                            <div className="text-green-700 font-bold">✓ Kriteria ≥ 3.5</div>
-                            <div className="text-xl font-bold">{result.ai?.scoring?.summary?.criteriaAbove3_5 || 0}</div>
-                          </div>
-                          <div className="bg-white/50 rounded-lg p-2">
-                            <div className="text-red-700 font-bold">✗ Kriteria &lt; 2.0</div>
-                            <div className="text-xl font-bold">{result.ai?.scoring?.summary?.criteriaBellow2_0 || 0}</div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                     
                     {/* Detailed Criteria Breakdown with Nested Dropdowns */}
@@ -874,16 +883,13 @@ export default function UPPSDashboard() {
                                 <p className="text-xs text-gray-500"><span className="font-medium">Hash:</span> {doc.hash}</p>
                               </div>
                             </div>
-                            <a
-                              href={`https://ivory-fancy-junglefowl-107.mypinata.cloud/ipfs/${doc.cid}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={doc.filename}
+                            <button
+                              onClick={() => handleDownload(result.submissionId, doc.type, doc.filename)}
                               className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-semibold"
                             >
                               <Download size={16} />
                               Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       </div>

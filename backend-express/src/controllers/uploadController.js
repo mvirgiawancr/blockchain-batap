@@ -8,6 +8,7 @@ const pinataService = require('../services/pinataService');
 const fabricService = require('../services/fabricService');
 const lamtekScoringService = require('../services/lamtekScoringService');
 const websocketService = require('../services/websocketService');
+const encryptionKeyService = require('../services/encryptionKeyService');
 const { Submission, Document, AIRecommendation } = require('../models');
 const { generateSubmissionId, calculateHash, formatFileSize } = require('../utils/helpers');
 const logger = require('../utils/logger');
@@ -73,12 +74,14 @@ const uploadDocuments = async (req, res, next) => {
         });
       }
 
-      // Upload to IPFS
+      // Upload to IPFS (ENCRYPTED)
       const ledHash = calculateHash(ledFile.buffer);
       let ledCid = null;
+      let ledEncrypted = false;
       
       try {
-        const ipfsResult = await pinataService.uploadFile(
+        // Upload with encryption
+        const ipfsResult = await pinataService.uploadFileEncrypted(
           ledFile.buffer,
           `led-${submissionId}-${ledFile.originalname}`,
           {
@@ -91,13 +94,25 @@ const uploadDocuments = async (req, res, next) => {
         );
         
         ledCid = ipfsResult.cid;
-        logger.info(`LED uploaded to IPFS: ${ledCid}`);
+        ledEncrypted = true;
+        
+        // Store encryption key securely
+        await encryptionKeyService.storeKey(
+          submissionId,
+          'LED',
+          ipfsResult.encryptionKey,
+          ipfsResult.iv,
+          ledCid
+        );
+        
+        logger.info(`LED uploaded to IPFS (ENCRYPTED): ${ledCid}`);
       } catch (error) {
-        logger.warn('IPFS upload failed (continuing without IPFS):', error.message);
+        logger.warn('IPFS encrypted upload failed (continuing without IPFS):', error.message);
       }
 
       const ledDoc = new Document('LED', ledCid, ledHash, ledFile.originalname, verification.isValid, verification.confidence);
       ledDoc.size = ledFile.size;
+      ledDoc.encrypted = ledEncrypted;
       documents.push(ledDoc);
     }
 
@@ -128,12 +143,14 @@ const uploadDocuments = async (req, res, next) => {
         });
       }
 
-      // Upload to IPFS
+      // Upload to IPFS (ENCRYPTED)
       const lkpsHash = calculateHash(lkpsFile.buffer);
       let lkpsCid = null;
+      let lkpsEncrypted = false;
       
       try {
-        const ipfsResult = await pinataService.uploadFile(
+        // Upload with encryption
+        const ipfsResult = await pinataService.uploadFileEncrypted(
           lkpsFile.buffer,
           `lkps-${submissionId}-${lkpsFile.originalname}`,
           {
@@ -146,13 +163,25 @@ const uploadDocuments = async (req, res, next) => {
         );
         
         lkpsCid = ipfsResult.cid;
-        logger.info(`LKPS uploaded to IPFS: ${lkpsCid}`);
+        lkpsEncrypted = true;
+        
+        // Store encryption key securely
+        await encryptionKeyService.storeKey(
+          submissionId,
+          'LKPS',
+          ipfsResult.encryptionKey,
+          ipfsResult.iv,
+          lkpsCid
+        );
+        
+        logger.info(`LKPS uploaded to IPFS (ENCRYPTED): ${lkpsCid}`);
       } catch (error) {
-        logger.warn('IPFS upload failed (continuing without IPFS):', error.message);
+        logger.warn('IPFS encrypted upload failed (continuing without IPFS):', error.message);
       }
 
       const lkpsDoc = new Document('LKPS', lkpsCid, lkpsHash, lkpsFile.originalname, verification.isValid, verification.confidence);
       lkpsDoc.size = lkpsFile.size;
+      lkpsDoc.encrypted = lkpsEncrypted;
       documents.push(lkpsDoc);
     }
 
