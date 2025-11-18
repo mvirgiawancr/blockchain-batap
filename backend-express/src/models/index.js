@@ -14,6 +14,7 @@ class Document {
     this.filename = filename;
     this.verified = verified;
     this.confidence = confidence;
+    this.encrypted = false; // Default to false for backward compatibility
   }
 }
 

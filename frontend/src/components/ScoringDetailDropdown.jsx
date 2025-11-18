@@ -154,7 +154,7 @@ export default function ScoringDetailDropdown({ scoring }) {
                         {criteria.butirCount} butir penilaian
                       </span>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${getScoreColor(criteria.averageScore)}`}>
-                        {criteria.percentage.toFixed(1)}%
+                        Skor: {criteria.totalScore.toFixed(2)} / {criteria.maxPossibleScore}
                       </span>
                     </div>
                   </div>
@@ -229,14 +229,6 @@ export default function ScoringDetailDropdown({ scoring }) {
                                 {butirScore.toFixed(2)}
                               </div>
                               <div className="text-xs text-gray-500">/ 4.00</div>
-                              <div className={`text-xs font-semibold mt-1 ${
-                                butirScore >= 3.5 ? 'text-green-600' :
-                                butirScore >= 3.0 ? 'text-blue-600' :
-                                butirScore >= 2.0 ? 'text-yellow-600' :
-                                'text-red-600'
-                              }`}>
-                                {((butirScore / 4) * 100).toFixed(1)}%
-                              </div>
                             </div>
                           </div>
                         </div>

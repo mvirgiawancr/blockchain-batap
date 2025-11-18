@@ -15,6 +15,32 @@ export default function SekretariatDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({ type: '', message: '' });
 
+  // Function to download document
+  const handleDownload = async (submissionId, documentType, filename) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/download/${submissionId}/${documentType}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Download failed: ${error.message}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert(`Download failed: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     loadSubmissions();
     
@@ -429,16 +455,13 @@ export default function SekretariatDashboard() {
                             <p className="text-sm text-gray-600 truncate">{doc.filename || 'N/A'}</p>
                             <p className="text-xs text-gray-500 mt-1 font-mono truncate">CID: {doc.cid}</p>
                           </div>
-                          <a
-                            href={`https://ivory-fancy-junglefowl-107.mypinata.cloud/ipfs/${doc.cid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={doc.filename}
+                          <button
+                            onClick={() => handleDownload(sub.submissionId, doc.type, doc.filename)}
                             className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-semibold text-sm"
                           >
                             <Download size={16} />
                             Unduh
-                          </a>
+                          </button>
                         </div>
                       </div>
                     ))}
