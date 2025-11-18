@@ -236,50 +236,84 @@ Return ONLY the JSON, no markdown, no explanation.`;
     const prompts = {
       2: {
         fields: {
-          bop_value: '(number) BOP = Biaya Operasional Pendidikan/Mahasiswa - Look for cell with text "BOP =" or "Biaya Operasional Pendidikan/Mahasiswa" in Sheet 4a or Tabel 4.a, extract the number value (in Rupiah)',
-          dpd_total: '(number) DP = Dana Penelitian yang diperoleh dosen - Look for cell with text "DP =" or "Dana Penelitian" in Sheet 4a or Tabel 4.a, extract the total number (in Rupiah)',
-          jumlah_dtps: '(number) NDTPS = Jumlah Dosen Tetap Program Studi - Look for "NDTPS" in info block or Sheet 3b1 or Tabel 3.b.1, extract the number',
-          kerjasama_pendidikan: '(number) CRITICAL: Count KERJASAMA PENDIDIKAN from Sheet 6 or Tabel 6. Sum all rows with jenis kerjasama "Pendidikan". If column not found, estimate from total kerjasama ÷ 3. Expected: 5-20',
-          kerjasama_penelitian: '(number) CRITICAL: Count KERJASAMA PENELITIAN from Sheet 6 or Tabel 6. Sum all rows with jenis "Penelitian". If column not found, estimate from total kerjasama ÷ 3. Expected: 5-20',
-          kerjasama_pkm: '(number) CRITICAL: Count KERJASAMA PKM from Sheet 6 or Tabel 6. Sum all rows with jenis "PkM". If column not found, estimate from total kerjasama ÷ 3. Expected: 5-20',
-          kerjasama_internasional: '(number) CRITICAL: Count KERJASAMA INTERNASIONAL from Sheet 6. Sum rows with tingkat "Internasional". If not found, assume 20% of total kerjasama. Expected: 2-10',
-          kerjasama_nasional: '(number) CRITICAL: Count KERJASAMA NASIONAL from Sheet 6. Sum rows with tingkat "Nasional". If not found, assume 50% of total kerjasama. Expected: 5-15',
-          kerjasama_wilayah: '(number) CRITICAL: Count KERJASAMA WILAYAH/LOKAL from Sheet 6. Sum rows with tingkat "Wilayah" or "Lokal". If not found, assume 30% of total kerjasama. Expected: 3-10'
+          bop_value: '(number) BOP = Biaya Operasional Pendidikan/Mahasiswa (Rupiah) - DYNAMIC SEARCH across all sheets',
+          dpd_total: '(number) DP = Dana Penelitian Total (Rupiah) - Extract from Tabel 2.b row "Biaya Penelitian"',
+          jumlah_dtps: '(number) NDTPS = Jumlah Dosen Tetap Program Studi',
+          kerjasama_pendidikan: '(number) Count rows where Jenis Kerjasama = "Pendidikan"',
+          kerjasama_penelitian: '(number) Count rows where Jenis Kerjasama = "Penelitian"',
+          kerjasama_pkm: '(number) Count rows where Jenis Kerjasama = "PkM" or "Pengabdian"',
+          kerjasama_internasional: '(number) Count rows where Tingkat = "Internasional"',
+          kerjasama_nasional: '(number) Count rows where Tingkat = "Nasional"',
+          kerjasama_wilayah: '(number) Count rows where Tingkat = "Wilayah" or "Lokal"'
         },
-        example: { bop_value: 25925746.63, dpd_total: 11397400360, jumlah_dtps: 26, kerjasama_pendidikan: 12, kerjasama_penelitian: 15, kerjasama_pkm: 8, kerjasama_internasional: 6, kerjasama_nasional: 10, kerjasama_wilayah: 5 },
-        hint: `CRITICAL EXTRACTION STRATEGY:
+        example: { bop_value: 30319538, dpd_total: 812070655, jumlah_dtps: 26, kerjasama_pendidikan: 12, kerjasama_penelitian: 15, kerjasama_pkm: 8, kerjasama_internasional: 6, kerjasama_nasional: 10, kerjasama_wilayah: 5 },
+        hint: `CRITICAL EXTRACTION STRATEGY - DYNAMIC TABLE SEARCH:
 
-1. BOP VALUE (Sheet 4a):
-   - Find text "BOP = Biaya Operasional Pendidikan/Mahasiswa"
-   - Extract number after "=" (usually 20-40 million Rupiah)
-   - Example: "BOP = 25.925.746,63" → return 25925746.63
+STEP 1: CHECK SHEET "Daftar Tabel" (if exists)
+   - Look for sheet named "Daftar Tabel" or "Daftar Table"
+   - This sheet contains mapping of table names to actual sheet locations
+   - Find which sheet contains "Tabel 2.b" (Penggunaan Dana)
+   - Find which sheet contains kerjasama data
 
-2. DPD TOTAL (Sheet 4a):
-   - Find text "DP = Dana Penelitian yang diperoleh dosen"
-   - Extract LARGE number (usually billions)
-   - Example: "DP = 11.397.400.360" → return 11397400360
+STEP 2: EXTRACT BOP (Biaya Operasional Pendidikan)
+   Search across ALL sheets for these patterns:
+   a) Text "BOP =" or "BOP=" followed by number
+   b) Cell containing "Biaya Operasional Pendidikan/Mahasiswa"
+   c) In Tabel 2.b, find row "Biaya Operasional Pendidikan"
+      - Column "Rata-rata" under "Program Studi (Rupiah)"
+      - Usually in column 6 or nearby
+      - Example from Tabel 2.b:
+        Row: "c. Biaya Operasional Pembelajaran"
+        Column "Rata-rata" (Program Studi): Rp30,319,538
+        → Return: 30319538
+   d) If not found, calculate: Total Biaya Operasional ÷ Jumlah Mahasiswa
 
-3. JUMLAH DTPS (Info block or Sheet 3b1):
-   - Find "NDTPS" in document metadata
-   - Or COUNT rows in Tabel 3.a.1 or 3.b.1
-   - Expected: 20-30 for Magister
+STEP 3: EXTRACT DPD (Dana Penelitian Dosen)
+   In Tabel 2.b "Penggunaan Dana":
+   a) Find row with text "Biaya Penelitian" or "Dana Penelitian"
+   b) Get value from column "Rata-rata" under "Program Studi (Rupiah)"
+   c) Example from your data:
+      Row 3: "Biaya Penelitian"
+      Column "Rata-rata" (Program Studi): Rp812,070,655
+      → Return: 812070655
+   d) Alternative: Look for cell with "DP =" or "Dana Penelitian ="
 
-4. KERJASAMA (Sheet 6 or Tabel 6):
-   - Look for table with columns: [Nama Lembaga, Jenis Kerjasama, Tingkat]
-   - COUNT rows by filtering:
-     * kerjasama_pendidikan: where Jenis = "Pendidikan"
-     * kerjasama_penelitian: where Jenis = "Penelitian"
-     * kerjasama_pkm: where Jenis = "PkM" or "Pengabdian"
-     * kerjasama_internasional: where Tingkat = "Internasional"
-     * kerjasama_nasional: where Tingkat = "Nasional"
-     * kerjasama_wilayah: where Tingkat = "Wilayah" or "Lokal"
-   - If columns unclear, ESTIMATE:
-     * Total kerjasama rows in table = N
-     * pendidikan ≈ N/3, penelitian ≈ N/3, pkm ≈ N/3
-     * internasional ≈ N×0.2, nasional ≈ N×0.5, wilayah ≈ N×0.3
-   - DO NOT return 0 - even if table is messy, provide reasonable estimate!
+STEP 4: EXTRACT NDTPS
+   - Check document metadata for "NDTPS" value
+   - Or COUNT rows in Tabel 3.a.1 (Dosen Tetap)
+   - Expected: 20-35 for Magister program
 
-5. NEVER return 0 unless truly no data exists (empty table)!`
+STEP 5: EXTRACT KERJASAMA DATA
+   Search for table about "Kerjasama" or "Kerja Sama":
+   a) Check "Daftar Tabel" for which sheet contains Tabel 6 (Kerjasama)
+   b) Look for table with columns like:
+      - Nama Lembaga/Institusi
+      - Jenis Kerjasama (Pendidikan/Penelitian/PkM)
+      - Tingkat (Internasional/Nasional/Wilayah/Lokal)
+   c) COUNT rows based on criteria:
+      kerjasama_pendidikan: Jenis = "Pendidikan"
+      kerjasama_penelitian: Jenis = "Penelitian"
+      kerjasama_pkm: Jenis = "PkM" or "Pengabdian"
+      kerjasama_internasional: Tingkat = "Internasional"
+      kerjasama_nasional: Tingkat = "Nasional"
+      kerjasama_wilayah: Tingkat = "Wilayah" or "Lokal"
+   
+   d) ESTIMATION FALLBACK (if columns unclear):
+      Let N = total rows in kerjasama table
+      - kerjasama_pendidikan ≈ N ÷ 3
+      - kerjasama_penelitian ≈ N ÷ 3
+      - kerjasama_pkm ≈ N ÷ 3
+      - kerjasama_internasional ≈ N × 0.2
+      - kerjasama_nasional ≈ N × 0.5
+      - kerjasama_wilayah ≈ N × 0.3
+
+CRITICAL RULES:
+1. Search DYNAMICALLY - don't assume fixed sheet names
+2. Look in "Daftar Tabel" sheet first to find table locations
+3. For Tabel 2.b, extract from "Rata-rata" column under "Program Studi"
+4. NEVER return 0 unless table is truly empty
+5. If exact match not found, use REASONABLE ESTIMATION
+6. Currency format: "Rp1,234,567" → return 1234567 (number only, no Rp or commas)`
       },
       3: {
         fields: {
@@ -331,12 +365,27 @@ Return ONLY the JSON, no markdown, no explanation.`;
    - Common values: 60-90% for quality programs
    - DO NOT return raw count, return PERCENTAGE!
 
-4. PUBLIKASI (Sheet 3b4):
-   - Find row "Jurnal penelitian internasional bereputasi"
-   - Extract TOTAL column (sum of TS+TS-1+TS-2)
-   - If TOTAL not shown, SUM the three year columns
-   - Same for "Jurnal penelitian nasional terakreditasi"
-   - Expected: 100-300 for research-intensive programs
+4. PUBLIKASI ILMIAH DTPS - DYNAMIC SEARCH:
+   a) Check "Daftar Tabel" sheet for location of "Tabel 4.d" or "Publikasi Ilmiah DTPS"
+   b) Common locations: Sheet "4d", "3b4", or "Tabel 4.d)"
+   c) Look for table with title "Publikasi Ilmiah DTPS (Jurnal Internasional dan Nasional)"
+   d) Structure example:
+      - May have score/value shown (e.g., "0.00" at top)
+      - Or table with rows: Jurnal Internasional, Jurnal Nasional
+      - Or aggregate counts
+   e) Extract strategy:
+      - Find row "Jurnal penelitian internasional bereputasi" or "Jurnal Internasional"
+      - Find row "Jurnal penelitian nasional terakreditasi" or "Jurnal Nasional"
+      - Look for TOTAL or SUM column (TS + TS-1 + TS-2)
+      - If only individual years shown, ADD them up
+   f) If table shows 0.00 or empty:
+      - Search in Tabel 3.b.1, 3.b.2, 3.b.3, 3.b.4 for publication counts
+      - Look for "Publikasi" keyword anywhere
+      - Estimate: Good program has 100-300 publications over 3 years
+   g) Expected values:
+      - publikasi_ilmiah_dtps_ri: 50-300 (international journals)
+      - publikasi_ilmiah_dtps_rn: 50-250 (national journals)
+   h) NEVER return 0 unless truly no publications found in ALL tables
 
 5. RBK (Average teaching load):
    - Find in Sheet 3a3 or Tabel 3.a.3
@@ -349,8 +398,8 @@ Return ONLY the JSON, no markdown, no explanation.`;
       },
       6: {
         fields: {
-          rmd: '(number) Rasio mahasiswa/DTPS - Dari Tabel 5.a hitung (Jumlah Mahasiswa Reguler / NDTPS)',
-          pma: '(number) CRITICAL: Calculate percentage of foreign students. Look for "Mahasiswa Asing Penuh Waktu" in Sheet 2b or Tabel 2.b. Formula: (Jumlah Mahasiswa Asing / Total Mahasiswa Aktif) × 100. Example: if 3 foreign students out of 100 total, return 3.0',
+          rmd: '(number) Rasio mahasiswa/DTPS - From Tabel 6.a "Jumlah Mahasiswa", divide Mahasiswa Aktif by NDTPS',
+          pma: '(number) CRITICAL: % Mahasiswa Asing. DYNAMIC SEARCH: Check "Daftar Tabel" for "Tabel 6.a" location (often Sheet "6a" or "Tabel 6.a"). Find columns: "Jumlah Mahasiswa Asing Penuh Waktu (Full-time)" and "Jumlah Mahasiswa Aktif". Extract TS (latest year). Formula: (Mahasiswa Asing TS / Mahasiswa Aktif TS) × 100. Example from data: Mahasiswa Asing TS=5, Aktif TS=619, PMA = (5/619)×100 = 0.81%',
           ripk: '(number) Rata-rata IPK lulusan (0.0-4.0) - Dari Tabel 5.b.1 rata-rata IPK lulusan',
           prestasi_akademik_ri: '(number) CRITICAL: Total prestasi AKADEMIK internasional - Sum semua tahun dari Tabel 5.b.2 (TS+TS-1+TS-2). If not found, estimate 2-8',
           prestasi_akademik_rn: '(number) CRITICAL: Total prestasi AKADEMIK nasional - Sum semua tahun dari Tabel 5.b.2 (TS+TS-1+TS-2). If not found, estimate 5-15',
@@ -364,22 +413,32 @@ Return ONLY the JSON, no markdown, no explanation.`;
           tingkat_tempat_kerja_ri: '(number) From Sheet 8e1/Tabel 8.e.1: Count lulusan bekerja di "Multinasional/Internasional". May be 0-5. If table empty, return 0',
           tingkat_tempat_kerja_rn: '(number) From Sheet 8e1/Tabel 8.e.1: Count lulusan bekerja di "Nasional/Berwirausaha". Expected: 10-30. If table empty, estimate 15'
         },
-        example: { rmd: 20.5, pma: 3.0, ripk: 3.51, prestasi_akademik_ri: 5, prestasi_akademik_rn: 12, prestasi_non_akademik_ri: 2, prestasi_non_akademik_rn: 8, ptw: 75.5, publikasi_mahasiswa_ri: 3, publikasi_mahasiswa_rn: 10, wt: 4.2, kbk: 78.5, tingkat_tempat_kerja_ri: 2, tingkat_tempat_kerja_rn: 18 },
+        example: { rmd: 23.8, pma: 0.81, ripk: 3.51, prestasi_akademik_ri: 5, prestasi_akademik_rn: 12, prestasi_non_akademik_ri: 2, prestasi_non_akademik_rn: 8, ptw: 75.5, publikasi_mahasiswa_ri: 3, publikasi_mahasiswa_rn: 10, wt: 4.2, kbk: 78.5, tingkat_tempat_kerja_ri: 2, tingkat_tempat_kerja_rn: 18 },
         hint: `CRITICAL CALCULATION GUIDE:
 
-1. RMD (Rasio Mahasiswa/DTPS) - Tabel 5.a:
-   - Find "Jumlah Mahasiswa Reguler" (active students)
+1. RMD (Rasio Mahasiswa/DTPS) - Tabel 6.a:
+   - From Tabel 6.a, find "Jumlah Mahasiswa Aktif" column TS (current year)
+   - Or look in "data olahan" section for "JM Aktif TS"
    - Divide by NDTPS
-   - Formula: RMD = Mahasiswa Reguler / NDTPS
-   - Example: 533 students / 26 DTPS = 20.5
-   - Expected: 15-30 for Magister
+   - Formula: RMD = Mahasiswa Aktif TS / NDTPS
+   - Example: 619 students / 26 DTPS = 23.8
+   - Expected: 15-35 for Magister programs
 
-2. PMA (% Mahasiswa Asing) - Sheet 2b or Tabel 2.b:
-   - Find "Mahasiswa Asing Penuh Waktu" count
-   - Find "Total Mahasiswa Aktif"
-   - Formula: PMA = (Mahasiswa Asing / Total Mahasiswa) × 100
-   - Example: 3 / 100 = 3.0%
-   - Expected: 0-5% (may be 0)
+2. PMA (% Mahasiswa Asing) - DYNAMIC SEARCH Tabel 6.a:
+   a) Check "Daftar Tabel" for location of "Tabel 6.a) Jumlah Mahasiswa"
+   b) Find table with columns:
+      - "Jumlah Mahasiswa Aktif" (TS-2, TS-1, TS)
+      - "Jumlah Mahasiswa Asing Penuh Waktu (Full-time)" (TS-2, TS-1, TS)
+   c) Extract ONLY the TS (current year) values:
+      - Example: Mahasiswa Aktif TS = 619
+      - Example: Mahasiswa Asing FT TS = 5
+   d) May also have "data olahan" section showing:
+      - JM Aktif TS: 619
+      - JM Asing FT TS: 5
+   e) Formula: PMA = (Mahasiswa Asing TS / Mahasiswa Aktif TS) × 100
+   f) Example calculation: (5 / 619) × 100 = 0.81%
+   g) Expected: 0-10% (often < 5% for Indonesian programs)
+   h) If 0 foreign students, return 0 (this is valid)
 
 3. RIPK (Rata-rata IPK) - Tabel 5.b.1:
    - Find column "IPK Rata-rata" or "Rata-rata IPK"
@@ -737,10 +796,65 @@ Return ONLY the JSON, no markdown, no explanation.`;
                 'Masa Studi', 'Waktu Tunggu'
               ], 35000);
             }
+          } else if (i === 2) {
+            // Kriteria 2: Look for Tabel 2.b (Penggunaan Dana) and Kerjasama table
+            // First, try to find "Daftar Tabel" or "Daftar Table" sheet
+            let daftarTabelIdx = lkpsContent.indexOf('--- Sheet: Daftar Tabel ---');
+            if (daftarTabelIdx === -1) daftarTabelIdx = lkpsContent.indexOf('--- Sheet: Daftar Table ---');
+            if (daftarTabelIdx === -1) daftarTabelIdx = lkpsContent.indexOf('Daftar Tabel');
+            
+            // Try to find Tabel 2.b directly
+            let tabel2bIdx = lkpsContent.indexOf('Tabel 2.b');
+            if (tabel2bIdx === -1) tabel2bIdx = lkpsContent.indexOf('2.b');
+            if (tabel2bIdx === -1) tabel2bIdx = lkpsContent.indexOf('Penggunaan Dana');
+            
+            console.log(`[Gemini] K2 Search: Daftar Tabel=${daftarTabelIdx}, Tabel 2.b=${tabel2bIdx}`);
+            
+            // Build snippet including Daftar Tabel (if exists), Tabel 2.b, and Kerjasama table
+            let snippetParts = [];
+            
+            // Include Daftar Tabel for reference (first 10KB)
+            if (daftarTabelIdx !== -1) {
+              const daftarEnd = Math.min(lkpsContent.length, daftarTabelIdx + 10000);
+              snippetParts.push(lkpsContent.substring(daftarTabelIdx, daftarEnd));
+              console.log(`[Gemini] K2: Added Daftar Tabel (${daftarEnd - daftarTabelIdx} chars)`);
+            }
+            
+            // Include Tabel 2.b section (30KB to cover full table)
+            if (tabel2bIdx !== -1) {
+              const tabel2bStart = Math.max(0, tabel2bIdx - 500); // Include header
+              const tabel2bEnd = Math.min(lkpsContent.length, tabel2bIdx + 30000);
+              snippetParts.push(lkpsContent.substring(tabel2bStart, tabel2bEnd));
+              console.log(`[Gemini] K2: Added Tabel 2.b (${tabel2bEnd - tabel2bStart} chars)`);
+            }
+            
+            // Search for Kerjasama/Kerja Sama table
+            let kerjasamaIdx = lkpsContent.indexOf('Tabel 6');
+            if (kerjasamaIdx === -1) kerjasamaIdx = lkpsContent.indexOf('Kerjasama');
+            if (kerjasamaIdx === -1) kerjasamaIdx = lkpsContent.indexOf('Kerja Sama');
+            
+            if (kerjasamaIdx !== -1) {
+              const kerjasamaStart = Math.max(0, kerjasamaIdx - 500);
+              const kerjasamaEnd = Math.min(lkpsContent.length, kerjasamaIdx + 20000);
+              snippetParts.push(lkpsContent.substring(kerjasamaStart, kerjasamaEnd));
+              console.log(`[Gemini] K2: Added Kerjasama table (${kerjasamaEnd - kerjasamaStart} chars)`);
+            }
+            
+            // Combine snippets or fallback to keyword search
+            if (snippetParts.length > 0) {
+              lkpsSnippet = snippetParts.join('\n\n--- SECTION BREAK ---\n\n');
+              console.log(`[Gemini] K2: Combined snippet length: ${lkpsSnippet.length} chars`);
+            } else {
+              // Fallback: broad keyword search
+              console.log(`[Gemini] K2: Fallback to keyword search`);
+              lkpsSnippet = this.findRelevantSnippet(lkpsContent, [
+                'Penggunaan Dana', 'Biaya Operasional', 'Biaya Penelitian', 
+                'Kerjasama', 'BOP', 'Dana Penelitian', 'DTPS'
+              ], 40000);
+            }
           } else {
             // Other criteria use keyword search
-            const keywords = i === 2 ? ['Butir 9', 'Butir 10', 'Tabel 4', 'Kerjasama', 'BOP', 'Dana Penelitian'] :
-                            i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
+            const keywords = i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
             const windowSize = 15000;
             lkpsSnippet = this.findRelevantSnippet(lkpsContent, keywords, windowSize);
           }
