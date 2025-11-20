@@ -1,7 +1,7 @@
 /**
  * Encryption Key Service
- * Manages encryption keys for IPFS files (stored in memory/file for now)
- * TODO: Store in Hyperledger Fabric Private Data Collection for production
+ * Manages encryption keys for IPFS files (stored in memory for now)
+ * TODO: Migrate to PostgreSQL or Fabric Private Data Collection for production
  */
 
 const crypto = require('crypto');
@@ -10,10 +10,19 @@ const logger = require('../utils/logger');
 class EncryptionKeyService {
   constructor() {
     // In-memory storage for encryption keys
-    // TODO: Replace with Fabric Private Data Collection
     this.keys = new Map();
     
     logger.info('[EncryptionKey] Service initialized (in-memory storage)');
+  }
+
+  /**
+   * Generate new encryption key and IV
+   */
+  generateKey() {
+    return {
+      key: crypto.randomBytes(32), // 256-bit key for AES-256
+      iv: crypto.randomBytes(16)   // 128-bit IV
+    };
   }
 
   /**
@@ -121,7 +130,7 @@ class EncryptionKeyService {
   getStats() {
     return {
       totalKeys: this.keys.size,
-      storageType: 'in-memory' // TODO: Change to 'fabric-private-data' in production
+      storageType: 'in-memory'
     };
   }
 

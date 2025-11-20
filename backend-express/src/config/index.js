@@ -37,17 +37,76 @@ module.exports = {
     connectionProfile: process.env.FABRIC_CONNECTION_PROFILE || '../fablo-target/fabric-config/connection-profiles/connection-profile-sekretariat.json'
   },
 
-  // LAM-TEK 2025 Configuration
+  // LAM-TEK 2025 Configuration (Instrumen 2025)
   lamtek: {
-    criteriaCount: 7,
+    criteriaCount: 7, // 7 kriteria penilaian (Kriteria 8 = Program Pengembangan, tidak dinilai)
     criteria: [
-      { id: 1, name: 'Diferensiasi Misi', code: 'DM' },
-      { id: 2, name: 'Akuntabilitas', code: 'AK' },
-      { id: 3, name: 'Relevansi Pendidikan, Penelitian, dan PkM', code: 'REL' },
-      { id: 4, name: 'Sumber Daya Manusia', code: 'SDM' },
-      { id: 5, name: 'Sarana, Prasarana, dan K3L', code: 'SARPRAS' },
-      { id: 6, name: 'Mahasiswa dan Luaran Mahasiswa', code: 'MHS' },
-      { id: 7, name: 'Sistem Penjaminan Mutu', code: 'SPM' }
+      { 
+        id: 1, 
+        name: 'Diferensiasi Misi', 
+        code: 'DM',
+        bobot: 2.05,
+        butir: ['1.1 Visi, Misi, Tujuan dan Sasaran (Indikator Kinerja Utama)']
+      },
+      { 
+        id: 2, 
+        name: 'Akuntabilitas', 
+        code: 'AK',
+        bobot: 7.06,
+        butir: [
+          '2.1 Tata Pamong dan Tata Kelola',
+          '2.2 Kerja Sama',
+          '2.3 Keuangan'
+        ]
+      },
+      { 
+        id: 3, 
+        name: 'Relevansi Pendidikan, Penelitian, dan PkM', 
+        code: 'REL',
+        bobot: 22.45,
+        butir: [
+          '3.1 Pendidikan',
+          '3.2 Penelitian',
+          '3.3 Pengabdian kepada Masyarakat'
+        ]
+      },
+      { 
+        id: 4, 
+        name: 'Sumber Daya Manusia', 
+        code: 'SDM',
+        bobot: 13.44,
+        butir: [
+          '4.1 Profil Dosen dan Tenaga Kependidikan',
+          '4.2 Beban dan Kinerja DTPS'
+        ]
+      },
+      { 
+        id: 5, 
+        name: 'Sarana, Prasarana, dan K3L', 
+        code: 'SARPRAS',
+        bobot: 7.51,
+        butir: [
+          '5.1 Sarana, Prasarana, dan Keselamatan Kesehatan Kerja dan Lingkungan (K3L)'
+        ]
+      },
+      { 
+        id: 6, 
+        name: 'Mahasiswa dan Luaran Mahasiswa', 
+        code: 'MHS',
+        bobot: 26.87,
+        butir: [
+          '6.1 Mahasiswa dan Luaran Mahasiswa'
+        ]
+      },
+      { 
+        id: 7, 
+        name: 'Sistem Penjaminan Mutu', 
+        code: 'SPM',
+        bobot: 15.35,
+        butir: [
+          '7.1 Sistem Penjaminan Mutu'
+        ]
+      }
     ],
     programTypes: {
       'S': { name: 'Sarjana', butirCount: 60 },
@@ -74,5 +133,18 @@ module.exports = {
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100 // limit each IP to 100 requests per windowMs
-  }
+  },
+
+  // Database Configuration (PostgreSQL)
+  database: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    name: process.env.DB_NAME || 'akreditasi',
+    user: process.env.DB_USER || 'lamtek',
+    password: process.env.DB_PASSWORD || 'lamtek_secure_2025',
+    maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS || '20')
+  },
+
+  // Environment
+  env: process.env.NODE_ENV || 'development'
 };
