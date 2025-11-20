@@ -13,7 +13,8 @@ cd /path/to/blockchain-new
 # Pastikan blockchain sudah running
 cd fablo-target/fabric-docker
 ./fabric-docker.sh start
-
+cd ~/virgi-test/blockchain-batap/backend-express
+docker build -t backend-express:latest .
 # Deploy backend dengan Docker
 docker run -d \
   --name backend-express \
@@ -60,6 +61,9 @@ pm2 logs backend-express
 ```bash
 cd frontend
 
+# PENTING: Ganti YOUR_VPS_IP dengan IP VPS asli!
+# Contoh: 103.127.132.115 atau domain.com
+
 # Edit .env.production untuk VPS
 cat > .env.production << 'EOF'
 VITE_API_URL=http://YOUR_VPS_IP:8000/api/v1
@@ -69,6 +73,15 @@ EOF
 # Build production
 npm run build
 # Output: dist/
+
+# ⚠️ ATAU pakai Nginx proxy (recommended) - tidak perlu IP di frontend
+# Ubah .env.production jadi:
+cat > .env.production << 'EOF'
+VITE_API_URL=/api/v1
+VITE_WS_URL=/ws
+EOF
+# Dengan config ini, frontend akan akses backend via Nginx proxy
+# Browser akan hit: http://YOUR_VPS_IP/api/v1 → Nginx proxy ke localhost:8000
 ```
 
 ### Deploy ke Nginx (Root Path)
@@ -89,6 +102,10 @@ sudo nano /etc/nginx/sites-available/akrechain
 server {
     listen 80 default_server;
     server_name YOUR_VPS_IP;
+
+    # PENTING: Increase upload size limit untuk LED/LKPS (default 1MB terlalu kecil!)
+    client_max_body_size 100M;  # Allow up to 100MB files
+    client_body_timeout 300s;   # 5 minutes timeout for large uploads
 
     # Frontend root
     root /var/www/akrechain;
@@ -116,6 +133,11 @@ server {
         proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # Increase timeouts for large file uploads
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
     }
 
     # WebSocket proxy
@@ -131,6 +153,18 @@ server {
 
 #### 3. Build & Deploy
 ```bash
+# Di VPS, masuk ke project folder
+cd ~/virgi-test/blockchain-batap/frontend
+
+# Buat .env.production (pakai Nginx proxy - recommended)
+cat > .env.production << 'EOF'
+VITE_API_URL=/api/v1
+VITE_WS_URL=/ws
+EOF
+
+# Install dependencies (jika belum)
+npm install
+
 # Build production
 npm run build
 
@@ -141,6 +175,9 @@ sudo cp -r dist/* /var/www/akrechain/
 # Set permissions
 sudo chown -R www-data:www-data /var/www/akrechain
 sudo chmod -R 755 /var/www/akrechain
+
+# Verify files copied
+ls -la /var/www/akrechain
 ```
 
 #### 4. Enable & Restart Nginx
@@ -228,6 +265,20 @@ sudo netstat -tulpn | grep -E ':(80|8000|7041|7061)'
 ---
 
 ## 🐛 Troubleshooting
+
+### Error 413 Payload Too Large
+```bash
+# Fix: Increase Nginx upload limit
+sudo nano /etc/nginx/sites-available/akrechain
+
+# Tambahkan di dalam server block:
+client_max_body_size 100M;
+client_body_timeout 300s;
+
+# Test & restart
+sudo nginx -t
+sudo systemctl restart nginx
+```
 
 ### Frontend tidak muncul
 ```bash
