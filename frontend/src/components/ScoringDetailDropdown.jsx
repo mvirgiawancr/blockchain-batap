@@ -43,61 +43,39 @@ export default function ScoringDetailDropdown({ scoring }) {
     return 'bg-red-600';
   };
 
-  // Get butir details with full names
+  // Get butir details with full names (LAM-TEK Instrumen 2025)
   const getButirDetails = (criteriaNumber, butirNumber) => {
     const butirNames = {
-      // Kriteria 1: DM - Diferensiasi Misi
-      '1.1': 'Keterlibatan Sivitas Akademika dalam Penyusunan Dokumen Visi, Misi, Tujuan',
-      '1.2': 'Keunikan/Keunggulan PS Berbasis Riset dan Pengembangan IPTEKS',
-      '1.3': 'Keunikan/Keunggulan PS Berbasis Pengembangan Wilayah/Masyarakat',
-      '1.4': 'Sistem Pemantauan Pengembangan Visi, Misi, Tujuan dan Strategi',
+      // Kriteria 1: DM - Diferensiasi Misi (Bobot: 2.05)
+      '1.1': 'Visi, Misi, Tujuan dan Sasaran (Indikator Kinerja Utama)',
       
-      // Kriteria 2: AK - Akuntabilitas
-      '2.1': 'Ketersediaan dan Pelaksanaan Sistem Penjaminan Mutu',
-      '2.2': 'Ketersediaan dan Pelaksanaan Sistem Audit Internal',
-      '2.3': 'Total Dana PS dalam Milyar Rupiah (BOP)',
-      '2.4': 'Total Dana Penelitian dan PkM PS dalam Juta Rupiah (DPD)',
-      '2.5': 'Publikasi Hasil Pelaksanaan Tridharma PT',
+      // Kriteria 2: AK - Akuntabilitas (Bobot: 7.06)
+      '2.1': 'Tata Pamong dan Tata Kelola',
+      '2.2': 'Kerja Sama',
+      '2.3': 'Keuangan',
       
-      // Kriteria 3: REL - Relevansi Pendidikan, Penelitian, dan PkM
-      '3.1': 'Kurikulum Terbarukan dan Pemutakhiran Kurikulum',
-      '3.2': 'Penilaian Kepuasan Mahasiswa terhadap Proses Pembelajaran',
-      '3.3': 'Relevansi Capaian Pembelajaran dengan Visi, Misi PS',
-      '3.4': 'Persentase Dosen dengan Jabatan Fungsional Guru Besar/Profesor',
-      '3.5': 'Penelitian DTPS Sesuai Roadmap dan Berdampak ke Pembelajaran',
-      '3.6': 'PkM DTPS Relevan dengan PS dan Berdampak pada Masyarakat',
-      '3.7': 'Integrasi Kegiatan Penelitian dan PkM dengan Pembelajaran',
+      // Kriteria 3: REL - Relevansi Pendidikan, Penelitian, dan PkM (Bobot: 22.45)
+      '3.1': 'Pendidikan',
+      '3.2': 'Penelitian',
+      '3.3': 'Pengabdian kepada Masyarakat',
       
-      // Kriteria 4: SDM - Sumber Daya Manusia
-      '4.1': 'Dosen Tetap dengan Kualifikasi S3 dan Guru Besar',
-      '4.2': 'Persentase Dosen Tidak Tetap terhadap Total Dosen',
-      '4.3': 'Rasio Mahasiswa terhadap Dosen (RMD)',
-      '4.4': 'Rekognisi Dosen (Prestasi, Penghargaan, Sertifikasi)',
-      '4.5': 'Pengembangan dan Peningkatan Kompetensi Dosen',
-      '4.6': 'Publikasi Ilmiah DTPS (Jurnal Internasional dan Nasional)',
+      // Kriteria 4: SDM - Sumber Daya Manusia (Bobot: 13.44)
+      '4.1': 'Profil Dosen dan Tenaga Kependidikan',
+      '4.2': 'Beban dan Kinerja DTPS',
       
-      // Kriteria 5: SARPRAS - Sarana, Prasarana, dan K3L
-      '5.1': 'Ketersediaan, Akses, dan Pemanfaatan Sarana dan Prasarana',
-      '5.2': 'Kepemilikan, Akses dan Penggunaan Perpustakaan',
-      '5.3': 'Sistem Pengelolaan K3L (Kesehatan, Keselamatan Kerja, Lingkungan)',
+      // Kriteria 5: SARPRAS - Sarana, Prasarana, dan K3L (Bobot: 7.51)
+      '5.1': 'Sarana, Prasarana, dan Keselamatan Kesehatan Kerja dan Lingkungan (K3L)',
       
-      // Kriteria 6: MHS - Mahasiswa dan Luaran Mahasiswa
-      '6.1': 'Sistem Rekrutmen, Seleksi, dan Penerimaan Mahasiswa Baru',
-      '6.2': 'Persentase Mahasiswa Asing (PMA)',
-      '6.3': 'Layanan Konseling dan Bimbingan kepada Mahasiswa',
-      '6.4': 'Waktu Tunggu Lulusan Mendapat Pekerjaan Pertama',
-      '6.5': 'Kesesuaian Bidang Kerja Lulusan dengan Bidang Studi',
-      '6.6': 'Tingkat Kepuasan Pengguna Lulusan',
-      '6.7': 'Publikasi Ilmiah Mahasiswa',
-      '6.8': 'Prestasi Mahasiswa (Kompetisi, Penghargaan)',
-      '6.9': 'Tingkat Tempat Kerja Lulusan',
+      // Kriteria 6: MHS - Mahasiswa dan Luaran Mahasiswa (Bobot: 26.87)
+      '6.1': 'Mahasiswa dan Luaran Mahasiswa',
       
-      // Kriteria 7: SPM - Sistem Penjaminan Mutu
-      '7.1': 'Standar Mutu dan Implementasi SPMI',
-      '7.2': 'Kepemimpinan dan Kemampuan Manajerial Pimpinan PS',
-      '7.3': 'Kerjasama dengan Institusi Lain',
-      '7.4': 'Umpan Balik dari Alumni dan Pengguna Lulusan',
-      '7.5': 'Kepuasan Mahasiswa terhadap Layanan Program Studi'
+      // Kriteria 7: SPM - Sistem Penjaminan Mutu (Bobot: 15.35)
+      '7.1': 'Sistem Penjaminan Mutu',
+      
+      // Program Pengembangan Berkelanjutan (tidak dinilai)
+      '8.1': 'Analisis Lingkungan Internal & Analisis SWOT',
+      '8.2': 'Tujuan Strategis Pengembangan',
+      '8.3': 'Program Pengembangan Berkelanjutan'
     };
 
     return butirNames[`${criteriaNumber}.${butirNumber}`] || `Butir ${criteriaNumber}.${butirNumber}`;

@@ -97,6 +97,7 @@ class CriteriaScore {
     this.butirCount = data.butirCount || 0; // Jumlah butir untuk kriteria ini
     this.maxPossibleScore = data.maxPossibleScore || 0; // butirCount * 4
     this.percentage = data.percentage || 0; // (totalScore / maxPossibleScore) * 100
+    this.bobot = data.bobot || 0; // Bobot/weight for this criteria (LAM-TEK 2025)
   }
 }
 
@@ -118,7 +119,8 @@ class LAMTEKScoringResult {
     // Summary
     this.summary = data.summary || {
       totalButir: 0,
-      averageScoreAllCriteria: 0,
+      averageScoreAllCriteria: 0, // Simple average of all criteria (for reference)
+      weightedScore: 0, // Weighted average based on bobot (official LAM-TEK 2025 score)
       criteriaAbove3_5: 0, // Jumlah kriteria dengan average > 3.5
       criteriaBellow2_0: 0, // Jumlah kriteria dengan average < 2.0
     };
