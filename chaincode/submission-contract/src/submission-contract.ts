@@ -61,7 +61,7 @@ export class SubmissionContract extends Contract {
         console.info(`Submission JSON length: ${submissionJson.length}`);
 
         // Only UPPS (and optionally Sekretariat) can create submissions
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatAdminMSP'], 'CreateSubmission');
+        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekadminMSP'], 'CreateSubmission');
 
         // Check if submission already exists
         const exists = await this.SubmissionExists(ctx, submissionId);
@@ -131,7 +131,7 @@ export class SubmissionContract extends Contract {
         console.info(`AI payload JSON length: ${aiPayloadJson.length}`);
 
         // UPPS and Sekretariat can attach AI/analysis
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatAdminMSP'], 'AttachAIRecommendation');
+        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekadminMSP'], 'AttachAIRecommendation');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -188,7 +188,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Offer Assessor Pair ===========');
 
         // Only KEA can offer assessor pairs
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatAdminMSP'], 'OfferAssessorPair');
+        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekadminMSP'], 'OfferAssessorPair');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -467,7 +467,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Check AK Consistency ===========');
 
         // Only KEA can check consistency
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatAdminMSP'], 'CheckAKConsistency');
+        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekadminMSP'], 'CheckAKConsistency');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -511,7 +511,7 @@ export class SubmissionContract extends Contract {
         assignedBy: string,
         notes: string
     ): Promise<string> {
-        const mspId = this.assertMSP(ctx, ['SekretariatAdminMSP', 'KEAMSP'], 'AssignAssessor');
+        const mspId = this.assertMSP(ctx, ['SekadminMSP', 'KEAMSP'], 'AssignAssessor');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -547,7 +547,7 @@ export class SubmissionContract extends Contract {
         ctx: Context,
         submissionId: string
     ): Promise<string> {
-        const mspId = this.assertMSP(ctx, ['SekretariatAdminMSP', 'KEAMSP'], 'ClearAssessor');
+        const mspId = this.assertMSP(ctx, ['SekadminMSP', 'KEAMSP'], 'ClearAssessor');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -585,7 +585,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Set Decision ===========');
 
         // Only Sekretariat (or Assessor for peer review) can set decisions
-        const mspId = this.assertMSP(ctx, ['SekretariatAdminMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
+        const mspId = this.assertMSP(ctx, ['SekadminMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
 
         if (decision !== 'approved' && decision !== 'rejected') {
             throw new Error(`Invalid decision: ${decision}. Must be 'approved' or 'rejected'`);
@@ -639,7 +639,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Update Documents ===========');
 
         // UPPS and Sekretariat can update documents (revision cycle)
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatAdminMSP'], 'UpdateDocuments');
+        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekadminMSP'], 'UpdateDocuments');
 
         const submission = await this.getSubmission(ctx, submissionId);
         const newDocuments: Document[] = JSON.parse(newDocumentsJson);
@@ -695,7 +695,7 @@ export class SubmissionContract extends Contract {
     ): Promise<string> {
         console.info('============= START : Set Scoring Result ===========');
 
-        const mspId = this.assertMSP(ctx, ['AsesorMSP', 'SekretariatAdminMSP', 'KEAMSP'], 'SetScoringResult');
+        const mspId = this.assertMSP(ctx, ['AsesorMSP', 'SekadminMSP', 'KEAMSP'], 'SetScoringResult');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const scoringResult = JSON.parse(scoringJson);
