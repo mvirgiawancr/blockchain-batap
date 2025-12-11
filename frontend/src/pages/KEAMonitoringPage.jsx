@@ -38,7 +38,7 @@ const KEAMonitoringPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/kea/monitoring', {
+      const response = await fetch(`/kea/monitoring', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -38,8 +38,9 @@ export default function UPPSDashboard({ user }) {
   const fetchStatistics = async () => {
     setLoadingStats(true);
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/submissions', {
+      const response = await fetch(`${API_BASE_URL}/submissions`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

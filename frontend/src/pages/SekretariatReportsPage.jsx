@@ -24,8 +24,9 @@ const SekretariatReportsPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const response = await fetch(
-        `http://localhost:8000/api/v1/sekretariat/reports?range=${dateRange}`,
+        `${API_BASE_URL}/sekretariat/reports?range=${dateRange}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -47,8 +48,9 @@ const SekretariatReportsPage = ({ user }) => {
   const downloadReport = async (type) => {
     try {
       const token = localStorage.getItem('token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const response = await fetch(
-        `http://localhost:8000/api/v1/sekretariat/reports/download?type=${type}&range=${dateRange}`,
+        `${API_BASE_URL}/sekretariat/reports/download?type=${type}&range=${dateRange}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

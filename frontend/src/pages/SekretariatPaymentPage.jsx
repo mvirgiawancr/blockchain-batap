@@ -39,7 +39,8 @@ const SekretariatPaymentPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/sekretariat/payments', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE_URL}/sekretariat/payments`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,7 +63,7 @@ const SekretariatPaymentPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/v1/sekretariat/payments/${paymentId}/verify`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/sekretariat/payments/${paymentId}/verify`,
         {
           method: 'POST',
           headers: {

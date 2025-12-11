@@ -41,7 +41,8 @@ const SekretariatVerifyPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/sekretariat/submissions', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE_URL}/sekretariat/submissions`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -64,7 +65,7 @@ const SekretariatVerifyPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/v1/sekretariat/verify/${submissionId}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/sekretariat/verify/${submissionId}`,
         {
           method: 'POST',
           headers: {

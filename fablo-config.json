@@ -47,18 +47,19 @@
         "instances": 1,
         "db": "CouchDb",
         "prefix": "peer",
+        "port": 7041,
         "couchDb": {
           "prefix": "couch",
-          "port": 5984
+          "port": 5100
         }
       },
       "tools": {}
     },
     {
       "organization": {
-        "name": "Sekretariat",
-        "domain": "sekretariat.akreditasi.local",
-        "mspName": "SekretariatMSP"
+        "name": "Sekadmin",
+        "domain": "sekadmin.akreditasi.local",
+        "mspName": "SekadminMSP"
       },
       "ca": {
         "prefix": "ca",
@@ -69,9 +70,102 @@
         "instances": 1,
         "db": "CouchDb",
         "prefix": "peer",
+        "port": 7061,
         "couchDb": {
           "prefix": "couch",
-          "port": 6984
+          "port": 5120
+        }
+      },
+      "tools": {}
+    },
+    {
+      "organization": {
+        "name": "Sekkeu",
+        "domain": "sekkeu.akreditasi.local",
+        "mspName": "SekkeuMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "port": 7081,
+        "couchDb": {
+          "prefix": "couch",
+          "port": 5140
+        }
+      },
+      "tools": {}
+    },
+    {
+      "organization": {
+        "name": "KEA",
+        "domain": "kea.akreditasi.local",
+        "mspName": "KEAMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "port": 7101,
+        "couchDb": {
+          "prefix": "couch",
+          "port": 5160
+        }
+      },
+      "tools": {}
+    },
+    {
+      "organization": {
+        "name": "Asesor",
+        "domain": "asesor.akreditasi.local",
+        "mspName": "AsesorMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "port": 7121,
+        "couchDb": {
+          "prefix": "couch",
+          "port": 5180
+        }
+      },
+      "tools": {}
+    },
+    {
+      "organization": {
+        "name": "Majelis",
+        "domain": "majelis.akreditasi.local",
+        "mspName": "MajelisMSP"
+      },
+      "ca": {
+        "prefix": "ca",
+        "db": "sqlite"
+      },
+      "orderers": [],
+      "peer": {
+        "instances": 1,
+        "db": "CouchDb",
+        "prefix": "peer",
+        "port": 7141,
+        "couchDb": {
+          "prefix": "couch",
+          "port": 5200
         }
       },
       "tools": {}
@@ -88,7 +182,31 @@
           ]
         },
         {
-          "name": "Sekretariat",
+          "name": "Sekadmin",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Sekkeu",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "KEA",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Asesor",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Majelis",
           "peers": [
             "peer0"
           ]
@@ -105,7 +223,7 @@
       "directory": "chaincode/submission-contract",
       "sequence": 1,
       "initRequired": false,
-      "policy": "OR('UPPSMSP.member','SekretariatMSP.member')",
+      "policy": "OR('UPPSMSP.member','SekadminMSP.member','SekkeuMSP.member','KEAMSP.member','AsesorMSP.member','MajelisMSP.member')",
       "collections": [],
       "orgs": [
         {
@@ -115,7 +233,31 @@
           ]
         },
         {
-          "name": "Sekretariat",
+          "name": "Sekadmin",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Sekkeu",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "KEA",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Asesor",
+          "peers": [
+            "peer0"
+          ]
+        },
+        {
+          "name": "Majelis",
           "peers": [
             "peer0"
           ]

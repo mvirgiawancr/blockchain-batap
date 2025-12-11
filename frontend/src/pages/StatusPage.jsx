@@ -19,7 +19,7 @@ export default function StatusPage({ user }) {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/submissions', {
+      const response = await fetch(`/submissions', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

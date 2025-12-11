@@ -18,9 +18,10 @@ class FabricService {
     this.ordererEndpoint = 'orderer0.group1.orderer.akreditasi.local:7030';
     this.cliContainers = {
       UPPSMSP: 'cli.upps.akreditasi.local',
-      SekretariatAdminMSP: 'cli.sekadmin.akreditasi.local',
-      AsesorMSP: 'cli.asesor.akreditasi.local',
+      SekadminMSP: 'cli.sekadmin.akreditasi.local',
+      SekkeuMSP: 'cli.sekkeu.akreditasi.local',
       KEAMSP: 'cli.kea.akreditasi.local',
+      AsesorMSP: 'cli.asesor.akreditasi.local',
       MajelisMSP: 'cli.majelis.akreditasi.local'
     };
     this.isConnected = false;
@@ -90,8 +91,10 @@ class FabricService {
         `-o ${this.ordererEndpoint}`,
         '--peerAddresses peer0.upps.akreditasi.local:7041',
         '--peerAddresses peer0.sekadmin.akreditasi.local:7061',
+        '--peerAddresses peer0.sekkeu.akreditasi.local:7081',
         '--peerAddresses peer0.kea.akreditasi.local:7101',
         '--peerAddresses peer0.asesor.akreditasi.local:7121',
+        '--peerAddresses peer0.majelis.akreditasi.local:7141',
         '--waitForEvent'
       ].join(' ');
       

@@ -33,7 +33,7 @@ const AssessorsInfoPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/assessors', {
+      const response = await fetch(`/assessors', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

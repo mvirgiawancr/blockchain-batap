@@ -33,7 +33,7 @@ const SekretariatUPPSPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/sekretariat/upps', {
+      const response = await fetch(`/sekretariat/upps', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

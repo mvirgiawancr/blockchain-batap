@@ -17,7 +17,7 @@ const NotificationsPage = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/notifications', {
+      const response = await fetch(`/notifications', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -40,7 +40,7 @@ const NotificationsPage = ({ user }) => {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/api/v1/notifications/${notificationId}/read`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -60,7 +60,7 @@ const NotificationsPage = ({ user }) => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:8000/api/v1/notifications/read-all', {
+      await fetch(`/notifications/read-all', {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -76,7 +76,7 @@ const NotificationsPage = ({ user }) => {
   const deleteNotification = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/api/v1/notifications/${notificationId}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
