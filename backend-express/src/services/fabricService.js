@@ -42,14 +42,36 @@ class FabricService {
 
     logger.info('[Fabric] Service initialized (Docker CLI mode)');
     logger.info(`[Fabric] Channel: ${this.channel}, Chaincode: ${this.chaincode}`);
-    logger.info(`[Fabric] CLI Container: ${this.cliContainer}`);
+    logger.info(`[Fabric] Default CLI Container: ${this.cliContainer}`);
   }
 
-  async execPeerCommand(command, mspOrg = null) {
-    const container = (mspOrg && this.cliContainers[mspOrg]) || this.cliContainer;
+  /**
+   * Resolve role or MSP to CLI container
+   */
+  getCliContainer(mspOrRole) {
+    if (!mspOrRole) return this.cliContainer;
+    
+    // If it's directly a known MSP
+    if (this.cliContainers[mspOrRole]) {
+      return this.cliContainers[mspOrRole];
+    }
+    
+    // If it's a role, convert to MSP first
+    const msp = this.roleToMSP[mspOrRole.toLowerCase()];
+    if (msp && this.cliContainers[msp]) {
+      return this.cliContainers[msp];
+    }
+    
+    logger.warn(`[Fabric] Unknown mspOrRole: ${mspOrRole}, using default CLI`);
+    return this.cliContainer;
+  }
+
+  async execPeerCommand(command, mspOrRole = null) {
+    const container = this.getCliContainer(mspOrRole);
     const fullCmd = `docker exec ${container} ${command}`;
     
     try {
+      logger.info(`[Fabric] Using container: ${container} (from mspOrRole: ${mspOrRole || 'default'})`);
       logger.info(`[Fabric] Executing: ${command.substring(0, 100)}...`);
       const { stdout, stderr } = await execAsync(fullCmd, { maxBuffer: 10 * 1024 * 1024 });
       
