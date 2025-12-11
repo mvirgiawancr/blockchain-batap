@@ -19,6 +19,7 @@ const logger = require('../utils/logger');
 const uploadDocuments = async (req, res, next) => {
   try {
     const { programStudi, institusi, programType, submittedBy, notes } = req.body;
+    const actor = req.user || {};
     const files = req.files;
 
     logger.info(`Starting document upload for ${programStudi} (${programType})`);
@@ -37,7 +38,8 @@ const uploadDocuments = async (req, res, next) => {
     let lkpsContent = '';
 
     // Get user_id for WebSocket (default to 'upps')
-    const userId = submittedBy || 'upps';
+    const userId = actor.username || actor.id || submittedBy || 'upps';
+    const submittedByName = actor.username || submittedBy || 'unknown';
 
     // Send initial progress
     websocketService.sendUploadProgress(userId, {
@@ -292,6 +294,9 @@ const uploadDocuments = async (req, res, next) => {
 
     // Create submission object (constructor: submissionId, programStudi, institusi, programType)
     const submission = new Submission(submissionId, programStudi, institusi, programType);
+    submission.submittedBy = submittedByName;
+    submission.submittedByRole = actor.role || null;
+    submission.submittedByOrg = actor.msp_org || null;
     
     // Add documents
     documents.forEach(doc => submission.addDocument(doc));
@@ -305,6 +310,7 @@ const uploadDocuments = async (req, res, next) => {
     if (scoringResult && submission.ai) {
       submission.ai.scoring = scoringResult;
       submission.ai.scoreCompleteness = scoringResult.percentage || 0;
+      submission.scoringResult = scoringResult;
     }
     
     // Update status: After scoring complete, set to 'under_review' for Sekretariat verification
@@ -337,7 +343,9 @@ const uploadDocuments = async (req, res, next) => {
           details: { submissionId }
         });
 
-        await fabricService.submitSubmission(submission);
+        await fabricService.submitSubmission(submission, {
+          mspOrg: actor.msp_org || submission.submittedByOrg
+        });
         logger.info('Submission stored on blockchain successfully');
         
         websocketService.sendUploadProgress(userId, {
@@ -367,6 +375,9 @@ const uploadDocuments = async (req, res, next) => {
         programType: submission.programType,
         status: submission.status,
         version: submission.version,
+        submittedBy: submission.submittedBy,
+        submittedByRole: submission.submittedByRole,
+        submittedByOrg: submission.submittedByOrg,
         documents: submission.documents.map(doc => ({
           type: doc.type,
           filename: doc.filename,

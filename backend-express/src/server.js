@@ -15,10 +15,17 @@ const logger = require('./utils/logger');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 // Import routes
+const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const submissionRoutes = require('./routes/submissions');
 const scoringRoutes = require('./routes/scoring');
 const downloadRoutes = require('./routes/download');
+const userRoutes = require('./routes/users');
+const assessorRoutes = require('./routes/assessors');
+const notificationRoutes = require('./routes/notifications');
+const sekretariatRoutes = require('./routes/sekretariat');
+const keaRoutes = require('./routes/kea');
+const asesorRoutes = require('./routes/asesor');
 
 // Import WebSocket
 const websocketModule = require('./routes/websocket');
@@ -70,6 +77,7 @@ app.get(config.server.apiPrefix, (req, res) => {
     criteria: config.lamtek.criteria.map(c => `${c.id}. ${c.name}`),
     endpoints: {
       health: '/health',
+      auth: `${config.server.apiPrefix}/auth`,
       upload: `${config.server.apiPrefix}/upload`,
       submissions: `${config.server.apiPrefix}/submissions`,
       scoring: `${config.server.apiPrefix}/scoring`,
@@ -79,10 +87,18 @@ app.get(config.server.apiPrefix, (req, res) => {
 });
 
 // Register routes
+app.use(`${config.server.apiPrefix}/auth`, authRoutes);
 app.use(`${config.server.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.server.apiPrefix}/submissions`, submissionRoutes);
 app.use(`${config.server.apiPrefix}/scoring`, scoringRoutes);
 app.use(`${config.server.apiPrefix}/download`, downloadRoutes);
+app.use(`${config.server.apiPrefix}/users`, userRoutes);
+app.use(`${config.server.apiPrefix}/assessors`, assessorRoutes);
+app.use(`${config.server.apiPrefix}/notifications`, notificationRoutes);
+app.use(`${config.server.apiPrefix}/sekretariat`, sekretariatRoutes);
+app.use(`${config.server.apiPrefix}/kea`, keaRoutes);
+app.use(`${config.server.apiPrefix}/asesor`, asesorRoutes);
+app.use(`${config.server.apiPrefix}/assessor`, asesorRoutes); // Alias for asesor
 
 // Error handling middleware
 app.use(notFound);

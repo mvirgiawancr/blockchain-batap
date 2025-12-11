@@ -14,6 +14,15 @@ class FabricService {
     this.channel = config.fabric.channelName;
     this.chaincode = config.fabric.chaincodeName;
     this.cliContainer = 'cli.upps.akreditasi.local';
+    // Orderer host from Fablo (group1)
+    this.ordererEndpoint = 'orderer0.group1.orderer.akreditasi.local:7030';
+    this.cliContainers = {
+      UPPSMSP: 'cli.upps.akreditasi.local',
+      SekretariatAdminMSP: 'cli.sekadmin.akreditasi.local',
+      AsesorMSP: 'cli.asesor.akreditasi.local',
+      KEAMSP: 'cli.kea.akreditasi.local',
+      MajelisMSP: 'cli.majelis.akreditasi.local'
+    };
     this.isConnected = false;
 
     logger.info('[Fabric] Service initialized (Docker CLI mode)');
@@ -21,8 +30,9 @@ class FabricService {
     logger.info(`[Fabric] CLI Container: ${this.cliContainer}`);
   }
 
-  async execPeerCommand(command) {
-    const fullCmd = `docker exec ${this.cliContainer} ${command}`;
+  async execPeerCommand(command, mspOrg = null) {
+    const container = (mspOrg && this.cliContainers[mspOrg]) || this.cliContainer;
+    const fullCmd = `docker exec ${container} ${command}`;
     
     try {
       logger.info(`[Fabric] Executing: ${command.substring(0, 100)}...`);
@@ -61,8 +71,9 @@ class FabricService {
     logger.info('[Fabric] Disconnected');
   }
 
-  async invokeChaincode(functionName, args) {
+  async invokeChaincode(functionName, args, options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       const payload = {
         function: functionName,
         Args: args
@@ -76,14 +87,17 @@ class FabricService {
         `-C ${this.channel}`,
         `-n ${this.chaincode}`,
         `-c '${escapedPayload}'`,
+        `-o ${this.ordererEndpoint}`,
         '--peerAddresses peer0.upps.akreditasi.local:7041',
-        '--peerAddresses peer0.sekretariat.akreditasi.local:7061',
+        '--peerAddresses peer0.sekadmin.akreditasi.local:7061',
+        '--peerAddresses peer0.kea.akreditasi.local:7101',
+        '--peerAddresses peer0.asesor.akreditasi.local:7121',
         '--waitForEvent'
       ].join(' ');
       
       logger.info(`[Fabric] Invoking ${functionName} with ${args.length} args`);
       
-      const result = await this.execPeerCommand(command);
+      const result = await this.execPeerCommand(command, mspOrg);
       
       return {
         success: true,
@@ -97,15 +111,16 @@ class FabricService {
     }
   }
 
-  async queryChaincode(functionName, args = []) {
+  async queryChaincode(functionName, args = [], options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       const argsStr = args.map(arg => `"${arg.replace(/"/g, '\\"')}"`).join(',');
       
       const command = `peer chaincode query -C ${this.channel} -n ${this.chaincode} -c '{"function":"${functionName}","Args":[${argsStr}]}'`;
       
       logger.info(`[Fabric] Querying ${functionName}`);
       
-      const result = await this.execPeerCommand(command);
+      const result = await this.execPeerCommand(command, mspOrg);
       
       try {
         return JSON.parse(result);
@@ -123,8 +138,9 @@ class FabricService {
     }
   }
 
-  async createSubmission(submissionData) {
+  async createSubmission(submissionData, options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       const submissionId = submissionData.submissionId || submissionData.id;
       const programStudi = submissionData.programStudi || submissionData.programStudy || '';
       const institusi = submissionData.institusi || submissionData.universityName || '';
@@ -150,7 +166,7 @@ class FabricService {
       const result = await this.invokeChaincode('CreateSubmission', [
         submissionId,
         submissionJson
-      ]);
+      ], { mspOrg });
       
       logger.info(`[Fabric] ✅ Submission created: ${submissionId}`);
       return result;
@@ -161,8 +177,9 @@ class FabricService {
     }
   }
 
-  async attachAIRecommendation(recommendationData) {
+  async attachAIRecommendation(recommendationData, options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       const submissionId = recommendationData.submissionId;
       
       // Send FULL AI data including complete scoring details
@@ -195,7 +212,7 @@ class FabricService {
       const result = await this.invokeChaincode('AttachAIRecommendation', [
         submissionId,
         recommendationJson
-      ]);
+      ], { mspOrg });
       
       logger.info(`[Fabric] ✅ AI attached: ${submissionId}`);
       return result;
@@ -206,11 +223,12 @@ class FabricService {
     }
   }
 
-  async submitSubmission(submissionData) {
+  async submitSubmission(submissionData, options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       logger.info(`[Fabric] Submitting complete submission: ${submissionData.submissionId}`);
       
-      await this.createSubmission(submissionData);
+      await this.createSubmission(submissionData, { mspOrg });
       
       if (submissionData.ai) {
         // Pass COMPLETE AI data including full scoring details
@@ -226,7 +244,7 @@ class FabricService {
           ai_version: 'LAM-TEK-2025-v1.0'
         };
         
-        await this.attachAIRecommendation(aiData);
+        await this.attachAIRecommendation(aiData, { mspOrg });
       }
       
       logger.info(`[Fabric] ✅ Complete submission stored: ${submissionData.submissionId}`);
@@ -238,8 +256,9 @@ class FabricService {
     }
   }
 
-  async setDecision(submissionId, decision, notes, decidedBy) {
+  async setDecision(submissionId, decision, notes, decidedBy, options = {}) {
     try {
+      const mspOrg = options.mspOrg;
       logger.info(`[Fabric] Setting decision for ${submissionId}: ${decision}`);
       
       const result = await this.invokeChaincode('SetDecision', [
@@ -247,7 +266,7 @@ class FabricService {
         decision,
         notes,
         decidedBy
-      ]);
+      ], { mspOrg });
       
       logger.info(`[Fabric] ✅ Decision set: ${submissionId}`);
       return result;
@@ -278,37 +297,42 @@ class FabricService {
     }
   }
 
-  async querySubmission(submissionId) {
-    return await this.queryChaincode('QuerySubmission', [submissionId]);
+  async querySubmission(submissionId, options = {}) {
+    const mspOrg = options.mspOrg;
+    return await this.queryChaincode('QuerySubmission', [submissionId], { mspOrg });
   }
 
-  async queryAllSubmissions() {
-    return await this.queryChaincode('QueryAllSubmissions');
+  async queryAllSubmissions(options = {}) {
+    const mspOrg = options.mspOrg;
+    return await this.queryChaincode('QueryAllSubmissions', [], { mspOrg });
   }
 
-  async querySubmissionsByStatus(status) {
-    return await this.queryChaincode('QuerySubmissionsByStatus', [status]);
+  async querySubmissionsByStatus(status, options = {}) {
+    const mspOrg = options.mspOrg;
+    return await this.queryChaincode('QuerySubmissionsByStatus', [status], { mspOrg });
   }
 
-  async querySubmissionsByInstitusi(institusi) {
-    return await this.queryChaincode('QuerySubmissionsByInstitusi', [institusi]);
+  async querySubmissionsByInstitusi(institusi, options = {}) {
+    const mspOrg = options.mspOrg;
+    return await this.queryChaincode('QuerySubmissionsByInstitusi', [institusi], { mspOrg });
   }
 
-  async getSubmissionHistory(submissionId) {
-    return await this.queryChaincode('GetSubmissionHistory', [submissionId]);
+  async getSubmissionHistory(submissionId, options = {}) {
+    const mspOrg = options.mspOrg;
+    return await this.queryChaincode('GetSubmissionHistory', [submissionId], { mspOrg });
   }
 
   // Aliases for controller compatibility
-  async getAllSubmissions() {
+  async getAllSubmissions(options = {}) {
     logger.info('[Fabric] Getting all submissions from blockchain');
-    const result = await this.queryAllSubmissions();
+    const result = await this.queryAllSubmissions(options);
     // queryChaincode already returns parsed JSON
     return Array.isArray(result) ? result : [];
   }
 
-  async getSubmission(submissionId) {
+  async getSubmission(submissionId, options = {}) {
     logger.info(`[Fabric] Getting submission ${submissionId} from blockchain`);
-    const result = await this.querySubmission(submissionId);
+    const result = await this.querySubmission(submissionId, options);
     // queryChaincode already returns parsed JSON
     return result;
   }
@@ -321,16 +345,124 @@ class FabricService {
     );
   }
 
-  async updateSubmission(submissionId, updates) {
+  async updateSubmission(submissionId, updates, options = {}) {
     logger.info(`[Fabric] Updating submission ${submissionId}`);
-    // For now, we only support SetDecision and UpdateDocuments
-    // Full update not implemented in chaincode yet
-    throw new Error('Direct submission update not supported. Use setDecision or updateDocuments instead.');
+
+    // Scoring result update
+    if (updates.scoringResult) {
+      const scoringJson = JSON.stringify(updates.scoringResult);
+      return await this.invokeChaincode('SetScoringResult', [submissionId, scoringJson], { mspOrg: options.mspOrg });
+    }
+
+    throw new Error('Direct submission update not supported. Use setDecision, updateDocuments, or provide scoringResult.');
   }
 
   async deleteSubmission(submissionId) {
     logger.info(`[Fabric] Delete submission ${submissionId}`);
     throw new Error('Deletion not supported in blockchain. Submissions are immutable.');
+  }
+  async offerAssessorPair(submissionId, assessor1Id, assessor1Name, assessor2Id, assessor2Name, offeredBy, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      logger.info(`[Fabric] Offering assessor pair for ${submissionId}`);
+      
+      const result = await this.invokeChaincode('OfferAssessorPair', [
+        submissionId,
+        assessor1Id,
+        assessor1Name,
+        assessor2Id,
+        assessor2Name,
+        offeredBy
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ Assessor pair offered: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to offer assessor pair:', error.message);
+      throw error;
+    }
+  }
+
+  async respondToOffer(submissionId, assessorId, response, notes, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      logger.info(`[Fabric] Assessor ${assessorId} responding to offer for ${submissionId}: ${response}`);
+      
+      const result = await this.invokeChaincode('RespondToOffer', [
+        submissionId,
+        assessorId,
+        response,
+        notes
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ Assessor responded: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to respond to offer:', error.message);
+      throw error;
+    }
+  }
+
+  async uppsRespondToOffer(submissionId, response, notes, respondedBy, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      logger.info(`[Fabric] UPPS responding to offer for ${submissionId}: ${response}`);
+      
+      const result = await this.invokeChaincode('UPPSRespondToOffer', [
+        submissionId,
+        response,
+        notes,
+        respondedBy
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ UPPS responded: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to respond to offer (UPPS):', error.message);
+      throw error;
+    }
+  }
+
+  async submitAKAssessment(submissionId, assessorId, assessorName, scores, notes, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      const scoresJson = JSON.stringify(scores);
+      logger.info(`[Fabric] Submitting AK assessment for ${submissionId} by ${assessorId}`);
+      
+      const result = await this.invokeChaincode('SubmitAKAssessment', [
+        submissionId,
+        assessorId,
+        assessorName,
+        scoresJson,
+        notes
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ AK Assessment submitted: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to submit AK assessment:', error.message);
+      throw error;
+    }
+  }
+
+  async checkAKConsistency(submissionId, consistent, checkedBy, notes, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      logger.info(`[Fabric] Checking AK consistency for ${submissionId}: ${consistent}`);
+      
+      const result = await this.invokeChaincode('CheckAKConsistency', [
+        submissionId,
+        consistent ? 'true' : 'false', // Convert boolean to string if needed, or check chaincode expectation. Chaincode expects boolean but invoke args are strings usually? Wait, chaincode args are strings.
+        checkedBy,
+        notes
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ AK Consistency checked: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to check AK consistency:', error.message);
+      throw error;
+    }
   }
 }
 

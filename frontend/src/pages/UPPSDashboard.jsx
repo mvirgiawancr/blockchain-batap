@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createSubmission } from '../services/api';
 import wsService from '../services/websocket';
-import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download } from 'lucide-react';
+import Sidebar, { getMenuForRole } from '../components/Sidebar';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download, RefreshCw, TrendingUp } from 'lucide-react';
 import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 
-export default function UPPSDashboard() {
+export default function UPPSDashboard({ user }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     programStudi: '',
     institusi: '',
@@ -23,13 +26,54 @@ export default function UPPSDashboard() {
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerIntervalRef = useRef(null);
+  const [statistics, setStatistics] = useState({
+    totalSubmissions: 0,
+    sedangDiproses: 0,
+    disetujui: 0,
+    skorTerakhir: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Function to fetch statistics from backend
+  const fetchStatistics = async () => {
+    setLoadingStats(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/v1/submissions', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const submissions = result.data || [];
+        const stats = {
+          totalSubmissions: submissions.length,
+          sedangDiproses: submissions.filter(s => s.status === 'pending' || s.status === 'under_review').length,
+          disetujui: submissions.filter(s => s.status === 'approved').length,
+          skorTerakhir: submissions.length > 0 && submissions[0].ai?.scoring?.finalScore 
+            ? submissions[0].ai.scoring.finalScore.toFixed(2)
+            : 0
+        };
+        setStatistics(stats);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   // Function to download document
   const handleDownload = async (submissionId, documentType, filename) => {
     try {
       // Use API base URL from environment variable (works in both dev and production)
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      const response = await fetch(`${API_BASE_URL}/download/${submissionId}/${documentType}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/download/${submissionId}/${documentType}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       
       if (!response.ok) {
         const error = await response.json();
@@ -60,11 +104,15 @@ export default function UPPSDashboard() {
   };
 
   useEffect(() => {
-    wsService.connect('upps');
+    fetchStatistics(); // Fetch statistics on mount
+    
+    const wsId = (user && (user.username || user.id)) || 'upps';
+    wsService.connect(wsId);
 
     wsService.on('SubmissionCreated', (data) => {
       console.log('Submission created:', data);
       addNotification('Submission berhasil dibuat!', 'success');
+      fetchStatistics(); // Refresh stats after new submission
     });
 
     wsService.on('SubmissionDecided', (data) => {
@@ -178,7 +226,7 @@ export default function UPPSDashboard() {
     return () => {
       wsService.disconnect();
     };
-  }, []);
+  }, [user]);
 
   const addNotification = (message, type = 'info') => {
     // Use timestamp + counter to ensure uniqueness
@@ -401,7 +449,17 @@ export default function UPPSDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar 
+        user={user} 
+        onLogout={() => navigate('/login')}
+        menuItems={getMenuForRole('upps')}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 ml-64 overflow-auto">
+          
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -566,14 +624,84 @@ export default function UPPSDashboard() {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 py-12">
+        <div className="p-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
-            <FileText className="w-10 h-10 text-blue-600" />
-            Dashboard UPPS
-          </h1>
-          <p className="text-lg text-gray-600">Unggah dan Verifikasi Dokumen Akreditasi</p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <FileText className="w-8 h-8 text-blue-600" />
+              Dashboard UPPS
+            </h1>
+            <p className="text-gray-600 mt-1">Unggah dan Verifikasi Dokumen Akreditasi</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              title="Refresh"
+            >
+              <RefreshCw className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        {/* Statistics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Total Submission</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {loadingStats ? '...' : statistics.totalSubmissions}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Sedang Diproses</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {loadingStats ? '...' : statistics.sedangDiproses}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Disetujui</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {loadingStats ? '...' : statistics.disetujui}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Skor Terakhir</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {loadingStats ? '...' : statistics.skorTerakhir}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
@@ -918,6 +1046,7 @@ export default function UPPSDashboard() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

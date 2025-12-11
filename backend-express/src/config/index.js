@@ -32,9 +32,9 @@ module.exports = {
     networkName: 'akreditasi',
     channelName: 'akreditasi',
     chaincodeName: 'submission-contract',
-    mspId: process.env.FABRIC_MSP_ID || 'sekretariatMSP',
+    mspId: process.env.FABRIC_MSP_ID || 'SekretariatAdminMSP',
     walletPath: process.env.FABRIC_WALLET_PATH || './wallet',
-    connectionProfile: process.env.FABRIC_CONNECTION_PROFILE || '../fablo-target/fabric-config/connection-profiles/connection-profile-sekretariat.json'
+    connectionProfile: process.env.FABRIC_CONNECTION_PROFILE || '../fablo-target/fabric-config/connection-profiles/connection-profile-sekretariatadmin.json'
   },
 
   // LAM-TEK 2025 Configuration (Instrumen 2025)
