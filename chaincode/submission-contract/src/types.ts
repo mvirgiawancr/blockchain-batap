@@ -9,6 +9,8 @@ export interface Document {
     filename?: string;
     verified?: boolean;
     confidence?: number;
+    size?: number;
+    encrypted?: boolean;
 }
 
 export interface AIRecommendation {
@@ -43,7 +45,38 @@ export interface Decision {
     result: 'approved' | 'rejected';
     notes: string;
     decidedBy: string;
+    decidedByMsp?: string;
     decidedAt: string;
+}
+
+export interface AssessorOffer {
+    offerId: string;
+    assessor1Id: string;
+    assessor1Name: string;
+    assessor2Id: string;
+    assessor2Name: string;
+    offeredAt: string;
+    offeredBy: string;
+    assessor1Response?: 'pending' | 'accepted' | 'rejected';
+    assessor1ResponseAt?: string;
+    assessor1Notes?: string;
+    assessor2Response?: 'pending' | 'accepted' | 'rejected';
+    assessor2ResponseAt?: string;
+    assessor2Notes?: string;
+    uppsResponse?: 'pending' | 'accepted' | 'rejected';
+    uppsResponseAt?: string;
+    uppsNotes?: string;
+    status: 'pending' | 'completed' | 'rejected';
+    rejectionReason?: string;
+}
+
+export interface AKAssessment {
+    assessorId: string;
+    assessorName: string;
+    scores: { [key: string]: number };
+    totalScore: number;
+    notes: string;
+    submittedAt: string;
 }
 
 export interface Submission {
@@ -52,11 +85,38 @@ export interface Submission {
     institusi: string;
     programType?: string;  // S, M, D, D1, D2, D3, STr, MTr, DTr, PPI
     documents: Document[];
-    status: 'under_review' | 'approved' | 'rejected';
+    status: 'draft' | 'uploaded' | 'processing' | 'under_review' | 'approved' | 'rejected';
     version: number;
     ai?: AIRecommendation;
     decision?: Decision;
     previousDecisions?: Decision[];
+    scoringResult?: any;
+    submittedBy?: string;
+    submittedByMsp?: string;
+    updatedBy?: string;
+    updatedByMsp?: string;
+
+    // Phase 3A: Assessor Assignment & AK
+    currentOffer?: AssessorOffer;
+    offerHistory?: AssessorOffer[];
+    assignedAssessors?: {
+        assessor1Id: string;
+        assessor1Name: string;
+        assessor2Id: string;
+        assessor2Name: string;
+        assignedAt: string;
+    };
+    akAssessments?: AKAssessment[];
+    akConsistent?: boolean;
+    akConsistencyCheckedAt?: string;
+    akConsistencyCheckedBy?: string;
+
+    // Deprecated fields (kept for backward compatibility)
+    assignedAssessorId?: string;
+    assignedBy?: string;
+    assignedAt?: string;
+    assignmentNotes?: string;
+
     createdAt: string;
     updatedAt: string;
     docType: string;
@@ -84,5 +144,54 @@ export interface SubmissionDecidedEvent {
 export interface SubmissionDocumentsUpdatedEvent {
     submissionId: string;
     version: number;
+    at: string;
+}
+
+export interface ScoringUpdatedEvent {
+    submissionId: string;
+    at: string;
+    scoredBy?: string;
+    scoredByMsp?: string;
+}
+
+export interface SubmissionAssignedEvent {
+    submissionId: string;
+    assessorId: string;
+    assignedBy: string;
+    at: string;
+}
+
+export interface AssessorOfferEvent {
+    submissionId: string;
+    offerId: string;
+    assessor1Id: string;
+    assessor2Id: string;
+    at: string;
+}
+
+export interface AssessorResponseEvent {
+    submissionId: string;
+    offerId: string;
+    assessorId: string;
+    response: 'accepted' | 'rejected';
+    at: string;
+}
+
+export interface UPPSResponseEvent {
+    submissionId: string;
+    offerId: string;
+    response: 'accepted' | 'rejected';
+    at: string;
+}
+
+export interface AKAssessmentSubmittedEvent {
+    submissionId: string;
+    assessorId: string;
+    at: string;
+}
+
+export interface AKConsistencyCheckedEvent {
+    submissionId: string;
+    consistent: boolean;
     at: string;
 }

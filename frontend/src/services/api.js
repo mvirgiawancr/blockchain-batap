@@ -71,19 +71,45 @@ export const setDecision = async (submissionId, decisionData) => {
   return response.data;
 };
 
+// Assignment APIs
+export const getUsers = async (params = {}) => {
+  const response = await api.get('/users', { params });
+  return response.data;
+};
+
+export const assignAssessor = async (submissionId, payload) => {
+  const response = await api.post(`/submissions/${submissionId}/assign`, payload);
+  return response.data;
+};
+
+export const getAssignment = async (submissionId) => {
+  const response = await api.get(`/submissions/${submissionId}/assign`);
+  return response.data;
+};
+
+export const acceptAssignment = async (submissionId) => {
+  const response = await api.post(`/submissions/${submissionId}/assign/accept`);
+  return response.data;
+};
+
+export const rejectAssignment = async (submissionId, payload = {}) => {
+  const response = await api.post(`/submissions/${submissionId}/assign/reject`, payload);
+  return response.data;
+};
+
 // Scoring API
 export const autoScoreDocuments = async (formData) => {
-  const response = await api.post('/auto-score', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-    timeout: 240000 // 4 minutes for comprehensive scoring analysis
-  });
-  return response.data;
+  // Deprecated
+  throw new Error('auto-score endpoint is not available');
 };
 
 export const getScoringResult = async (scoringId) => {
   const response = await api.get(`/scoring/${scoringId}`);
+  return response.data;
+};
+
+export const manualScore = async (payload) => {
+  const response = await api.post('/scoring/manual', payload);
   return response.data;
 };
 

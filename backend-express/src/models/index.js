@@ -66,6 +66,9 @@ class Submission {
     this.version = 1;
     this.ai = null; // AIRecommendation
     this.decision = null; // Decision
+    this.submittedBy = null; // username/identifier of uploader
+    this.submittedByRole = null;
+    this.submittedByOrg = null;
     this.createdAt = new Date().toISOString();
     this.updatedAt = new Date().toISOString();
   }

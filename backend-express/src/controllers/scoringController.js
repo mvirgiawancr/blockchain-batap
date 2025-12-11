@@ -26,25 +26,27 @@ const calculateScores = async (req, res, next) => {
       });
     }
 
+    const aiPayload = submission.aiRecommendation || submission.ai;
+
     // Check if AI recommendation exists
-    if (!submission.aiRecommendation) {
+    if (!aiPayload) {
       return res.status(400).json({
         error: 'AI analysis required',
         message: 'Submission must have AI analysis completed before scoring'
       });
     }
 
-    if (!submission.aiRecommendation.readyForScoring) {
+    if (!aiPayload.readyForScoring) {
       return res.status(400).json({
         error: 'Data incomplete',
         message: 'AI analysis indicates data is incomplete for scoring',
-        details: submission.aiRecommendation.notes
+        details: aiPayload.notes
       });
     }
 
     // Extract data
-    const ledData = submission.aiRecommendation.ledCriteriaCoverage;
-    const lkpsData = submission.aiRecommendation.lkpsNumericData;
+    const ledData = aiPayload.ledCriteriaCoverage;
+    const lkpsData = aiPayload.lkpsNumericData;
     const finalProgramType = programType || submission.programType || 'S';
 
     logger.info(`Calculating DETAILED LAM-TEK scores with programType: ${finalProgramType}`);
@@ -59,11 +61,15 @@ const calculateScores = async (req, res, next) => {
     logger.info(`Scoring complete: Final Score = ${scoringResult.finalScore.toFixed(2)} / ${scoringResult.maxPossibleScore}`);
 
     // Update submission with new scoring result
-    await fabricService.updateSubmission(submissionId, {
-      scoringResult,
-      status: 'completed',
-      updatedAt: new Date().toISOString()
-    });
+    await fabricService.updateSubmission(
+      submissionId,
+      {
+        scoringResult,
+        status: 'under_review',
+        updatedAt: new Date().toISOString()
+      },
+      { mspOrg: req.user?.msp_org }
+    );
 
     res.json({
       success: true,
@@ -286,9 +292,60 @@ const getScoringInfo = async (req, res, next) => {
   }
 };
 
+/**
+ * Manual scoring input by assessor/sekretariat/admin
+ */
+const manualScoring = async (req, res, next) => {
+  try {
+    const { submissionId, manualScores = {}, notes = '', programType } = req.body;
+
+    if (!submissionId) {
+      return res.status(400).json({ error: 'submissionId is required' });
+    }
+
+    const submission = await fabricService.getSubmission(submissionId);
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    // Build scoringResult payload (manual)
+    const criteriaScores = {};
+    Object.keys(manualScores || {}).forEach((key) => {
+      criteriaScores[key] = {
+        manualScore: Number(manualScores[key]),
+      };
+    });
+
+    const scoringResult = {
+      manual: true,
+      programType: programType || submission.programType || 'S',
+      criteriaScores,
+      notes: notes || '',
+      calculatedBy: req.user?.username || 'assessor',
+      calculatedAt: new Date().toISOString()
+    };
+
+    await fabricService.updateSubmission(
+      submissionId,
+      { scoringResult },
+      { mspOrg: req.user?.msp_org }
+    );
+
+    res.json({
+      success: true,
+      message: 'Manual scoring saved',
+      scoring: scoringResult
+    });
+  } catch (error) {
+    logger.error('Manual scoring error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   calculateScores,
   getScoringDetails,
   calculateCustomScores,
-  getScoringInfo
+  getScoringInfo,
+  manualScoring
 };

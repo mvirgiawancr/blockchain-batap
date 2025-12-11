@@ -8,12 +8,14 @@ const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const { uploadDocuments, handleUploadError, validateDocuments } = require('../middleware/fileUpload');
 const { validateBody, schemas } = require('../middleware/validation');
+const { authenticate } = require('../middleware/authenticate');
+const { authorize } = require('../middleware/authorize');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 /**
  * @route   POST /api/v1/upload
  * @desc    Upload LED and/or LKPS documents
- * @access  Public
+ * @access  Private (UPPS/Admin)
  * @body    {
  *            programStudi: string (required),
  *            institusi: string (required),
@@ -26,6 +28,8 @@ const { asyncHandler } = require('../middleware/errorHandler');
  */
 router.post(
   '/',
+  authenticate,
+  authorize('upps', 'admin'),
   uploadDocuments,
   handleUploadError,
   validateDocuments,
@@ -36,10 +40,12 @@ router.post(
 /**
  * @route   GET /api/v1/upload/:id
  * @desc    Get submission status by ID
- * @access  Public
+ * @access  Private (all roles)
  */
 router.get(
   '/:id',
+  authenticate,
+  authorize('upps', 'sekretariat', 'assessor', 'admin'),
   asyncHandler(uploadController.getSubmissionStatus)
 );
 

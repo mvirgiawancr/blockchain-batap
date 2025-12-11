@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getAllSubmissions, setDecision } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { getAllSubmissions, setDecision, getUsers, assignAssessor, getAssignment } from '../services/api';
 import wsService from '../services/websocket';
+import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import { CheckCircle, XCircle, Clock, RefreshCw, FileText, Award, TrendingUp, AlertCircle, FileCheck, Download, Star } from 'lucide-react';
 import ScoringResultDisplay from '../components/ScoringResultDisplay';
 import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 
-export default function SekretariatDashboard() {
+export default function SekretariatDashboard({ user }) {
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('under_review');
@@ -14,13 +17,19 @@ export default function SekretariatDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({ type: '', message: '' });
+  const [assessors, setAssessors] = useState([]);
+  const [selectedAssessorId, setSelectedAssessorId] = useState('');
+  const [assignmentInfo, setAssignmentInfo] = useState(null);
 
   // Function to download document
   const handleDownload = async (submissionId, documentType, filename) => {
     try {
       // Use API base URL from environment variable (works in both dev and production)
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      const response = await fetch(`${API_BASE_URL}/download/${submissionId}/${documentType}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/download/${submissionId}/${documentType}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       
       if (!response.ok) {
         const error = await response.json();
@@ -45,9 +54,11 @@ export default function SekretariatDashboard() {
 
   useEffect(() => {
     loadSubmissions();
+    loadAssessors();
     
     // Connect to WebSocket
-    wsService.connect('sekretariat');
+    const wsId = (user && (user.username || user.id)) || 'sekretariat';
+    wsService.connect(wsId);
 
     wsService.on('SubmissionCreated', () => {
       loadSubmissions();
@@ -60,7 +71,7 @@ export default function SekretariatDashboard() {
     return () => {
       wsService.disconnect();
     };
-  }, [filter]);
+  }, [filter, user]);
 
   const loadSubmissions = async () => {
     try {
@@ -73,6 +84,31 @@ export default function SekretariatDashboard() {
       setSubmissions([]); // Set empty array on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAssessors = async () => {
+    try {
+      const res = await getUsers({ role: 'assessor' });
+      const list = Array.isArray(res.data) ? res.data : [];
+      setAssessors(list);
+      if (list.length > 0 && !selectedAssessorId) {
+        setSelectedAssessorId(list[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading assessors:', error);
+    }
+  };
+
+  const loadAssignmentInfo = async (submissionId) => {
+    try {
+      const res = await getAssignment(submissionId);
+      setAssignmentInfo(res.data || null);
+      if (res.data?.assessor_user_id) {
+        setSelectedAssessorId(res.data.assessor_user_id);
+      }
+    } catch (error) {
+      setAssignmentInfo(null);
     }
   };
 
@@ -97,7 +133,7 @@ export default function SekretariatDashboard() {
       await setDecision(submissionId, {
         decision,
         notes: decisionNotes,
-        decidedBy: 'Sekretariat Admin'
+        decidedBy: user?.username || 'Sekretariat Admin'
       });
       
       setModalContent({
@@ -166,63 +202,85 @@ export default function SekretariatDashboard() {
   const stats = getStatistics();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
-            {modalContent.type === 'processing' && (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <Clock className="w-16 h-16 text-purple-600 animate-spin" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Memproses</h3>
-                <p className="text-gray-600">{modalContent.message}</p>
-              </div>
-            )}
-            
-            {modalContent.type === 'success' && (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-12 h-12 text-green-600" />
+    <div className="flex h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+      <Sidebar 
+        user={user} 
+        onLogout={() => navigate('/login')} 
+        menuItems={getMenuForRole('sekretariat')} 
+      />
+      
+      <div className="flex-1 ml-64 overflow-auto">
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
+              {modalContent.type === 'processing' && (
+                <div className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <Clock className="w-16 h-16 text-purple-600 animate-spin" />
                   </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Memproses</h3>
+                  <p className="text-gray-600">{modalContent.message}</p>
                 </div>
-                <h3 className="text-2xl font-bold text-green-700 mb-2">Berhasil!</h3>
-                <p className="text-gray-600">{modalContent.message}</p>
-              </div>
-            )}
-            
-            {modalContent.type === 'error' && (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-12 h-12 text-red-600" />
+              )}
+              
+              {modalContent.type === 'success' && (
+                <div className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-12 h-12 text-green-600" />
+                    </div>
                   </div>
+                  <h3 className="text-2xl font-bold text-green-700 mb-2">Berhasil!</h3>
+                  <p className="text-gray-600 mb-4">{modalContent.message}</p>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
+                  >
+                    Tutup
+                  </button>
                 </div>
-                <h3 className="text-2xl font-bold text-red-700 mb-2">Error</h3>
-                <p className="text-gray-600 mb-4">{modalContent.message}</p>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
-                >
-                  Tutup
-                </button>
-              </div>
-            )}
+              )}
+              
+              {modalContent.type === 'error' && (
+                <div className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertCircle className="w-12 h-12 text-red-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-red-700 mb-2">Error</h3>
+                  <p className="text-gray-600 mb-4">{modalContent.message}</p>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
-            <Award className="w-10 h-10 text-purple-600" />
-            Dashboard Sekretariat
-          </h1>
-          <p className="text-lg text-gray-600">Verifikasi dan Validasi Dokumen Akreditasi</p>
-        </div>
+        <div className="p-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <Award className="w-10 h-10 text-purple-600" />
+                Dashboard Sekretariat
+              </h1>
+              <p className="text-lg text-gray-600">Verifikasi dan Validasi Dokumen Akreditasi</p>
+            </div>
+            <button
+              onClick={loadSubmissions}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -349,10 +407,10 @@ export default function SekretariatDashboard() {
                         <p className="text-gray-600">{sub.institusi}</p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-3">
-                      <span className="font-mono bg-gray-100 px-3 py-1 rounded-lg">
-                        <strong>ID:</strong> {sub.submissionId}
-                      </span>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-3">
+                  <span className="font-mono bg-gray-100 px-3 py-1 rounded-lg">
+                    <strong>ID:</strong> {sub.submissionId}
+                  </span>
                       <span className="bg-blue-50 px-3 py-1 rounded-lg text-blue-700">
                         <strong>Versi:</strong> {sub.version}
                       </span>
@@ -368,6 +426,8 @@ export default function SekretariatDashboard() {
                     {getStatusBadge(sub.status)}
                   </div>
                 </div>
+
+
 
                 {/* AI Analysis */}
                 {sub.ai && (
@@ -557,8 +617,10 @@ export default function SekretariatDashboard() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
     </div>
   );
 }
+
