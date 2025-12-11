@@ -19,11 +19,25 @@ class FabricService {
     this.cliContainers = {
       UPPSMSP: 'cli.upps.akreditasi.local',
       SekadminMSP: 'cli.sekadmin.akreditasi.local',
+      SekretariatAdminMSP: 'cli.sekadmin.akreditasi.local', // Alias for chaincode compatibility
       SekkeuMSP: 'cli.sekkeu.akreditasi.local',
       KEAMSP: 'cli.kea.akreditasi.local',
       AsesorMSP: 'cli.asesor.akreditasi.local',
       MajelisMSP: 'cli.majelis.akreditasi.local'
     };
+    
+    // Map user roles to MSP organizations
+    this.roleToMSP = {
+      upps: 'UPPSMSP',
+      sekretariat: 'SekadminMSP',
+      sekadmin: 'SekadminMSP',
+      sekkeu: 'SekkeuMSP',
+      kea: 'KEAMSP',
+      asesor: 'AsesorMSP',
+      majelis: 'MajelisMSP',
+      admin: 'SekadminMSP' // Admin uses Sekadmin CLI
+    };
+    
     this.isConnected = false;
 
     logger.info('[Fabric] Service initialized (Docker CLI mode)');
