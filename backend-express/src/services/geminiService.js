@@ -18,6 +18,10 @@ class GeminiService {
       this.model = this.genAI.getGenerativeModel({ model: config.gemini.model });
     }
 
+    // Global rate limiting for Free Tier (2 RPM = 1 request per 30 seconds)
+    this.lastRequestTime = 0;
+    this.minRequestIntervalMs = 35000; // 35 seconds between requests (safe margin for 2 RPM)
+
     // LAM-TEK 2025: 7 Kriteria Configuration (Instrumen 2025)
     this.criteriaConfig = {
       1: {
@@ -859,6 +863,16 @@ Return ONLY the JSON, no markdown, no explanation.`;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // Global rate limiting - wait if last request was too recent
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+        if (this.lastRequestTime > 0 && timeSinceLastRequest < this.minRequestIntervalMs) {
+          const waitTime = this.minRequestIntervalMs - timeSinceLastRequest;
+          console.log(`[Gemini] ⏳ Rate limit: waiting ${Math.ceil(waitTime/1000)}s before next request...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        this.lastRequestTime = Date.now();
+        
         console.log(`[Gemini] Generating content (attempt ${attempt}/${maxRetries})...`);
         
         const result = await this.model.generateContent(prompt);
@@ -885,8 +899,9 @@ Return ONLY the JSON, no markdown, no explanation.`;
           throw error;
         }
         
-        // Calculate exponential backoff delay
-        const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10 seconds
+        // Calculate exponential backoff delay - longer for rate limit (Free Tier = 2 RPM)
+        const baseDelay = errorMsg.includes('429') || errorMsg.includes('quota') ? 35000 : 5000;
+        const delayMs = Math.min(baseDelay * Math.pow(1.5, attempt - 1), 60000); // Max 60 seconds
         
         console.warn(`[Gemini] ⚠️  ${errorMsg}`);
         console.log(`[Gemini] Retrying in ${delayMs}ms... (attempt ${attempt}/${maxRetries})`);
