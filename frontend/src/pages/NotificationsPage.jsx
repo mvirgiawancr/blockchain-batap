@@ -16,8 +16,9 @@ const NotificationsPage = ({ user }) => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const token = localStorage.getItem('token');
-      const response = await fetch(`/notifications', {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,8 +60,9 @@ const NotificationsPage = ({ user }) => {
 
   const markAllAsRead = async () => {
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const token = localStorage.getItem('token');
-      await fetch(`/notifications/read-all', {
+      await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

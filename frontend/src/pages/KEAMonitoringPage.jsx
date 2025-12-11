@@ -37,8 +37,9 @@ const KEAMonitoringPage = ({ user }) => {
   const loadAssignments = async () => {
     setLoading(true);
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const token = localStorage.getItem('token');
-      const response = await fetch(`/kea/monitoring', {
+      const response = await fetch(`${API_BASE_URL}/kea/monitoring`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
