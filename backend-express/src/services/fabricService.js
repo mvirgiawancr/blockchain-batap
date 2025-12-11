@@ -19,6 +19,7 @@ class FabricService {
     this.cliContainers = {
       UPPSMSP: 'cli.upps.akreditasi.local',
       SekadminMSP: 'cli.sekadmin.akreditasi.local',
+      SekretariatMSP: 'cli.sekadmin.akreditasi.local', // Alias for user tokens
       SekretariatAdminMSP: 'cli.sekadmin.akreditasi.local', // Alias for chaincode compatibility
       SekkeuMSP: 'cli.sekkeu.akreditasi.local',
       KEAMSP: 'cli.kea.akreditasi.local',
