@@ -1146,6 +1146,120 @@ Return ONLY the JSON, no markdown, no explanation.`;
       };
     }
   }
+
+  /**
+   * Match assessor expertise with program study using AI
+   * Returns ranked list of assessors based on similarity
+   * @param {string} programStudi - The program study from UPPS submission
+   * @param {Array} assessors - List of assessors with their expertise
+   * @returns {Array} Ranked assessors with similarity scores
+   */
+  async matchAssessorExpertise(programStudi, assessors) {
+    if (!this.genAI) {
+      console.warn('[Gemini] AI not available, returning assessors without ranking');
+      return assessors.map((a, i) => ({
+        ...a,
+        similarityScore: 50,
+        aiRecommendation: 'AI tidak tersedia',
+        rank: i + 1
+      }));
+    }
+
+    try {
+      // Wait for rate limit if needed
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      if (timeSinceLastRequest < this.minRequestIntervalMs) {
+        const waitTime = this.minRequestIntervalMs - timeSinceLastRequest;
+        console.log(`[Gemini] Rate limiting: waiting ${waitTime}ms before assessor matching`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      this.lastRequestTime = Date.now();
+
+      const assessorList = assessors.map(a => 
+        `- ${a.name || a.username}: Keahlian "${a.expertise || a.programStudi || 'Tidak diketahui'}"`
+      ).join('\n');
+
+      const prompt = `
+Kamu adalah sistem AI untuk membantu penugasan asesor akreditasi program studi.
+
+Program Studi yang akan diakreditasi: "${programStudi}"
+
+Daftar Asesor yang tersedia:
+${assessorList}
+
+Tugas: Berikan skor kesesuaian (0-100) untuk setiap asesor berdasarkan kedekatan bidang keahlian mereka dengan program studi yang akan dinilai.
+
+Kriteria penilaian:
+- 90-100: Keahlian sama persis dengan program studi
+- 70-89: Keahlian serumpun/terkait erat (misal: Teknik Informatika dengan Sistem Informasi)
+- 50-69: Keahlian masih dalam rumpun yang sama (misal: semua Teknik)
+- 30-49: Keahlian berbeda tapi masih bisa menilai aspek tertentu
+- 0-29: Keahlian sangat berbeda
+
+Format output (JSON saja, tanpa markdown):
+[
+  {"name": "nama asesor", "score": 85, "reason": "alasan singkat"}
+]
+
+PENTING: Output hanya JSON array, tanpa penjelasan lain.
+`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = result.response.text();
+      
+      // Clean the response and parse JSON
+      let cleanedResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      let rankings = [];
+      try {
+        rankings = JSON.parse(cleanedResponse);
+      } catch (e) {
+        console.warn('[Gemini] Failed to parse AI response, using default ranking');
+        return assessors.map((a, i) => ({
+          ...a,
+          similarityScore: 50,
+          aiRecommendation: 'Gagal parsing respons AI',
+          rank: i + 1
+        }));
+      }
+
+      // Map rankings back to assessors and sort by score
+      const rankedAssessors = assessors.map(assessor => {
+        const ranking = rankings.find(r => 
+          r.name.toLowerCase().includes(assessor.name?.toLowerCase() || '') ||
+          assessor.name?.toLowerCase().includes(r.name.toLowerCase())
+        );
+        
+        return {
+          ...assessor,
+          similarityScore: ranking?.score || 50,
+          aiRecommendation: ranking?.reason || 'Tidak ada rekomendasi',
+          rank: 0  // Will be set after sorting
+        };
+      });
+
+      // Sort by similarity score (descending) and assign ranks
+      rankedAssessors.sort((a, b) => b.similarityScore - a.similarityScore);
+      rankedAssessors.forEach((a, i) => { a.rank = i + 1; });
+
+      console.log(`[Gemini] ✅ Assessor matching complete for "${programStudi}"`);
+      return rankedAssessors;
+
+    } catch (error) {
+      console.error('[Gemini] Assessor matching error:', error.message);
+      return assessors.map((a, i) => ({
+        ...a,
+        similarityScore: 50,
+        aiRecommendation: `Error: ${error.message}`,
+        rank: i + 1
+      }));
+    }
+  }
 }
 
 module.exports = new GeminiService();
+

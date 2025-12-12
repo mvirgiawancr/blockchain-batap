@@ -43,40 +43,59 @@ exports.getApprovedSubmissions = async (req, res) => {
 /**
  * Get available assessors
  * GET /api/v1/kea/assessors
+ * Optional query: ?programStudi=xxx (will use AI to rank by expertise match)
  */
 exports.getAssessors = async (req, res) => {
   try {
-    // This should ideally come from a User service or database
-    // For now, we'll return the hardcoded list but this should be improved later
-    const assessors = [
-      {
-        id: 'asesor_001',
-        name: 'Dr. Ahmad Fauzi',
-        expertise: 'Teknik Informatika',
-        totalAssignments: 12
-      },
-      {
-        id: 'asesor_002',
-        name: 'Prof. Dr. Siti Nurhaliza',
-        expertise: 'Teknik Elektro',
-        totalAssignments: 15
-      },
-      {
-        id: 'asesor_003',
-        name: 'Dr. Budi Santoso',
-        expertise: 'Sistem Informasi',
-        totalAssignments: 10
-      },
-      {
-        id: 'asesor_004',
-        name: 'Dr. Dewi Lestari',
-        expertise: 'Teknik Komputer',
-        totalAssignments: 8
-      }
-    ];
+    const { programStudi } = req.query;
+    const geminiService = require('../services/geminiService');
+    const db = require('../config/database');
+
+    // Get assessors from database
+    const result = await db.query(
+      `SELECT id, username, name, institution, program_studi, phone 
+       FROM users 
+       WHERE role IN ('asesor', 'assessor') AND is_active = TRUE
+       ORDER BY name`
+    );
+
+    let assessors = result.rows.map(row => ({
+      id: row.id,
+      username: row.username,
+      name: row.name,
+      institution: row.institution,
+      expertise: row.program_studi || 'Tidak diketahui',
+      phone: row.phone,
+      totalAssignments: 0 // TODO: Count from assignments table
+    }));
+
+    // If no assessors in DB, use hardcoded fallback
+    if (assessors.length === 0) {
+      assessors = [
+        { id: 'asesor_001', name: 'Dr. Ahmad Fauzi', expertise: 'Teknik Informatika', totalAssignments: 12 },
+        { id: 'asesor_002', name: 'Prof. Dr. Siti Nurhaliza', expertise: 'Teknik Elektro', totalAssignments: 15 },
+        { id: 'asesor_003', name: 'Dr. Budi Santoso', expertise: 'Sistem Informasi', totalAssignments: 10 },
+        { id: 'asesor_004', name: 'Dr. Dewi Lestari', expertise: 'Teknik Komputer', totalAssignments: 8 }
+      ];
+    }
+
+    // If programStudi is provided, use AI to rank assessors
+    if (programStudi) {
+      logger.info(`Ranking assessors for program studi: ${programStudi}`);
+      const rankedAssessors = await geminiService.matchAssessorExpertise(programStudi, assessors);
+      logger.info(`Retrieved ${rankedAssessors.length} ranked assessors`);
+      return res.json({
+        success: true,
+        programStudi,
+        assessors: rankedAssessors
+      });
+    }
 
     logger.info(`Retrieved ${assessors.length} assessors for KEA`);
-    res.json(assessors);
+    res.json({
+      success: true,
+      assessors
+    });
   } catch (error) {
     logger.error('Error getting assessors:', error);
     res.status(500).json({

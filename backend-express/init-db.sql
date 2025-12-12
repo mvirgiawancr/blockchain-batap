@@ -278,8 +278,8 @@ VALUES
     )
 ON CONFLICT (username) DO NOTHING;
 
--- 5. Asesor users (multiple assessors)
-INSERT INTO users (username, password_hash, role, name, institution, phone, msp_org, is_active)
+-- 5. Asesor users (multiple assessors with expertise/program_studi)
+INSERT INTO users (username, password_hash, role, name, institution, program_studi, phone, msp_org, is_active)
 VALUES 
     (
         'asesor_001',
@@ -287,6 +287,7 @@ VALUES
         'asesor',
         'Prof. Dr. Ahmad Fauzi, M.T.',
         'Universitas Indonesia',
+        'Teknik Informatika',
         '081234567801',
         'SekretariatMSP',
         TRUE
@@ -297,6 +298,7 @@ VALUES
         'asesor',
         'Dr. Ir. Budi Santoso, M.Eng.',
         'Institut Teknologi Bandung',
+        'Teknik Elektro',
         '081234567802',
         'SekretariatMSP',
         TRUE
@@ -307,6 +309,7 @@ VALUES
         'asesor',
         'Prof. Dr. Citra Dewi, M.T.',
         'Institut Pertanian Bogor',
+        'Sistem Informasi',
         '081234567803',
         'SekretariatMSP',
         TRUE
@@ -317,6 +320,7 @@ VALUES
         'asesor',
         'Dr. Dedi Rahman, S.T., M.T.',
         'Universitas Gadjah Mada',
+        'Teknik Komputer',
         '081234567804',
         'SekretariatMSP',
         TRUE
@@ -327,6 +331,7 @@ VALUES
         'asesor',
         'Prof. Ir. Eka Putri, Ph.D.',
         'Institut Teknologi Sepuluh Nopember',
+        'Teknik Mesin',
         '081234567805',
         'SekretariatMSP',
         TRUE

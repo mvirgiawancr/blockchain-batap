@@ -117,6 +117,19 @@ router.post(
 );
 
 /**
+ * @route   GET /api/v1/submissions/:id/history
+ * @desc    Get submission transaction history (traceability)
+ * @access  Private (all roles)
+ */
+router.get(
+  '/:id/history',
+  authenticate,
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  validateParams(schemas.submissionId),
+  asyncHandler(submissionController.getSubmissionHistory)
+);
+
+/**
  * @route   GET /api/v1/submissions/:id
  * @desc    Get submission by ID
  * @access  Private (all roles)

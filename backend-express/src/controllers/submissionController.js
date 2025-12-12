@@ -478,6 +478,43 @@ const respondToAssessorOffer = async (req, res, next) => {
   }
 };
 
+/**
+ * Get submission history (traceability)
+ * Returns all blockchain transactions for a submission
+ */
+const getSubmissionHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const actor = req.user || {};
+
+    logger.info(`Fetching submission history: ${id}`);
+
+    const history = await fabricService.getSubmissionHistory(id, { 
+      mspOrg: actor.msp_org || actor.role 
+    });
+
+    // Parse history if it's a string
+    let parsedHistory = history;
+    if (typeof history === 'string') {
+      try {
+        parsedHistory = JSON.parse(history);
+      } catch (e) {
+        // Keep as-is if not JSON
+      }
+    }
+
+    res.json({
+      success: true,
+      submissionId: id,
+      history: parsedHistory
+    });
+
+  } catch (error) {
+    logger.error('Get submission history error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   getAllSubmissions,
   getSubmissionById,
@@ -491,5 +528,6 @@ module.exports = {
   clearAssignment,
   acceptAssignment,
   rejectAssignment,
-  respondToAssessorOffer
+  respondToAssessorOffer,
+  getSubmissionHistory
 };
