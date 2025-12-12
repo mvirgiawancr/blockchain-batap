@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { FileText, Clock, CheckCircle, XCircle, Download, RefreshCw } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, Download, RefreshCw, History } from 'lucide-react';
+import SubmissionHistoryModal from '../components/SubmissionHistoryModal';
 
 export default function SubmissionsPage({ user }) {
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedHistorySubmission, setSelectedHistorySubmission] = useState(null);
 
   useEffect(() => {
     loadSubmissions();
@@ -136,7 +138,16 @@ export default function SubmissionsPage({ user }) {
                     )}
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap">
+                    {/* History Button */}
+                    <button
+                      onClick={() => setSelectedHistorySubmission(submission)}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <History className="w-4 h-4" />
+                      Riwayat Blockchain
+                    </button>
+                    
                     {submission.ledHash && (
                       <a
                         href={`https://ipfs.io/ipfs/${submission.ledHash}`}
@@ -163,6 +174,15 @@ export default function SubmissionsPage({ user }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Submission History Modal */}
+          {selectedHistorySubmission && (
+            <SubmissionHistoryModal 
+              submissionId={selectedHistorySubmission.submissionId}
+              programStudi={selectedHistorySubmission.programStudi}
+              onClose={() => setSelectedHistorySubmission(null)}
+            />
           )}
         </div>
       </div>
