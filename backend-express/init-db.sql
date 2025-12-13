@@ -289,7 +289,7 @@ VALUES
         'Universitas Indonesia',
         'Teknik Informatika',
         '081234567801',
-        'SekretariatMSP',
+        'AsesorMSP',
         TRUE
     ),
     (
@@ -300,7 +300,7 @@ VALUES
         'Institut Teknologi Bandung',
         'Teknik Elektro',
         '081234567802',
-        'SekretariatMSP',
+        'AsesorMSP',
         TRUE
     ),
     (
@@ -311,7 +311,7 @@ VALUES
         'Institut Pertanian Bogor',
         'Sistem Informasi',
         '081234567803',
-        'SekretariatMSP',
+        'AsesorMSP',
         TRUE
     ),
     (
@@ -322,7 +322,7 @@ VALUES
         'Universitas Gadjah Mada',
         'Teknik Komputer',
         '081234567804',
-        'SekretariatMSP',
+        'AsesorMSP',
         TRUE
     ),
     (
@@ -333,10 +333,69 @@ VALUES
         'Institut Teknologi Sepuluh Nopember',
         'Teknik Mesin',
         '081234567805',
-        'SekretariatMSP',
+        'AsesorMSP',
+        TRUE
+    ),
+    -- Additional assessors for AI testing
+    (
+        'asesor_006',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'asesor',
+        'Dr. Faisal Hidayat, M.Kom.',
+        'Universitas Bina Nusantara',
+        'Ilmu Komputer',
+        '081234567806',
+        'AsesorMSP',
+        TRUE
+    ),
+    (
+        'asesor_007',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'asesor',
+        'Prof. Dr. Gita Sari, M.Sc.',
+        'Universitas Airlangga',
+        'Teknik Industri',
+        '081234567807',
+        'AsesorMSP',
+        TRUE
+    ),
+    (
+        'asesor_008',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'asesor',
+        'Dr. Hendra Wijaya, S.T., M.T.',
+        'Universitas Diponegoro',
+        'Teknik Sipil',
+        '081234567808',
+        'AsesorMSP',
+        TRUE
+    ),
+    (
+        'asesor_009',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'asesor',
+        'Prof. Dr. Indah Permata, M.T.',
+        'Universitas Brawijaya',
+        'Teknik Kimia',
+        '081234567809',
+        'AsesorMSP',
+        TRUE
+    ),
+    (
+        'asesor_010',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'asesor',
+        'Dr. Joko Susilo, M.Kom.',
+        'Universitas Padjadjaran',
+        'Teknologi Informasi',
+        '081234567810',
+        'AsesorMSP',
         TRUE
     )
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (username) DO UPDATE SET
+    program_studi = EXCLUDED.program_studi,
+    msp_org = EXCLUDED.msp_org;
 
 -- Cleanup expired sessions (run this periodically)
 -- DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP;
+
