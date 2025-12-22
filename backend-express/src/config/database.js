@@ -16,7 +16,7 @@ const pool = new Pool({
   max: config.database.maxConnections || 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
-  ssl: config.env === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.DB_SSL === 'false' ? false : (config.env === 'production' ? { rejectUnauthorized: false } : false)
 });
 
 // Test connection
