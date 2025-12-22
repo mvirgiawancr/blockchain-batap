@@ -439,124 +439,244 @@ export default function AsesorDashboard({ user }) {
           )}
         </div>
 
-        {/* Response Modal */}
+        {/* Response Modal - Modern Design */}
         {showResponseModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {responseType === 'accepted' ? 'Terima Penugasan' : 'Tolak Penugasan'}
-              </h2>
-              
-              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm font-semibold text-blue-900">{selectedSubmission?.programStudi}</p>
-                <p className="text-sm text-blue-700">{selectedSubmission?.institusi}</p>
+          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all">
+              {/* Modal Header with Gradient */}
+              <div className={`p-6 text-white ${
+                responseType === 'accepted' 
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
+                  : 'bg-gradient-to-r from-red-600 to-rose-600'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {responseType === 'accepted' ? (
+                    <CheckCircle className="w-10 h-10" />
+                  ) : (
+                    <XCircle className="w-10 h-10" />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-bold">
+                      {responseType === 'accepted' ? 'Terima Penugasan' : 'Tolak Penugasan'}
+                    </h2>
+                    <p className="text-sm opacity-90 mt-1">
+                      {responseType === 'accepted' 
+                        ? 'Konfirmasi penerimaan penugasan asesmen' 
+                        : 'Berikan alasan penolakan penugasan'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Catatan {responseType === 'rejected' && <span className="text-red-500">*</span>}
-                </label>
-                <textarea
-                  value={responseNotes}
-                  onChange={(e) => setResponseNotes(e.target.value)}
-                  placeholder={responseType === 'accepted' ? 'Catatan opsional...' : 'Alasan penolakan...'}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  rows={4}
-                  required={responseType === 'rejected'}
-                />
-              </div>
+              <div className="p-6">
+                {/* Submission Info Card */}
+                <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl border-2 border-indigo-200">
+                  <div className="flex items-start gap-3">
+                    <FileText className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="font-bold text-gray-900 text-lg">{selectedSubmission?.programStudi}</p>
+                      <p className="text-sm text-gray-700 mt-1">{selectedSubmission?.institusi}</p>
+                      <p className="text-xs text-gray-500 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleRespondToOffer}
-                  disabled={submitting || (responseType === 'rejected' && !responseNotes)}
-                  className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-colors ${
-                    responseType === 'accepted'
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-red-600 text-white hover:bg-red-700'
-                  } disabled:bg-gray-300 disabled:cursor-not-allowed`}
-                >
-                  {submitting ? 'Memproses...' : 'Konfirmasi'}
-                </button>
-                <button
-                  onClick={() => setShowResponseModal(false)}
-                  disabled={submitting}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Batal
-                </button>
+                {/* Notes Input */}
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    Catatan {responseType === 'rejected' && <span className="text-red-500">*</span>}
+                  </label>
+                  <textarea
+                    value={responseNotes}
+                    onChange={(e) => setResponseNotes(e.target.value)}
+                    placeholder={responseType === 'accepted' 
+                      ? 'Catatan opsional (jika ada)...' 
+                      : 'Jelaskan alasan penolakan penugasan...'}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                    rows={5}
+                    required={responseType === 'rejected'}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    {responseType === 'rejected' 
+                      ? 'Alasan penolakan wajib diisi dan akan dicatat di blockchain' 
+                      : 'Catatan opsional akan dicatat sebagai dokumentasi'}
+                  </p>
+                </div>
+
+                {/* Warning Alert */}
+                {responseType === 'accepted' && (
+                  <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      <span className="font-semibold">Perhatian:</span> Setelah menerima, Anda akan ditugaskan untuk melakukan penilaian AK terhadap submission ini.
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleRespondToOffer}
+                    disabled={submitting || (responseType === 'rejected' && !responseNotes.trim())}
+                    className={`flex-1 px-6 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                      responseType === 'accepted'
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                        : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700'
+                    } disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none`}
+                  >
+                    {submitting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Memproses...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        {responseType === 'accepted' ? (
+                          <><CheckCircle className="w-5 h-5" /> Konfirmasi Terima</>
+                        ) : (
+                          <><XCircle className="w-5 h-5" /> Konfirmasi Tolak</>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowResponseModal(false)}
+                    disabled={submitting}
+                    className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:cursor-not-allowed transition-all border-2 border-gray-300"
+                  >
+                    Batal
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* AK Assessment Modal */}
+        {/* AK Assessment Modal - Modern Design */}
         {showAKModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 my-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Penilaian Asesmen Kecukupan (AK)
-              </h2>
-              
-              <div className="mb-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                <p className="text-sm font-semibold text-indigo-900">{selectedSubmission?.programStudi}</p>
-                <p className="text-sm text-indigo-700">{selectedSubmission?.institusi}</p>
+          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-8 overflow-hidden transform transition-all">
+              {/* Modal Header with Gradient */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+                <div className="flex items-center gap-3">
+                  <ClipboardCheck className="w-10 h-10" />
+                  <div>
+                    <h2 className="text-3xl font-bold">
+                      Penilaian Asesmen Kecukupan (AK)
+                    </h2>
+                    <p className="text-sm opacity-90 mt-1">
+                      Berikan penilaian objektif berdasarkan 7 Kriteria LAM-TEK 2025
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4 mb-6">
-                <p className="text-sm text-gray-600">
-                  Berikan penilaian untuk setiap kriteria (skala 0-4)
-                </p>
-                
-                {Object.keys(akScores).map((key, index) => (
-                  <div key={key}>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Kriteria {index + 1} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="4"
-                      step="0.01"
-                      value={akScores[key]}
-                      onChange={(e) => setAkScores({ ...akScores, [key]: e.target.value })}
-                      placeholder="0.00 - 4.00"
-                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                    />
+              <div className="p-6">
+                {/* Submission Info Card */}
+                <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+                  <div className="flex items-start gap-3">
+                    <FileText className="w-8 h-8 text-indigo-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-gray-900 text-xl">{selectedSubmission?.programStudi}</p>
+                      <p className="text-sm text-gray-700 mt-1">{selectedSubmission?.institusi}</p>
+                      <p className="text-xs text-gray-500 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
+                    </div>
                   </div>
-                ))}
+                </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Catatan Penilaian
+                {/* Info Alert */}
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold mb-1">Panduan Penilaian:</p>
+                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                      <li>Isi semua 7 kriteria dengan skor 0.00 - 4.00</li>
+                      <li>Gunakan hasil AI sebagai referensi pembanding</li>
+                      <li>Berikan catatan detail untuk justifikasi penilaian</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Scoring Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {Object.keys(akScores).map((key, index) => (
+                    <div key={key} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 border-2 border-gray-200 hover:border-indigo-300 transition-all">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                          {index + 1}
+                        </span>
+                        <label className="block text-sm font-bold text-gray-800">
+                          Kriteria LAM-TEK {index + 1}
+                        </label>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max="4"
+                        step="0.01"
+                        value={akScores[key]}
+                        onChange={(e) => setAkScores({ ...akScores, [key]: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-xl text-center text-indigo-600 bg-white"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 text-center mt-2">Skala 0.00 - 4.00</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Notes Section */}
+                <div className="mb-6 bg-amber-50 rounded-xl p-5 border-2 border-amber-200">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-amber-600" />
+                    Catatan & Justifikasi Penilaian
                   </label>
                   <textarea
                     value={akNotes}
                     onChange={(e) => setAkNotes(e.target.value)}
-                    placeholder="Catatan dan rekomendasi penilaian..."
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Tambahkan catatan penilaian, justifikasi skor, dan rekomendasi untuk perbaikan..."
+                    className="w-full px-4 py-3 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none bg-white"
                     rows={4}
                   />
+                  <p className="text-xs text-gray-600 mt-2">Berikan penjelasan detail mengenai penilaian Anda</p>
                 </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSubmitAK}
-                  disabled={submitting}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Send className="w-5 h-5" />
-                  {submitting ? 'Menyimpan...' : 'Kirim Penilaian'}
-                </button>
-                <button
-                  onClick={() => setShowAKModal(false)}
-                  disabled={submitting}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Batal
-                </button>
+                {/* Warning Alert */}
+                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-yellow-800">
+                    <span className="font-semibold">Perhatian:</span> Penilaian AK akan dicatat secara permanen di blockchain dan tidak dapat diubah setelah submit. Pastikan semua skor dan catatan sudah benar.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSubmitAK}
+                    disabled={submitting}
+                    className="flex-1 inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Menyimpan Penilaian...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-6 h-6" />
+                        Kirim Penilaian AK
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowAKModal(false)}
+                    disabled={submitting}
+                    className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:cursor-not-allowed transition-all border-2 border-gray-300"
+                  >
+                    Batal
+                  </button>
+                </div>
               </div>
             </div>
           </div>

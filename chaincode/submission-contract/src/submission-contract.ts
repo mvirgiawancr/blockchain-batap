@@ -289,6 +289,22 @@ export class SubmissionContract extends Contract {
             submission.currentOffer.rejectionReason = `Assessor ${assessorId} rejected`;
         }
 
+        // If all parties have accepted, finalize assignment
+        if (submission.currentOffer.assessor1Response === 'accepted' &&
+            submission.currentOffer.assessor2Response === 'accepted' &&
+            submission.currentOffer.uppsResponse === 'accepted') {
+
+            submission.currentOffer.status = 'completed';
+            submission.assignedAssessors = {
+                assessor1Id: submission.currentOffer.assessor1Id,
+                assessor1Name: submission.currentOffer.assessor1Name,
+                assessor2Id: submission.currentOffer.assessor2Id,
+                assessor2Name: submission.currentOffer.assessor2Name,
+                assignedAt: timestamp
+            };
+            console.info(`Assignment finalized for submission ${submissionId}`);
+        }
+
         submission.updatedAt = timestamp;
         submission.updatedBy = assessorId;
         submission.updatedByMsp = mspId;
@@ -585,7 +601,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Set Decision ===========');
 
         // Only Sekretariat (or Assessor for peer review) can set decisions
-        const mspId = this.assertMSP(ctx, ['SekadminMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
+        const mspId = this.assertMSP(ctx, ['SekadminMSP', 'SekretariatAdminMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
 
         if (decision !== 'approved' && decision !== 'rejected') {
             throw new Error(`Invalid decision: ${decision}. Must be 'approved' or 'rejected'`);

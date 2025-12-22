@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
+import ResultModal from '../components/ResultModal';
 import { ClipboardCheck, CheckCircle, XCircle, Clock, FileText, RefreshCw, Users, AlertCircle } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -10,9 +11,9 @@ export default function UPPSAssignmentsPage({ user }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState({ type: '', message: '' });
+  const [submitting, setSubmitting] = useState(false);
+  // Result Modal state
+  const [resultModal, setResultModal] = useState({ isOpen: false, type: 'success', title: '', message: '' });
 
   useEffect(() => {
     loadAssignments();
@@ -71,12 +72,7 @@ export default function UPPSAssignmentsPage({ user }) {
   };
 
   const handleResponse = async (submissionId, response) => {
-    // Show processing modal
-    setModalContent({
-      type: 'processing',
-      message: 'Sedang memproses persetujuan...'
-    });
-    setShowModal(true);
+    setSubmitting(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -90,24 +86,34 @@ export default function UPPSAssignmentsPage({ user }) {
       });
 
       if (res.ok) {
-        setModalContent({
+        setResultModal({
+          isOpen: true,
           type: 'success',
-          message: `Penugasan berhasil ${response === 'accepted' ? 'disetujui' : 'ditolak'}`
+          title: response === 'accepted' ? 'Penugasan Disetujui! 🎉' : 'Penugasan Ditolak',
+          message: response === 'accepted' 
+            ? 'Anda telah menyetujui penugasan asesor untuk submission ini. Asesor dapat segera memulai penilaian.'
+            : 'Anda telah menolak penugasan ini. KEA akan memilih asesor lain.'
         });
         loadAssignments();
       } else {
         const err = await res.json();
-        setModalContent({
+        setResultModal({
+          isOpen: true,
           type: 'error',
-          message: `Gagal memproses respons: ${err.message || 'Unknown error'}`
+          title: 'Gagal Memproses',
+          message: err.message || 'Terjadi kesalahan saat memproses respons. Silakan coba lagi.'
         });
       }
     } catch (error) {
       console.error('Error responding to assignment:', error);
-      setModalContent({
+      setResultModal({
+        isOpen: true,
         type: 'error',
-        message: 'Terjadi kesalahan saat menghubungi server'
+        title: 'Terjadi Kesalahan',
+        message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.'
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -143,58 +149,6 @@ export default function UPPSAssignmentsPage({ user }) {
       />
 
       <div className="flex-1 ml-64 overflow-auto">
-        {/* Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
-              {modalContent.type === 'processing' && (
-                <div className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <Clock className="w-16 h-16 text-blue-600 animate-spin" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Memproses</h3>
-                  <p className="text-gray-600">{modalContent.message}</p>
-                </div>
-              )}
-              
-              {modalContent.type === 'success' && (
-                <div className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-12 h-12 text-green-600" />
-                    </div>
-                  </div>
-                  <h3 className="text-2xl font-bold text-green-700 mb-2">Berhasil!</h3>
-                  <p className="text-gray-600 mb-4">{modalContent.message}</p>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              )}
-              
-              {modalContent.type === 'error' && (
-                <div className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                      <AlertCircle className="w-12 h-12 text-red-600" />
-                    </div>
-                  </div>
-                  <h3 className="text-2xl font-bold text-red-700 mb-2">Error</h3>
-                  <p className="text-gray-600 mb-4">{modalContent.message}</p>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         <div className="p-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
@@ -311,6 +265,15 @@ export default function UPPSAssignmentsPage({ user }) {
           )}
         </div>
       </div>
+
+      {/* Result Modal */}
+      <ResultModal
+        isOpen={resultModal.isOpen}
+        onClose={() => setResultModal({ ...resultModal, isOpen: false })}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+      />
     </div>
   );
 }

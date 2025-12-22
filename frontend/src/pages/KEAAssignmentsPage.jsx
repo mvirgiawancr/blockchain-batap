@@ -242,9 +242,18 @@ const KEAAssignmentsPage = ({ user }) => {
 
                   {/* Loading or Assessor Grid */}
                   {loadingAssessors ? (
-                    <div className="text-center py-12">
-                      <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-pulse" />
-                      <p className="text-gray-600">Menganalisis kesesuaian asesor dengan AI...</p>
+                    <div className="text-center py-16 bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl border-2 border-dashed border-purple-200">
+                      <div className="relative inline-block mb-6">
+                        <Sparkles className="w-16 h-16 text-purple-500 animate-pulse" />
+                        <div className="absolute inset-0 w-16 h-16 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin"></div>
+                      </div>
+                      <h3 className="text-xl font-bold text-purple-800 mb-2">AI Sedang Menganalisis...</h3>
+                      <p className="text-purple-600 mb-4">Mencocokkan keahlian asesor dengan program studi</p>
+                      <div className="flex items-center justify-center gap-2 text-sm text-purple-500">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid md:grid-cols-2 gap-4 mb-6">

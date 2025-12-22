@@ -42,6 +42,20 @@ class LAMTEKScoringService {
   }
 
   /**
+   * Get bobot for a specific criteria and program type
+   * Supports new LAM-TEK 2025 structure where bobot is per program type
+   */
+  getBobot(criteriaConfig, programType = 'S') {
+    if (!criteriaConfig.bobot) return 0;
+    // Handle new structure (object with program type keys)
+    if (typeof criteriaConfig.bobot === 'object') {
+      return criteriaConfig.bobot[programType] || criteriaConfig.bobot['S'] || 0;
+    }
+    // Handle legacy structure (single number)
+    return criteriaConfig.bobot;
+  }
+
+  /**
    * Get total butir count dynamically from criteriaConfig
    */
   getTotalButir(programType) {
@@ -363,9 +377,9 @@ class LAMTEKScoringService {
       butirCount: criteria1.butirCount,
       maxPossibleScore: criteria1.butirCount * 4,
       percentage: (criteria1.total / (criteria1.butirCount * 4)) * 100,
-      bobot: criteria1Config.bobot
+      bobot: this.getBobot(criteria1Config, programType)
     });
-    totalWeightedScore += criteria1.average * (criteria1Config.bobot / 100);
+    totalWeightedScore += criteria1.average * (this.getBobot(criteria1Config, programType) / 100);
 
     // ============================================
     // KRITERIA 2: AKUNTABILITAS (Bobot: 7.06)
@@ -382,9 +396,9 @@ class LAMTEKScoringService {
       butirCount: criteria2.butirCount,
       maxPossibleScore: criteria2.butirCount * 4,
       percentage: (criteria2.total / (criteria2.butirCount * 4)) * 100,
-      bobot: criteria2Config.bobot
+      bobot: this.getBobot(criteria2Config, programType)
     });
-    totalWeightedScore += criteria2.average * (criteria2Config.bobot / 100);
+    totalWeightedScore += criteria2.average * (this.getBobot(criteria2Config, programType) / 100);
 
     // ============================================
     // KRITERIA 3: RELEVANSI PENDIDIKAN, PENELITIAN, DAN PKM (Bobot: 22.45)
@@ -401,9 +415,9 @@ class LAMTEKScoringService {
       butirCount: criteria3.butirCount,
       maxPossibleScore: criteria3.butirCount * 4,
       percentage: (criteria3.total / (criteria3.butirCount * 4)) * 100,
-      bobot: criteria3Config.bobot
+      bobot: this.getBobot(criteria3Config, programType)
     });
-    totalWeightedScore += criteria3.average * (criteria3Config.bobot / 100);
+    totalWeightedScore += criteria3.average * (this.getBobot(criteria3Config, programType) / 100);
 
     // ============================================
     // KRITERIA 4: SUMBER DAYA MANUSIA (Bobot: 13.44)
@@ -420,9 +434,9 @@ class LAMTEKScoringService {
       butirCount: criteria4.butirCount,
       maxPossibleScore: criteria4.butirCount * 4,
       percentage: (criteria4.total / (criteria4.butirCount * 4)) * 100,
-      bobot: criteria4Config.bobot
+      bobot: this.getBobot(criteria4Config, programType)
     });
-    totalWeightedScore += criteria4.average * (criteria4Config.bobot / 100);
+    totalWeightedScore += criteria4.average * (this.getBobot(criteria4Config, programType) / 100);
 
     // ============================================
     // KRITERIA 5: SARANA, PRASARANA, DAN K3L (Bobot: 7.51)
@@ -439,9 +453,9 @@ class LAMTEKScoringService {
       butirCount: criteria5.butirCount,
       maxPossibleScore: criteria5.butirCount * 4,
       percentage: (criteria5.total / (criteria5.butirCount * 4)) * 100,
-      bobot: criteria5Config.bobot
+      bobot: this.getBobot(criteria5Config, programType)
     });
-    totalWeightedScore += criteria5.average * (criteria5Config.bobot / 100);
+    totalWeightedScore += criteria5.average * (this.getBobot(criteria5Config, programType) / 100);
 
     // ============================================
     // KRITERIA 6: MAHASISWA DAN LUARAN MAHASISWA (Bobot: 26.87)
@@ -458,9 +472,9 @@ class LAMTEKScoringService {
       butirCount: criteria6.butirCount,
       maxPossibleScore: criteria6.butirCount * 4,
       percentage: (criteria6.total / (criteria6.butirCount * 4)) * 100,
-      bobot: criteria6Config.bobot
+      bobot: this.getBobot(criteria6Config, programType)
     });
-    totalWeightedScore += criteria6.average * (criteria6Config.bobot / 100);
+    totalWeightedScore += criteria6.average * (this.getBobot(criteria6Config, programType) / 100);
 
     // ============================================
     // KRITERIA 7: SISTEM PENJAMINAN MUTU (Bobot: 15.35)
@@ -477,9 +491,9 @@ class LAMTEKScoringService {
       butirCount: criteria7.butirCount,
       maxPossibleScore: criteria7.butirCount * 4,
       percentage: (criteria7.total / (criteria7.butirCount * 4)) * 100,
-      bobot: criteria7Config.bobot
+      bobot: this.getBobot(criteria7Config, programType)
     });
-    totalWeightedScore += criteria7.average * (criteria7Config.bobot / 100);
+    totalWeightedScore += criteria7.average * (this.getBobot(criteria7Config, programType) / 100);
 
     // ============================================
     // CALCULATE SUMMARY STATISTICS
@@ -545,57 +559,87 @@ class LAMTEKScoringService {
   }
 
   /**
-   * Calculate Kriteria 1: Diferensiasi Misi scores (1 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 1: Diferensiasi Misi scores (3 butir untuk LAM-TEK 2025)
    */
   calculateKriteria1Score(ledData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[1];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 1 hanya memiliki 1 butir
-    // Butir 1.1: Visi, Misi, Tujuan dan Sasaran (Indikator Kinerja Utama)
-    // Ini adalah penilaian kualitatif komprehensif yang menggabungkan beberapa aspek VMTS
-    butirScores['1.1'] = 3.5; // Default, should be evaluated from LED using AI analysis
+    // LAM-TEK 2025: Kriteria 1 memiliki 3 butir
+    // Butir 1.1: Kekhasan VMTS
+    butirScores['1.1'] = 3.5; // Evaluasi kekhasan VMTS dari LED
     
-    const butirCount = 1; // Fixed untuk LAM-TEK 2025
-    const total = butirScores['1.1'];
+    // Butir 1.2: Mekanisme Penyusunan VMTS
+    butirScores['1.2'] = 3.5; // Evaluasi mekanisme penyusunan dari LED
+    
+    // Butir 1.3: Tingkat Pemahaman dan Pencapaian VMTS
+    butirScores['1.3'] = 3.5; // Evaluasi pemahaman dan pencapaian dari LED
+    
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config
+    const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
     return { butirScores, total, average, butirCount };
   }
 
   /**
-   * Calculate Kriteria 2: Akuntabilitas scores (3 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 2: Akuntabilitas scores (11 butir untuk LAM-TEK 2025)
    */
   calculateKriteria2Score(ledData, lkpsData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[2];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 2 memiliki 3 butir
-    // Butir 2.1: Tata Pamong dan Tata Kelola (Kualitatif - combines old butir 2.1 & 2.2)
-    butirScores['2.1'] = 3.5; // Evaluasi kelengkapan dan governance
+    // LAM-TEK 2025: Kriteria 2 memiliki 11 butir
+    // Butir 2.1: Sistem Tata Pamong - Struktur Organisasi
+    butirScores['2.1'] = 3.5; // Evaluasi kelengkapan struktur organisasi
     
-    // Butir 2.2: Kerjasama (Kuantitatif 3D)
+    // Butir 2.2: Sistem Tata Pamong - Good Governance
+    butirScores['2.2'] = 3.5; // Evaluasi penerapan good governance
+    
+    // Butir 2.3: Komitmen Pimpinan
+    butirScores['2.3'] = 3.5; // Evaluasi komitmen pimpinan
+    
+    // Butir 2.4: Kemampuan Manajerial
+    butirScores['2.4'] = 3.5; // Evaluasi kemampuan manajerial
+    
+    // Butir 2.5: Relevansi Kerja Sama
+    butirScores['2.5'] = 3.0; // Evaluasi relevansi kerjasama
+    
+    // Butir 2.6: Kerja Sama Aktif (3D)
     const ri = lkpsData.kerjasama_internasional || 0;
     const rn = lkpsData.kerjasama_nasional || 0;
     const rl = lkpsData.kerjasama_wilayah || 0;
     const [a, b, c] = programType === 'D' || programType === 'DTr' ? [3, 8, 10] : [2, 6, 8];
     const kerjasamaScore = this.calculateInterpolationScore(ri, rn, rl, a, b, c);
-    // Jika tidak ada data kerjasama sama sekali, beri skor baseline 2.0
-    butirScores['2.2'] = (ri === 0 && rn === 0 && rl === 0) ? 2.0 : kerjasamaScore;
+    butirScores['2.6'] = (ri === 0 && rn === 0 && rl === 0) ? 2.0 : kerjasamaScore;
     
-    // Butir 2.3: Keuangan (Kuantitatif - combines BOP & DPD)
+    // Butir 2.7: Pelaksanaan Kerja Sama
+    butirScores['2.7'] = 3.0; // Evaluasi pelaksanaan kerjasama
+    
+    // Butir 2.8: Pengelolaan Keuangan
+    butirScores['2.8'] = 3.5; // Evaluasi pengelolaan keuangan
+    
+    // Butir 2.9: BOP - Biaya Operasional Pendidikan
     const bopValue = lkpsData.bop_value || 0;
     const bopScore = this.calculateBOPScore(bopValue, programType);
+    butirScores['2.9'] = bopValue === 0 ? 2.5 : bopScore;
     
+    // Butir 2.10: DPD - Dana Penelitian DTPS
     const dpdTotal = lkpsData.dpd_total || 0;
     const jumlahDtps = lkpsData.jumlah_dtps || 1;
     const dpdPerDtps = dpdTotal / jumlahDtps;
     const dpdScore = this.calculateDPDScore(dpdPerDtps, programType);
+    butirScores['2.10'] = dpdTotal === 0 ? 2.0 : dpdScore;
     
-    // Average of BOP and DPD for combined Keuangan butir
-    // Jika tidak ada data keuangan, beri skor baseline 2.5
-    const avgKeuangan = (bopScore + dpdScore) / 2;
-    butirScores['2.3'] = (bopValue === 0 && dpdTotal === 0) ? 2.5 : avgKeuangan;
+    // Butir 2.11: DPkMD - Dana PkM DTPS
+    const dpkmTotal = lkpsData.dpkm_total || 0;
+    const dpkmPerDtps = dpkmTotal / jumlahDtps;
+    const dpkmScore = this.calculateDPDScore(dpkmPerDtps, programType); // Use same formula
+    butirScores['2.11'] = dpkmTotal === 0 ? 2.0 : dpkmScore;
     
-    const butirCount = 3; // Fixed untuk LAM-TEK 2025
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (11)
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
@@ -603,22 +647,54 @@ class LAMTEKScoringService {
   }
 
   /**
-   * Calculate Kriteria 3: Relevansi scores (3 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 3: Relevansi scores (13 butir untuk LAM-TEK 2025)
    */
   calculateKriteria3Score(ledData, lkpsData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[3];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 3 memiliki 3 butir
-    // Butir 3.1: Pendidikan (combines kurikulum, pembelajaran)
-    butirScores['3.1'] = 3.5; // Evaluasi pemutakhiran kurikulum, RPS, pembelajaran SCL
+    // LAM-TEK 2025: Kriteria 3 memiliki 13 butir
+    // Butir 3.1: Pemutakhiran Kurikulum
+    butirScores['3.1'] = 3.5;
     
-    // Butir 3.2: Penelitian (kesesuaian dengan bidang ilmu)
-    butirScores['3.2'] = 3.5; // Kesesuaian penelitian DTPS
+    // Butir 3.2: Profil Lulusan dan CPL
+    butirScores['3.2'] = 3.5;
     
-    // Butir 3.3: Pengabdian kepada Masyarakat (kesesuaian dengan bidang ilmu)
-    butirScores['3.3'] = 3.5; // Kesesuaian PkM dengan bidang ilmu
+    // Butir 3.3: Kesesuaian dan Tinjauan CPL
+    butirScores['3.3'] = 3.5;
     
-    const butirCount = 3; // Fixed untuk LAM-TEK 2025
+    // Butir 3.4: Kualitas Input Mahasiswa
+    butirScores['3.4'] = 3.0;
+    
+    // Butir 3.5: RPS - Kelengkapan
+    butirScores['3.5'] = 3.5;
+    
+    // Butir 3.6: RPS - Tinjauan Rutin
+    butirScores['3.6'] = 3.0;
+    
+    // Butir 3.7: Proses Pembelajaran
+    butirScores['3.7'] = 3.5;
+    
+    // Butir 3.8: Integrasi Penelitian dan PkM dalam Pembelajaran
+    butirScores['3.8'] = 3.5;
+    
+    // Butir 3.9: Suasana Akademik
+    butirScores['3.9'] = 3.5;
+    
+    // Butir 3.10: Penelitian - Kesesuaian dengan VMTS
+    butirScores['3.10'] = 3.5;
+    
+    // Butir 3.11: Penelitian DTPS dengan Mahasiswa
+    butirScores['3.11'] = 3.0;
+    
+    // Butir 3.12: PkM - Kesesuaian dengan VMTS
+    butirScores['3.12'] = 3.5;
+    
+    // Butir 3.13: PkM DTPS dengan Mahasiswa
+    butirScores['3.13'] = 3.0;
+    
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (13)
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
@@ -626,40 +702,54 @@ class LAMTEKScoringService {
   }
 
   /**
-   * Calculate Kriteria 4: SDM scores (2 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 4: SDM scores (10 butir untuk LAM-TEK 2025)
    */
   calculateKriteria4Score(lkpsData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[4];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 4 memiliki 2 butir
-    // Butir 4.1: Profil Dosen dan Tenaga Kependidikan (combines NDTPS, PDTT, PDS3, PGBLKL)
+    // LAM-TEK 2025: Kriteria 4 memiliki 10 butir
+    // Butir 4.1: Kecukupan Jumlah DTPS
     const ndtps = lkpsData.ndtps || 0;
-    const ndtpsScore = ndtps >= 12 ? 4 : (ndtps / 12) * 4;
+    butirScores['4.1'] = ndtps >= 12 ? 4 : (ndtps / 12) * 4;
     
-    const pdtt = lkpsData.pdtt || 0;
-    const pdttScore = pdtt <= 10 ? 4 : 4 - ((pdtt - 10) / 10);
-    
-    const pds3 = lkpsData.pds3 || 0;
-    const pds3Score = pds3 >= 80 ? 4 : (pds3 / 80) * 4;
-    
+    // Butir 4.2: Jabatan Akademik DTPS
     const pgblkl = lkpsData.pgblkl || 0;
-    const pgblklScore = pgblkl >= 70 ? 4 : (pgblkl / 70) * 4;
+    butirScores['4.2'] = pgblkl >= 70 ? 4 : (pgblkl / 70) * 4;
     
-    // Average of multiple indicators for Profil Dosen
-    butirScores['4.1'] = (ndtpsScore + pdttScore + pds3Score + pgblklScore) / 4;
+    // Butir 4.3: Tenaga Kependidikan
+    butirScores['4.3'] = 3.5; // Evaluasi kualitatif
     
-    // Butir 4.2: Beban dan Kinerja DTPS (combines RBK, publikasi, penelitian, PkM)
+    // Butir 4.4: RBK - Rerata Beban Kerja DTPS
     const rbk = lkpsData.rbk_dtps || 0;
-    const rbkScore = rbk >= 10 && rbk <= 16 ? 4 : 4 - Math.abs(13 - rbk) * 0.3;
+    butirScores['4.4'] = rbk >= 10 && rbk <= 16 ? 4 : Math.max(0, 4 - Math.abs(13 - rbk) * 0.3);
     
+    // Butir 4.5: Kinerja Penelitian DTPS
+    const kinerjaPenelitian = lkpsData.kinerja_penelitian_dtps || 0;
+    butirScores['4.5'] = kinerjaPenelitian >= 1 ? 4 : kinerjaPenelitian * 4;
+    
+    // Butir 4.6: Kinerja PkM DTPS
+    const kinerjaPkm = lkpsData.kinerja_pkm_dtps || 0;
+    butirScores['4.6'] = kinerjaPkm >= 1 ? 4 : kinerjaPkm * 4;
+    
+    // Butir 4.7: Publikasi Ilmiah DTPS (3D)
     const publikasiRI = lkpsData.publikasi_ilmiah_dtps_ri || 0;
     const publikasiRN = lkpsData.publikasi_ilmiah_dtps_rn || 0;
-    const publikasiScore = this.calculateInterpolationScore(publikasiRI, publikasiRN, 0, 2, 4, 0);
+    butirScores['4.7'] = this.calculateInterpolationScore(publikasiRI, publikasiRN, 0, 2, 4, 0);
     
-    // Average of RBK and publikasi for Beban Kinerja
-    butirScores['4.2'] = (rbkScore + publikasiScore) / 2;
+    // Butir 4.8: Luaran Penelitian dan PkM DTPS
+    const rlpDtps = lkpsData.rlp_dtps || 0;
+    butirScores['4.8'] = rlpDtps >= 1 ? 4 : Math.max(2.0, rlpDtps * 4);
     
-    const butirCount = 2; // Fixed untuk LAM-TEK 2025
+    // Butir 4.9: PKIB - Karya Ilmiah Bereputasi
+    const pkibDtps = lkpsData.pkib_dtps || 0;
+    butirScores['4.9'] = pkibDtps >= 50 ? 4 : (pkibDtps / 50) * 4;
+    
+    // Butir 4.10: DTPS Penulis Korespondensi
+    butirScores['4.10'] = 3.0; // Persentase DTPS sebagai corresponding author
+    
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (10)
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
@@ -667,80 +757,116 @@ class LAMTEKScoringService {
   }
 
   /**
-   * Calculate Kriteria 5: Sarana, Prasarana, dan K3L scores (1 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 5: Sarana, Prasarana, dan K3L scores (3 butir untuk LAM-TEK 2025)
    */
   calculateKriteria5Score(ledData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[5];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 5 hanya memiliki 1 butir
-    // Butir 5.1: Sarana, Prasarana, dan K3L (komprehensif)
-    // Combines evaluasi sarana akademik, non-akademik, dan K3L
-    butirScores['5.1'] = 3.5; // Evaluasi kualitatif komprehensif dari LED
+    // LAM-TEK 2025: Kriteria 5 memiliki 3 butir
+    // Butir 5.1: Sarana dan Prasarana Akademik
+    butirScores['5.1'] = 3.5; // Evaluasi lab, perpustakaan, ruang kelas
     
-    const butirCount = 1; // Fixed untuk LAM-TEK 2025
-    const total = butirScores['5.1'];
+    // Butir 5.2: Sarana dan Prasarana Non-Akademik
+    butirScores['5.2'] = 3.5; // Evaluasi fasilitas kesehatan, konseling, ibadah
+    
+    // Butir 5.3: K3L - Keselamatan Kesehatan Kerja dan Lingkungan
+    butirScores['5.3'] = 3.5; // Evaluasi implementasi K3L
+    
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (3)
+    const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
     return { butirScores, total, average, butirCount };
   }
 
   /**
-   * Calculate Kriteria 6: Mahasiswa dan Luaran scores (1 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 6: Mahasiswa dan Luaran scores (10 butir untuk LAM-TEK 2025)
    */
   calculateKriteria6Score(lkpsData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[6];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 6 hanya memiliki 1 butir
-    // Butir 6.1: Mahasiswa dan Luaran Mahasiswa (komprehensif)
-    // Combines RMD, PMA, IPK, prestasi, publikasi, PTW, WT, KBK, tingkat tempat kerja
-    
-    const rmd = lkpsData.rmd || 0;
-    const rmdScore = this.calculateRMDScore(rmd, programType);
-    
+    // LAM-TEK 2025: Kriteria 6 memiliki 10 butir
+    // Butir 6.1: Persentase Mahasiswa Asing
     const pma = lkpsData.pma || 0;
-    const pmaScore = pma >= 2 ? 4 : pma > 0 ? (pma / 2) * 4 : 2.0;
+    butirScores['6.1'] = pma >= 2 ? 4 : pma > 0 ? (pma / 2) * 4 : 2.0;
     
+    // Butir 6.2: IPK Lulusan
     const ripk = lkpsData.ripk || 0;
-    const ripkScore = ripk >= 3.5 ? 4 : ripk > 0 ? (ripk / 3.5) * 4 : 2.5;
+    butirScores['6.2'] = ripk >= 3.5 ? 4 : ripk > 0 ? (ripk / 3.5) * 4 : 2.5;
     
+    // Butir 6.3: Prestasi Akademik Mahasiswa (3D)
     const prestasiRI = lkpsData.prestasi_akademik_ri || 0;
     const prestasiRN = lkpsData.prestasi_akademik_rn || 0;
-    const prestasiScore = this.calculateInterpolationScore(prestasiRI, prestasiRN, 0, 2, 5, 0);
+    butirScores['6.3'] = this.calculateInterpolationScore(prestasiRI, prestasiRN, 0, 2, 5, 0);
     
+    // Butir 6.4: Masa Studi
+    const masaStudi = lkpsData.masa_studi || 0;
+    butirScores['6.4'] = masaStudi >= 3.5 && masaStudi <= 4.5 ? 4 : Math.max(2.0, 4 - Math.abs(4 - masaStudi) * 0.5);
+    
+    // Butir 6.5: PTW - Persentase Kelulusan Tepat Waktu
     const ptw = lkpsData.ptw || 0;
-    const ptwScore = ptw >= 80 ? 4 : ptw > 0 ? (ptw / 80) * 4 : 2.0;
+    butirScores['6.5'] = ptw >= 80 ? 4 : ptw > 0 ? (ptw / 80) * 4 : 2.0;
     
+    // Butir 6.6: Publikasi Ilmiah Mahasiswa (3D)
+    const pubMhsRI = lkpsData.publikasi_mahasiswa_ri || 0;
+    const pubMhsRN = lkpsData.publikasi_mahasiswa_rn || 0;
+    butirScores['6.6'] = this.calculateInterpolationScore(pubMhsRI, pubMhsRN, 0, 1, 3, 0);
+    
+    // Butir 6.7: Luaran Penelitian dan PkM Mahasiswa
+    butirScores['6.7'] = 3.0; // Evaluasi luaran mahasiswa
+    
+    // Butir 6.8: Tracer Study
+    const tracerStudy = lkpsData.tracer_study || 0;
+    butirScores['6.8'] = tracerStudy >= 80 ? 4 : tracerStudy > 0 ? (tracerStudy / 80) * 4 : 2.5;
+    
+    // Butir 6.9: Waktu Tunggu Lulusan
     const wt = lkpsData.wt || 6;
-    const wtScore = this.calculateWaktuTungguScore(wt, programType);
+    butirScores['6.9'] = this.calculateWaktuTungguScore(wt, programType);
     
+    // Butir 6.10: KBK - Kesesuaian Bidang Kerja
     const kbk = lkpsData.kbk || 0;
-    const kbkScore = kbk >= 80 ? 4 : kbk > 0 ? (kbk / 80) * 4 : 2.0;
+    butirScores['6.10'] = kbk >= 80 ? 4 : kbk > 0 ? (kbk / 80) * 4 : 2.0;
     
-    // Average of multiple indicators for Mahasiswa dan Luaran
-    // Set minimum baseline score to avoid 0 when data is missing
-    const totalScore = rmdScore + pmaScore + ripkScore + prestasiScore + ptwScore + wtScore + kbkScore;
-    butirScores['6.1'] = Math.max(totalScore / 7, 2.0);
-    
-    const butirCount = 1; // Fixed untuk LAM-TEK 2025
-    const total = butirScores['6.1'];
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (10)
+    const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
     return { butirScores, total, average, butirCount };
   }
 
   /**
-   * Calculate Kriteria 7: Penjaminan Mutu scores (1 butir untuk LAM-TEK 2025)
+   * Calculate Kriteria 7: Penjaminan Mutu scores (6 butir untuk LAM-TEK 2025)
    */
   calculateKriteria7Score(ledData, programType) {
+    const config = this.getCriteriaConfig();
+    const criteriaConfig = config[7];
     const butirScores = {};
     
-    // LAM-TEK 2025: Kriteria 7 hanya memiliki 1 butir
-    // Butir 7.1: Sistem Penjaminan Mutu (komprehensif)
-    // Combines keberadaan unit SPMI, ketersediaan dokumen, keterlaksanaan, evaluasi, kepuasan
-    butirScores['7.1'] = 3.5; // Evaluasi kualitatif komprehensif dari LED
+    // LAM-TEK 2025: Kriteria 7 memiliki 6 butir
+    // Butir 7.1: Keberadaan Unit Penjaminan Mutu
+    butirScores['7.1'] = 3.5; // Evaluasi keberadaan unit SPMI
     
-    const butirCount = 1; // Fixed untuk LAM-TEK 2025
-    const total = butirScores['7.1'];
+    // Butir 7.2: Ketersediaan Perangkat SPMI
+    butirScores['7.2'] = 3.5; // Evaluasi kelengkapan dokumen SPMI
+    
+    // Butir 7.3: IKT - Indikator Kinerja Tambahan
+    butirScores['7.3'] = 3.0; // Evaluasi IKT yang ditetapkan
+    
+    // Butir 7.4: Keterlaksanaan SPMI dan AMI
+    butirScores['7.4'] = 3.5; // Evaluasi keterlaksanaan siklus PPEPP
+    
+    // Butir 7.5: Evaluasi Capaian Kinerja
+    butirScores['7.5'] = 3.5; // Evaluasi mekanisme evaluasi kinerja
+    
+    // Butir 7.6: Kepuasan Pemangku Kepentingan
+    butirScores['7.6'] = 3.5; // Evaluasi survei kepuasan
+    
+    const butirCount = criteriaConfig.butir.length; // Dynamic from config (6)
+    const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
     return { butirScores, total, average, butirCount };

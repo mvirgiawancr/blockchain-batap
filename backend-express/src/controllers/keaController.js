@@ -51,12 +51,14 @@ exports.getAssessors = async (req, res) => {
     const geminiService = require('../services/geminiService');
     const db = require('../config/database');
 
-    // Get assessors from database
+    // Get assessors from database WITH research profiles
     const result = await db.query(
-      `SELECT id, username, name, institution, program_studi, phone 
-       FROM users 
-       WHERE role IN ('asesor', 'assessor') AND is_active = TRUE
-       ORDER BY name`
+      `SELECT u.id, u.username, u.name, u.institution, u.program_studi, u.phone,
+              ap.research_areas, ap.h_index, ap.publication_count
+       FROM users u
+       LEFT JOIN assessor_profiles ap ON u.id = ap.user_id
+       WHERE u.role IN ('asesor', 'assessor') AND u.is_active = TRUE
+       ORDER BY u.name`
     );
 
     let assessors = result.rows.map(row => ({
@@ -64,7 +66,11 @@ exports.getAssessors = async (req, res) => {
       username: row.username,
       name: row.name,
       institution: row.institution,
-      expertise: row.program_studi || 'Tidak diketahui',
+      // Use research_areas if available, otherwise fallback to program_studi
+      expertise: row.research_areas?.join(', ') || row.program_studi || 'Tidak diketahui',
+      researchAreas: row.research_areas || [],
+      hIndex: row.h_index,
+      publicationCount: row.publication_count || 0,
       phone: row.phone,
       totalAssignments: 0 // TODO: Count from assignments table
     }));

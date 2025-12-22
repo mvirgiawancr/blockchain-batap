@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
+import ResultModal from '../components/ResultModal';
 import { ClipboardCheck, CheckCircle, XCircle, Clock, FileText, RefreshCw } from 'lucide-react';
 
 export default function AsesorAssignmentsPage({ user }) {
@@ -8,6 +9,7 @@ export default function AsesorAssignmentsPage({ user }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [resultModal, setResultModal] = useState({ isOpen: false, type: 'success', title: '', message: '' });
 
   useEffect(() => {
     loadAssignments();
@@ -17,7 +19,7 @@ export default function AsesorAssignmentsPage({ user }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/v1/assessor/assignments', {
+      const response = await fetch('http://localhost:8000/api/v1/assessor/assignments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -40,7 +42,7 @@ export default function AsesorAssignmentsPage({ user }) {
   const handleResponse = async (submissionId, response) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/v1/asesor/assignments/${submissionId}/accept`, {
+      const res = await fetch(`http://localhost:8000/api/v1/asesor/assignments/${submissionId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,14 +52,31 @@ export default function AsesorAssignmentsPage({ user }) {
       });
 
       if (res.ok) {
-        alert(`Penugasan berhasil ${response === 'accepted' ? 'diterima' : 'ditolak'}`);
+        setResultModal({
+          isOpen: true,
+          type: 'success',
+          title: response === 'accepted' ? 'Penugasan Diterima! 🎉' : 'Penugasan Ditolak',
+          message: response === 'accepted' 
+            ? 'Anda telah menerima penugasan ini. Silakan tunggu konfirmasi dari pihak lain sebelum memulai penilaian.'
+            : 'Anda telah menolak penugasan ini. KEA akan menugaskan asesor lain.'
+        });
         loadAssignments();
       } else {
-        alert('Gagal memproses respons');
+        setResultModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Gagal Memproses',
+          message: 'Terjadi kesalahan saat memproses respons Anda. Silakan coba lagi.'
+        });
       }
     } catch (error) {
       console.error('Error responding to assignment:', error);
-      alert('Terjadi kesalahan');
+      setResultModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Terjadi Kesalahan',
+        message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.'
+      });
     }
   };
 
@@ -238,6 +257,15 @@ export default function AsesorAssignmentsPage({ user }) {
           )}
         </div>
       </div>
+
+      {/* Result Modal */}
+      <ResultModal
+        isOpen={resultModal.isOpen}
+        onClose={() => setResultModal({ ...resultModal, isOpen: false })}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+      />
     </div>
   );
 }

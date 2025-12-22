@@ -22,98 +22,138 @@ class GeminiService {
     this.lastRequestTime = 0;
     this.minRequestIntervalMs = 35000; // 35 seconds between requests (safe margin for 2 RPM)
 
-    // LAM-TEK 2025: 7 Kriteria Configuration (Instrumen 2025)
+    // LAM-TEK 2025: 7 Kriteria Configuration with 53 Butir (Instrumen 2025)
+    // Bobot per program type: S=Sarjana, M=Magister, D=Doktor
     this.criteriaConfig = {
       1: {
         name: 'Diferensiasi Misi',
-        bobot: 2.05,
+        // Sum of butir 1-3 for program S: 1.14+0.69+0.22 = 2.05
+        bobot: { S: 2.05, M: 1.82, D: 1.82, STr: 1.98, MTr: 1.79, DTr: 1.79, PPI: 2.07 },
         butir: [
-          { code: '1.1', name: 'Visi, Misi, Tujuan dan Sasaran (Indikator Kinerja Utama)' }
+          { code: '1.1', name: 'Kekhasan VMTS', bobot: { S: 1.14, M: 0.97, D: 0.97, STr: 1.05, MTr: 0.94, DTr: 0.94, PPI: 1.12 } },
+          { code: '1.2', name: 'Mekanisme Penyusunan VMTS', bobot: { S: 0.69, M: 0.63, D: 0.63, STr: 0.64, MTr: 0.63, DTr: 0.63, PPI: 0.67 } },
+          { code: '1.3', name: 'Tingkat Pemahaman dan Pencapaian VMTS', bobot: { S: 0.22, M: 0.22, D: 0.22, STr: 0.27, MTr: 0.22, DTr: 0.22, PPI: 0.28 } }
         ],
-        ledKeys: ['vmts_unik_spesifik', 'vmts_dukungan_renstra_kurikulum', 'vmts_linearitas_pt', 
-                  'vmts_stakeholder_internal', 'vmts_stakeholder_eksternal', 'vmts_sosialisasi', 
-                  'vmts_pemahaman', 'vmts_pencapaian_konkret'],
+        ledKeys: ['vmts_unik_spesifik', 'vmts_dukungan_renstra_kurikulum', 'vmts_stakeholder', 'vmts_pemahaman', 'vmts_pencapaian'],
         lkpsKeys: []
       },
       2: {
         name: 'Akuntabilitas',
-        bobot: 7.06,
+        // Sum of butir 4-11 for program S
+        bobot: { S: 7.06, M: 7.06, D: 7.06, STr: 6.68, MTr: 6.47, DTr: 6.47, PPI: 7.72 },
         butir: [
-          { code: '2.1', name: 'Tata Pamong dan Tata Kelola' },
-          { code: '2.2', name: 'Kerja Sama' },
-          { code: '2.3', name: 'Keuangan' }
+          { code: '2.1', name: 'Sistem Tata Pamong - Struktur Organisasi', bobot: { S: 1.18, M: 1.01, D: 1.01, STr: 1.10, MTr: 0.98, DTr: 0.98, PPI: 1.17 } },
+          { code: '2.2', name: 'Sistem Tata Pamong - Good Governance', bobot: { S: 0.58, M: 0.53, D: 0.53, STr: 0.54, MTr: 0.54, DTr: 0.54, PPI: 0.57 } },
+          { code: '2.3', name: 'Komitmen Pimpinan', bobot: { S: 0.32, M: 0.29, D: 0.29, STr: 0.30, MTr: 0.30, DTr: 0.30, PPI: 0.38 } },
+          { code: '2.4', name: 'Kemampuan Manajerial', bobot: { S: 0.62, M: 0.61, D: 0.61, STr: 0.57, MTr: 0.56, DTr: 0.56, PPI: 0.77 } },
+          { code: '2.5', name: 'Relevansi Kerja Sama', bobot: { S: 0.52, M: 0.78, D: 0.78, STr: 0.46, MTr: 0.47, DTr: 0.47, PPI: 0.64 } },
+          { code: '2.6', name: 'Kerja Sama Aktif (3D)', bobot: { S: 1.01, M: 1.57, D: 1.57, STr: 0.93, MTr: 1.07, DTr: 1.07, PPI: 1.30 } },
+          { code: '2.7', name: 'Pelaksanaan Kerja Sama', bobot: { S: 1.01, M: 1.39, D: 1.39, STr: 1.02, MTr: 1.07, DTr: 1.07, PPI: 0.82 } },
+          { code: '2.8', name: 'Pengelolaan Keuangan', bobot: { S: 0.68, M: 0.48, D: 0.48, STr: 0.65, MTr: 0.48, DTr: 0.48, PPI: 0.86 } },
+          { code: '2.9', name: 'BOP - Biaya Operasional Pendidikan', bobot: { S: 0.54, M: 0.48, D: 0.48, STr: 0.50, MTr: 0.48, DTr: 0.48, PPI: 0.58 } },
+          { code: '2.10', name: 'DPD - Dana Penelitian DTPS', bobot: { S: 0.36, M: 0.24, D: 0.24, STr: 0.33, MTr: 0.24, DTr: 0.24, PPI: 0.37 } },
+          { code: '2.11', name: 'DPkMD - Dana PkM DTPS', bobot: { S: 0.24, M: 0.24, D: 0.24, STr: 0.28, MTr: 0.28, DTr: 0.28, PPI: 0.26 } }
         ],
-        ledKeys: ['tata_pamong_kelengkapan', 'tata_pamong_governance', 'komitmen_pimpinan', 
-                  'kemampuan_manajerial', 'pengelolaan_keuangan'],
-        lkpsKeys: ['bop_value', 'dpd_total', 'jumlah_dtps', 'kerjasama_pendidikan', 
-                   'kerjasama_penelitian', 'kerjasama_pkm', 'kerjasama_internasional', 
-                   'kerjasama_nasional', 'kerjasama_wilayah']
+        ledKeys: ['tata_pamong_kelengkapan', 'tata_pamong_governance', 'komitmen_pimpinan', 'kemampuan_manajerial', 'relevansi_kerjasama', 'pengelolaan_keuangan'],
+        lkpsKeys: ['bop_value', 'dpd_total', 'dpkm_total', 'jumlah_dtps', 'kerjasama_internasional', 'kerjasama_nasional', 'kerjasama_wilayah']
       },
       3: {
         name: 'Relevansi Pendidikan, Penelitian, dan PkM',
-        bobot: 22.45,
+        // Sum of butir 12-24 for program S
+        bobot: { S: 22.45, M: 22.45, D: 22.45, STr: 21.96, MTr: 21.56, DTr: 21.56, PPI: 22.69 },
         butir: [
-          { code: '3.1', name: 'Pendidikan' },
-          { code: '3.2', name: 'Penelitian' },
-          { code: '3.3', name: 'Pengabdian kepada Masyarakat' }
+          { code: '3.1', name: 'Pemutakhiran Kurikulum', bobot: { S: 1.07, M: 0.93, D: 0.93, STr: 0.99, MTr: 0.89, DTr: 0.89, PPI: 1.02 } },
+          { code: '3.2', name: 'Profil Lulusan dan CPL', bobot: { S: 2.14, M: 1.86, D: 1.86, STr: 1.99, MTr: 1.79, DTr: 1.79, PPI: 2.04 } },
+          { code: '3.3', name: 'Kesesuaian dan Tinjauan CPL', bobot: { S: 0.91, M: 0.89, D: 0.89, STr: 0.82, MTr: 0.86, DTr: 0.86, PPI: 1.02 } },
+          { code: '3.4', name: 'Kualitas Input Mahasiswa', bobot: { S: 0.68, M: 0.52, D: 0.52, STr: 0.76, MTr: 0.84, DTr: 0.84, PPI: 0.79 } },
+          { code: '3.5', name: 'RPS - Kelengkapan', bobot: { S: 1.54, M: 1.52, D: 1.52, STr: 1.48, MTr: 1.40, DTr: 1.40, PPI: 1.57 } },
+          { code: '3.6', name: 'RPS - Tinjauan Rutin', bobot: { S: 1.05, M: 0.95, D: 0.95, STr: 1.02, MTr: 0.93, DTr: 0.93, PPI: 0.95 } },
+          { code: '3.7', name: 'Proses Pembelajaran', bobot: { S: 1.05, M: 0.95, D: 0.95, STr: 1.02, MTr: 0.93, DTr: 0.93, PPI: 1.02 } },
+          { code: '3.8', name: 'Integrasi Penelitian dan PkM dalam Pembelajaran', bobot: { S: 2.43, M: 2.20, D: 2.16, STr: 2.37, MTr: 2.16, DTr: 2.16, PPI: 2.30 } },
+          { code: '3.9', name: 'Suasana Akademik', bobot: { S: 1.46, M: 1.33, D: 1.33, STr: 1.36, MTr: 1.36, DTr: 1.36, PPI: 1.42 } },
+          { code: '3.10', name: 'Penelitian - Kesesuaian dengan VMTS', bobot: { S: 2.18, M: 2.16, D: 2.16, STr: 2.01, MTr: 2.10, DTr: 2.10, PPI: 2.29 } },
+          { code: '3.11', name: 'Penelitian DTPS dengan Mahasiswa', bobot: { S: 1.74, M: 1.86, D: 1.86, STr: 1.61, MTr: 1.79, DTr: 1.79, PPI: 1.83 } },
+          { code: '3.12', name: 'PkM - Kesesuaian dengan VMTS', bobot: { S: 2.18, M: 2.16, D: 2.16, STr: 2.01, MTr: 2.10, DTr: 2.10, PPI: 2.29 } },
+          { code: '3.13', name: 'PkM DTPS dengan Mahasiswa', bobot: { S: 1.74, M: 1.86, D: 1.86, STr: 1.61, MTr: 1.79, DTr: 1.79, PPI: 1.83 } }
         ],
-        ledKeys: ['pemutakhiran_kurikulum', 'profil_lulusan', 'kesesuaian_profil_cpl', 
-                  'rps_kelengkapan', 'proses_pembelajaran_efektivitas', 'suasana_akademik_pengelolaan', 
-                  'kesesuaian_penelitian', 'kesesuaian_pkm'],
-        lkpsKeys: ['persentase_bahan_ajar_penelitian_pkm', 'pjp', 'basic_sciences_sks', 'ppdmhs', 'pkdmhs']
+        ledKeys: ['pemutakhiran_kurikulum', 'profil_lulusan', 'kesesuaian_cpl', 'rps_kelengkapan', 'proses_pembelajaran', 'suasana_akademik', 'penelitian', 'pkm'],
+        lkpsKeys: ['pjp', 'ppdmhs', 'pkdmhs', 'basic_sciences_sks']
       },
       4: {
         name: 'Sumber Daya Manusia',
-        bobot: 13.44,
+        // Sum of butir 25-35 for program S
+        bobot: { S: 13.44, M: 13.44, D: 13.44, STr: 12.42, MTr: 12.97, DTr: 12.97, PPI: 13.95 },
         butir: [
-          { code: '4.1', name: 'Profil Dosen dan Tenaga Kependidikan' },
-          { code: '4.2', name: 'Beban dan Kinerja DTPS' }
+          { code: '4.1', name: 'Kecukupan Jumlah DTPS', bobot: { S: 2.07, M: 2.07, D: 2.07, STr: 1.92, MTr: 1.99, DTr: 1.99, PPI: 2.11 } },
+          { code: '4.2', name: 'Jabatan Akademik DTPS', bobot: { S: 1.89, M: 1.76, D: 1.76, STr: 1.76, MTr: 1.69, DTr: 1.69, PPI: 1.89 } },
+          { code: '4.3', name: 'Tenaga Kependidikan', bobot: { S: 1.21, M: 1.20, D: 1.20, STr: 1.19, MTr: 1.22, DTr: 1.22, PPI: 1.22 } },
+          { code: '4.4', name: 'RBK - Rerata Beban Kerja DTPS', bobot: { S: 1.21, M: 0.38, D: 0.38, STr: 0.35, MTr: 0.38, DTr: 0.38, PPI: 0.40 } },
+          { code: '4.5', name: 'Kinerja Penelitian DTPS', bobot: { S: 0.39, M: 0.22, D: 0.22, STr: 0.36, MTr: 0.28, DTr: 0.28, PPI: 0.38 } },
+          { code: '4.6', name: 'Kinerja PkM DTPS', bobot: { S: 0.39, M: 0.22, D: 0.22, STr: 0.36, MTr: 0.28, DTr: 0.28, PPI: 0.38 } },
+          { code: '4.7', name: 'Publikasi Ilmiah DTPS (3D)', bobot: { S: 2.06, M: 5.97, D: 5.97, STr: 1.91, MTr: 3.70, DTr: 3.70, PPI: 2.11 } },
+          { code: '4.8', name: 'Luaran Penelitian dan PkM DTPS', bobot: { S: 2.06, M: 5.97, D: 5.97, STr: 1.91, MTr: 3.70, DTr: 3.70, PPI: 2.11 } },
+          { code: '4.9', name: 'PKIB - Karya Ilmiah Bereputasi', bobot: { S: 1.09, M: 2.28, D: 2.28, STr: 1.00, MTr: 2.18, DTr: 2.18, PPI: 1.14 } },
+          { code: '4.10', name: 'DTPS Penulis Korespondensi', bobot: { S: 1.09, M: 2.28, D: 2.28, STr: 1.00, MTr: 2.18, DTr: 2.18, PPI: 1.14 } }
         ],
         ledKeys: [],
-        lkpsKeys: ['ndtps', 'pdtt', 'pds3', 'pgblkl', 'rbk_dtps', 'kinerja_penelitian_dtps_ri', 
-                   'kinerja_penelitian_dtps_rn', 'kinerja_pkm_dtps_ri', 'publikasi_ilmiah_dtps_ri', 
-                   'publikasi_ilmiah_dtps_rn', 'rlp_dtps', 'kinerja_pkm_dtps_rn']
+        lkpsKeys: ['ndtps', 'pdtt', 'pds3', 'pgblkl', 'rbk_dtps', 'publikasi_ilmiah_dtps_ri', 'publikasi_ilmiah_dtps_rn', 'kinerja_penelitian_dtps', 'kinerja_pkm_dtps', 'rlp_dtps', 'pkib_dtps']
       },
       5: {
         name: 'Sarana, Prasarana, dan K3L',
-        bobot: 7.51,
+        // Sum of butir 36-37 for program S
+        bobot: { S: 7.51, M: 7.51, D: 7.51, STr: 6.94, MTr: 7.26, DTr: 7.26, PPI: 7.66 },
         butir: [
-          { code: '5.1', name: 'Sarana, Prasarana, dan Keselamatan Kesehatan Kerja dan Lingkungan (K3L)' }
+          { code: '5.1', name: 'Sarana dan Prasarana Akademik', bobot: { S: 2.93, M: 2.00, D: 2.00, STr: 2.72, MTr: 2.93, DTr: 2.93, PPI: 2.93 } },
+          { code: '5.2', name: 'Sarana dan Prasarana Non-Akademik', bobot: { S: 2.93, M: 2.00, D: 2.00, STr: 2.72, MTr: 2.93, DTr: 2.93, PPI: 2.93 } },
+          { code: '5.3', name: 'K3L - Keselamatan Kesehatan Kerja dan Lingkungan', bobot: { S: 1.65, M: 3.51, D: 3.51, STr: 1.50, MTr: 1.40, DTr: 1.40, PPI: 1.80 } }
         ],
         ledKeys: ['sarana_prasarana_akademik', 'sarana_prasarana_non_akademik', 'k3l'],
         lkpsKeys: []
       },
       6: {
         name: 'Mahasiswa dan Luaran Mahasiswa',
-        bobot: 26.87,
+        // Sum of butir 38-45 for program S
+        bobot: { S: 26.87, M: 26.87, D: 26.87, STr: 28.85, MTr: 29.58, DTr: 29.58, PPI: 25.66 },
         butir: [
-          { code: '6.1', name: 'Mahasiswa dan Luaran Mahasiswa' }
+          { code: '6.1', name: 'Persentase Mahasiswa Asing', bobot: { S: 0.83, M: 0.83, D: 0.83, STr: 0.77, MTr: 0.80, DTr: 0.80, PPI: 0.87 } },
+          { code: '6.2', name: 'IPK Lulusan', bobot: { S: 1.21, M: 1.21, D: 1.21, STr: 1.12, MTr: 1.17, DTr: 1.17, PPI: 1.27 } },
+          { code: '6.3', name: 'Prestasi Akademik Mahasiswa (3D)', bobot: { S: 1.83, M: 1.83, D: 1.83, STr: 1.70, MTr: 1.76, DTr: 1.76, PPI: 1.91 } },
+          { code: '6.4', name: 'Masa Studi', bobot: { S: 4.36, M: 4.36, D: 4.36, STr: 4.05, MTr: 4.20, DTr: 4.20, PPI: 4.57 } },
+          { code: '6.5', name: 'PTW - Persentase Kelulusan Tepat Waktu', bobot: { S: 4.36, M: 4.36, D: 4.36, STr: 4.05, MTr: 4.20, DTr: 4.20, PPI: 4.57 } },
+          { code: '6.6', name: 'Publikasi Ilmiah Mahasiswa (3D)', bobot: { S: 5.26, M: 5.26, D: 5.26, STr: 6.77, MTr: 7.05, DTr: 7.05, PPI: 4.45 } },
+          { code: '6.7', name: 'Luaran Penelitian dan PkM Mahasiswa', bobot: { S: 1.33, M: 0.37, D: 0.37, STr: 1.23, MTr: 0.36, DTr: 0.36, PPI: 1.39 } },
+          { code: '6.8', name: 'Tracer Study', bobot: { S: 3.29, M: 3.29, D: 3.29, STr: 3.94, MTr: 4.48, DTr: 4.48, PPI: 2.06 } },
+          { code: '6.9', name: 'Waktu Tunggu Lulusan', bobot: { S: 2.20, M: 2.20, D: 2.20, STr: 2.61, MTr: 2.78, DTr: 2.78, PPI: 1.78 } },
+          { code: '6.10', name: 'KBK - Kesesuaian Bidang Kerja', bobot: { S: 2.20, M: 3.16, D: 3.16, STr: 2.61, MTr: 2.78, DTr: 2.78, PPI: 2.79 } }
         ],
         ledKeys: [],
-        lkpsKeys: ['rmd', 'pma', 'ripk', 'prestasi_akademik_ri', 'prestasi_akademik_rn', 
-                   'prestasi_non_akademik_ri', 'prestasi_non_akademik_rn', 'ptw', 'publikasi_mahasiswa_ri', 
-                   'publikasi_mahasiswa_rn', 'wt', 'kbk', 'tingkat_tempat_kerja_ri', 'tingkat_tempat_kerja_rn']
+        lkpsKeys: ['rmd', 'pma', 'ripk', 'prestasi_akademik_ri', 'prestasi_akademik_rn', 'ptw', 'masa_studi', 'publikasi_mahasiswa_ri', 'publikasi_mahasiswa_rn', 'wt', 'kbk', 'tracer_study']
       },
       7: {
         name: 'Sistem Penjaminan Mutu',
-        bobot: 15.35,
+        // Sum of butir 46-53 for program S
+        bobot: { S: 15.35, M: 15.35, D: 15.35, STr: 14.85, MTr: 14.80, DTr: 14.80, PPI: 15.02 },
         butir: [
-          { code: '7.1', name: 'Sistem Penjaminan Mutu' }
+          { code: '7.1', name: 'Keberadaan Unit Penjaminan Mutu', bobot: { S: 2.07, M: 2.07, D: 2.07, STr: 1.92, MTr: 1.99, DTr: 1.99, PPI: 2.17 } },
+          { code: '7.2', name: 'Ketersediaan Perangkat SPMI', bobot: { S: 2.07, M: 2.07, D: 2.07, STr: 1.92, MTr: 1.99, DTr: 1.99, PPI: 2.17 } },
+          { code: '7.3', name: 'IKT - Indikator Kinerja Tambahan', bobot: { S: 2.67, M: 2.67, D: 2.67, STr: 2.47, MTr: 2.57, DTr: 2.57, PPI: 2.79 } },
+          { code: '7.4', name: 'Keterlaksanaan SPMI dan AMI', bobot: { S: 4.00, M: 4.00, D: 4.00, STr: 3.71, MTr: 3.85, DTr: 3.85, PPI: 4.19 } },
+          { code: '7.5', name: 'Evaluasi Capaian Kinerja', bobot: { S: 2.65, M: 2.65, D: 2.65, STr: 2.46, MTr: 2.55, DTr: 2.55, PPI: 2.77 } },
+          { code: '7.6', name: 'Kepuasan Pemangku Kepentingan', bobot: { S: 1.89, M: 1.89, D: 1.89, STr: 2.37, MTr: 1.85, DTr: 1.85, PPI: 0.93 } }
         ],
-        ledKeys: ['keberadaan_unit_spmi', 'ketersediaan_perangkat_spmi', 'keterlaksanaan_spmi', 
-                  'evaluasi_capaian_kinerja', 'kepuasan_pemangku_kepentingan'],
+        ledKeys: ['keberadaan_unit_spmi', 'ketersediaan_perangkat_spmi', 'ikt', 'keterlaksanaan_spmi', 'evaluasi_capaian_kinerja', 'kepuasan_pemangku_kepentingan'],
         lkpsKeys: []
       },
-      // Program Pengembangan Berkelanjutan (tidak dinilai, hanya analisis SWOT)
+      // Kriteria 8: Program Pengembangan (tidak dinilai, analisis saja)
       8: {
         name: 'Program Pengembangan Berkelanjutan',
-        bobot: 0, // Tidak dinilai
+        bobot: { S: 0, M: 0, D: 0, STr: 0, MTr: 0, DTr: 0, PPI: 0 },
         butir: [
-          { code: '8.1', name: 'Analisis Lingkungan Internal & Analisis SWOT' },
-          { code: '8.2', name: 'Tujuan Strategis Pengembangan' },
-          { code: '8.3', name: 'Program Pengembangan Berkelanjutan' }
+          { code: '8.1', name: 'Analisis Lingkungan dan SWOT', bobot: { S: 0, M: 0, D: 0, STr: 0, MTr: 0, DTr: 0, PPI: 0 } },
+          { code: '8.2', name: 'Tujuan Strategis Pengembangan', bobot: { S: 0, M: 0, D: 0, STr: 0, MTr: 0, DTr: 0, PPI: 0 } },
+          { code: '8.3', name: 'Program Pengembangan Berkelanjutan', bobot: { S: 0, M: 0, D: 0, STr: 0, MTr: 0, DTr: 0, PPI: 0 } }
         ],
-        ledKeys: [],
+        ledKeys: ['analisis_swot', 'tujuan_strategis', 'program_pengembangan'],
         lkpsKeys: []
       }
     };
@@ -1176,9 +1216,23 @@ Return ONLY the JSON, no markdown, no explanation.`;
       }
       this.lastRequestTime = Date.now();
 
-      const assessorList = assessors.map(a => 
-        `- ${a.name || a.username}: Keahlian "${a.expertise || a.programStudi || 'Tidak diketahui'}"`
-      ).join('\n');
+      // Build assessor list with research profile data
+      const assessorList = assessors.map(a => {
+        const researchAreas = a.researchAreas?.length > 0 
+          ? a.researchAreas.join(', ')
+          : a.expertise || a.programStudi || 'Tidak diketahui';
+        
+        const hIndex = a.hIndex ? `H-Index: ${a.hIndex}` : '';
+        const pubCount = a.publicationCount ? `Publikasi: ${a.publicationCount}` : '';
+        const recentPubs = a.recentPublications?.slice(0, 3)
+          .map(p => p.title).join('; ') || '';
+        
+        return `- ${a.name || a.username}:
+    • Bidang Riset: ${researchAreas}
+    ${hIndex ? `• ${hIndex}` : ''}
+    ${pubCount ? `• ${pubCount}` : ''}
+    ${recentPubs ? `• Publikasi Terbaru: ${recentPubs}` : ''}`;
+      }).join('\n\n');
 
       const prompt = `
 Kamu adalah sistem AI untuk membantu penugasan asesor akreditasi program studi.
@@ -1188,18 +1242,27 @@ Program Studi yang akan diakreditasi: "${programStudi}"
 Daftar Asesor yang tersedia:
 ${assessorList}
 
-Tugas: Berikan skor kesesuaian (0-100) untuk setiap asesor berdasarkan kedekatan bidang keahlian mereka dengan program studi yang akan dinilai.
+Tugas: Berikan skor kesesuaian (0-100) untuk setiap asesor berdasarkan:
+1. Kedekatan bidang riset dengan program studi
+2. H-Index (semakin tinggi semakin bagus)
+3. Jumlah publikasi
+4. Relevansi publikasi terbaru dengan bidang yang diakreditasi
 
 Kriteria penilaian:
-- 90-100: Keahlian sama persis dengan program studi
-- 70-89: Keahlian serumpun/terkait erat (misal: Teknik Informatika dengan Sistem Informasi)
-- 50-69: Keahlian masih dalam rumpun yang sama (misal: semua Teknik)
-- 30-49: Keahlian berbeda tapi masih bisa menilai aspek tertentu
-- 0-29: Keahlian sangat berbeda
+- 90-100: Bidang riset sama persis, H-Index tinggi, banyak publikasi relevan
+- 70-89: Bidang riset serumpun/terkait erat, H-Index cukup baik
+- 50-69: Bidang dalam rumpun sama, masih bisa menilai aspek tertentu
+- 30-49: Bidang berbeda tapi ada overlap minor
+- 0-29: Bidang sangat berbeda
+
+PENTING: Berikan "reason" yang SPESIFIK untuk setiap asesor, sebutkan:
+- Bidang riset spesifik yang relevan
+- Kelebihan/kekurangan mereka untuk menilai program studi ini
+- Jangan generik seperti "keahlian sesuai" - jelaskan kenapa!
 
 Format output (JSON saja, tanpa markdown):
 [
-  {"name": "nama asesor", "score": 85, "reason": "alasan singkat"}
+  {"name": "nama asesor", "score": 85, "reason": "Ahli di bidang [X] yang sangat relevan dengan [Y], memiliki H-Index [Z] dan publikasi tentang [topik terkait]"}
 ]
 
 PENTING: Output hanya JSON array, tanpa penjelasan lain.

@@ -19,7 +19,7 @@ const { authorize } = require('../middleware/authorize');
 router.get(
   '/:submissionId/:documentType',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
   downloadController.downloadDocument
 );
 
@@ -33,7 +33,7 @@ router.get(
 router.get(
   '/:submissionId/:documentType/info',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
   downloadController.getDocumentInfo
 );
 

@@ -43,37 +43,81 @@ export default function ScoringDetailDropdown({ scoring }) {
     return 'bg-red-600';
   };
 
-  // Get butir details with full names (LAM-TEK Instrumen 2025)
+  // Get butir details with full names (LAM-TEK 2025 - 56 Butir)
   const getButirDetails = (criteriaNumber, butirNumber) => {
     const butirNames = {
-      // Kriteria 1: DM - Diferensiasi Misi (Bobot: 2.05)
-      '1.1': 'Visi, Misi, Tujuan dan Sasaran (Indikator Kinerja Utama)',
+      // Kriteria 1: Diferensiasi Misi (3 butir)
+      '1.1': 'Kekhasan VMTS',
+      '1.2': 'Mekanisme Penyusunan VMTS',
+      '1.3': 'Tingkat Pemahaman dan Pencapaian VMTS',
       
-      // Kriteria 2: AK - Akuntabilitas (Bobot: 7.06)
-      '2.1': 'Tata Pamong dan Tata Kelola',
-      '2.2': 'Kerja Sama',
-      '2.3': 'Keuangan',
+      // Kriteria 2: Akuntabilitas (11 butir)
+      '2.1': 'Sistem Tata Pamong - Struktur Organisasi',
+      '2.2': 'Sistem Tata Pamong - Good Governance',
+      '2.3': 'Komitmen Pimpinan',
+      '2.4': 'Kemampuan Manajerial',
+      '2.5': 'Relevansi Kerja Sama',
+      '2.6': 'Kerja Sama Aktif (3D)',
+      '2.7': 'Pelaksanaan Kerja Sama',
+      '2.8': 'Pengelolaan Keuangan',
+      '2.9': 'BOP - Biaya Operasional Pendidikan',
+      '2.10': 'DPD - Dana Penelitian DTPS',
+      '2.11': 'DPkMD - Dana PkM DTPS',
       
-      // Kriteria 3: REL - Relevansi Pendidikan, Penelitian, dan PkM (Bobot: 22.45)
-      '3.1': 'Pendidikan',
-      '3.2': 'Penelitian',
-      '3.3': 'Pengabdian kepada Masyarakat',
+      // Kriteria 3: Relevansi Pendidikan, Penelitian, dan PkM (13 butir)
+      '3.1': 'Pemutakhiran Kurikulum',
+      '3.2': 'Profil Lulusan dan CPL',
+      '3.3': 'Kesesuaian dan Tinjauan CPL',
+      '3.4': 'Kualitas Input Mahasiswa',
+      '3.5': 'RPS - Kelengkapan',
+      '3.6': 'RPS - Tinjauan Rutin',
+      '3.7': 'Proses Pembelajaran',
+      '3.8': 'Integrasi Penelitian dan PkM dalam Pembelajaran',
+      '3.9': 'Suasana Akademik',
+      '3.10': 'Penelitian - Kesesuaian dengan VMTS',
+      '3.11': 'Penelitian DTPS dengan Mahasiswa',
+      '3.12': 'PkM - Kesesuaian dengan VMTS',
+      '3.13': 'PkM DTPS dengan Mahasiswa',
       
-      // Kriteria 4: SDM - Sumber Daya Manusia (Bobot: 13.44)
-      '4.1': 'Profil Dosen dan Tenaga Kependidikan',
-      '4.2': 'Beban dan Kinerja DTPS',
+      // Kriteria 4: Sumber Daya Manusia (10 butir)
+      '4.1': 'Kecukupan Jumlah DTPS',
+      '4.2': 'Jabatan Akademik DTPS',
+      '4.3': 'Tenaga Kependidikan',
+      '4.4': 'RBK - Rerata Beban Kerja DTPS',
+      '4.5': 'Kinerja Penelitian DTPS',
+      '4.6': 'Kinerja PkM DTPS',
+      '4.7': 'Publikasi Ilmiah DTPS (3D)',
+      '4.8': 'Luaran Penelitian dan PkM DTPS',
+      '4.9': 'PKIB - Karya Ilmiah Bereputasi',
+      '4.10': 'DTPS Penulis Korespondensi',
       
-      // Kriteria 5: SARPRAS - Sarana, Prasarana, dan K3L (Bobot: 7.51)
-      '5.1': 'Sarana, Prasarana, dan Keselamatan Kesehatan Kerja dan Lingkungan (K3L)',
+      // Kriteria 5: Sarana, Prasarana, dan K3L (3 butir)
+      '5.1': 'Sarana dan Prasarana Akademik',
+      '5.2': 'Sarana dan Prasarana Non-Akademik',
+      '5.3': 'K3L - Keselamatan Kesehatan Kerja dan Lingkungan',
       
-      // Kriteria 6: MHS - Mahasiswa dan Luaran Mahasiswa (Bobot: 26.87)
-      '6.1': 'Mahasiswa dan Luaran Mahasiswa',
+      // Kriteria 6: Mahasiswa dan Luaran Mahasiswa (10 butir)
+      '6.1': 'Persentase Mahasiswa Asing',
+      '6.2': 'IPK Lulusan',
+      '6.3': 'Prestasi Akademik Mahasiswa (3D)',
+      '6.4': 'Masa Studi',
+      '6.5': 'PTW - Persentase Kelulusan Tepat Waktu',
+      '6.6': 'Publikasi Ilmiah Mahasiswa (3D)',
+      '6.7': 'Luaran Penelitian dan PkM Mahasiswa',
+      '6.8': 'Tracer Study',
+      '6.9': 'Waktu Tunggu Lulusan',
+      '6.10': 'KBK - Kesesuaian Bidang Kerja',
       
-      // Kriteria 7: SPM - Sistem Penjaminan Mutu (Bobot: 15.35)
-      '7.1': 'Sistem Penjaminan Mutu',
+      // Kriteria 7: Sistem Penjaminan Mutu (6 butir)
+      '7.1': 'Keberadaan Unit Penjaminan Mutu',
+      '7.2': 'Ketersediaan Perangkat SPMI',
+      '7.3': 'IKT - Indikator Kinerja Tambahan',
+      '7.4': 'Keterlaksanaan SPMI dan AMI',
+      '7.5': 'Evaluasi Capaian Kinerja',
+      '7.6': 'Kepuasan Pemangku Kepentingan',
       
-      // Program Pengembangan Berkelanjutan (tidak dinilai)
-      '8.1': 'Analisis Lingkungan Internal & Analisis SWOT',
+      // Kriteria 8: Program Pengembangan Berkelanjutan (3 butir - tidak dinilai)
+      '8.1': 'Analisis Lingkungan dan SWOT',
       '8.2': 'Tujuan Strategis Pengembangan',
       '8.3': 'Program Pengembangan Berkelanjutan'
     };
