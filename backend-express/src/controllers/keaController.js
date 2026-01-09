@@ -280,3 +280,63 @@ exports.setConsistency = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get detailed consistency data for a specific submission
+ * GET /api/v1/kea/consistency/:submissionId/detail
+ */
+exports.getConsistencyDetail = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    
+    // Get the specific submission
+    const submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user.msp_org });
+    
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    if (!submission.akAssessments || submission.akAssessments.length < 2) {
+      return res.status(400).json({ 
+        error: 'Submission does not have 2 AK assessments yet',
+        assessmentCount: submission.akAssessments?.length || 0
+      });
+    }
+
+    const a1 = submission.akAssessments[0];
+    const a2 = submission.akAssessments[1];
+    const diff = Math.abs(a1.totalScore - a2.totalScore);
+
+    const result = {
+      submissionId: submission.submissionId,
+      programStudi: submission.programStudi,
+      institusi: submission.institusi,
+      assessor1: {
+        id: a1.assessorId,
+        name: a1.assessorName,
+        scores: a1.scores || {},
+        totalScore: a1.totalScore,
+        submittedAt: a1.submittedAt
+      },
+      assessor2: {
+        id: a2.assessorId,
+        name: a2.assessorName,
+        scores: a2.scores || {},
+        totalScore: a2.totalScore,
+        submittedAt: a2.submittedAt
+      },
+      scoreDifference: diff,
+      isConsistent: diff <= 15,
+      akConsistent: submission.akConsistent
+    };
+
+    logger.info(`Retrieved consistency detail for ${submissionId}`);
+    res.json(result);
+  } catch (error) {
+    logger.error('Error getting consistency detail:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve consistency detail',
+      message: error.message
+    });
+  }
+};

@@ -26,6 +26,7 @@ const notificationRoutes = require('./routes/notifications');
 const sekretariatRoutes = require('./routes/sekretariat');
 const keaRoutes = require('./routes/kea');
 const asesorRoutes = require('./routes/asesor');
+const alScheduleRoutes = require('./routes/alSchedule');
 
 // Import WebSocket
 const websocketModule = require('./routes/websocket');
@@ -81,7 +82,8 @@ app.get(config.server.apiPrefix, (req, res) => {
       upload: `${config.server.apiPrefix}/upload`,
       submissions: `${config.server.apiPrefix}/submissions`,
       scoring: `${config.server.apiPrefix}/scoring`,
-      download: `${config.server.apiPrefix}/download/:submissionId/:documentType`
+      download: `${config.server.apiPrefix}/download/:submissionId/:documentType`,
+      alSchedule: `${config.server.apiPrefix}/al-schedule`
     }
   });
 });
@@ -99,6 +101,7 @@ app.use(`${config.server.apiPrefix}/sekretariat`, sekretariatRoutes);
 app.use(`${config.server.apiPrefix}/kea`, keaRoutes);
 app.use(`${config.server.apiPrefix}/asesor`, asesorRoutes);
 app.use(`${config.server.apiPrefix}/assessor`, asesorRoutes); // Alias for asesor
+app.use(`${config.server.apiPrefix}/al-schedule`, alScheduleRoutes); // Phase 3B: AL Scheduling
 
 // Error handling middleware
 app.use(notFound);

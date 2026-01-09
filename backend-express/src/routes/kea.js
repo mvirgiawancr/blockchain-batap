@@ -23,6 +23,9 @@ router.get('/monitoring', authenticate, authorize(['kea', 'admin']), keaControll
 // Get consistency analysis
 router.get('/consistency', authenticate, authorize(['kea', 'admin']), keaController.getConsistencyAnalysis);
 
+// Get consistency detail for specific submission
+router.get('/consistency/:submissionId/detail', authenticate, authorize(['kea', 'admin']), keaController.getConsistencyDetail);
+
 // Set consistency check result
 router.post('/consistency/:submissionId', authenticate, authorize(['kea', 'admin']), keaController.setConsistency);
 

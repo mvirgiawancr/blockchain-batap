@@ -335,7 +335,40 @@ CREATE TABLE IF NOT EXISTS assessor_profiles (
 
 CREATE INDEX IF NOT EXISTS idx_assessor_profiles_user_id ON assessor_profiles(user_id);
 
+-- 7. AL Schedules (Asesmen Lapangan - Phase 3B)
+CREATE TABLE IF NOT EXISTS al_schedules (
+    id SERIAL PRIMARY KEY,
+    submission_id VARCHAR(255) UNIQUE NOT NULL,
+    proposed_date TIMESTAMP NOT NULL,
+    proposed_end_date TIMESTAMP,
+    proposed_venue TEXT NOT NULL,
+    proposed_by UUID REFERENCES users(id),
+    proposed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'proposed' CHECK (status IN ('proposed', 'approved', 'rejected')),
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMP,
+    approval_notes TEXT,
+    rejection_reason TEXT,
+    -- Flow synchronization status
+    flow_a_completed BOOLEAN DEFAULT FALSE,
+    flow_a_completed_at TIMESTAMP,
+    flow_b_completed BOOLEAN DEFAULT FALSE,
+    flow_b_completed_at TIMESTAMP,
+    sync_completed BOOLEAN DEFAULT FALSE,
+    sync_completed_at TIMESTAMP,
+    ready_for_al BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_al_schedules_submission_id ON al_schedules(submission_id);
+CREATE INDEX IF NOT EXISTS idx_al_schedules_status ON al_schedules(status);
+CREATE INDEX IF NOT EXISTS idx_al_schedules_proposed_date ON al_schedules(proposed_date);
+
+CREATE TRIGGER update_al_schedules_updated_at BEFORE UPDATE ON al_schedules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+COMMENT ON TABLE al_schedules IS 'AL (Asesmen Lapangan) scheduling for Phase 3B';
+
 -- Cleanup expired sessions (run this periodically)
 -- DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP;
-
 

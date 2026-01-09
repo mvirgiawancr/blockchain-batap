@@ -6,6 +6,8 @@ import {
     Decision,
     AssessorOffer,
     AKAssessment,
+    ALSchedule,
+    FlowSyncStatus,
     SubmissionCreatedEvent,
     AIRecommendationAttachedEvent,
     SubmissionDecidedEvent,
@@ -16,7 +18,10 @@ import {
     AssessorResponseEvent,
     UPPSResponseEvent,
     AKAssessmentSubmittedEvent,
-    AKConsistencyCheckedEvent
+    AKConsistencyCheckedEvent,
+    ALScheduleProposedEvent,
+    ALScheduleApprovedEvent,
+    FlowsSynchronizedEvent
 } from './types';
 
 @Info({ title: 'SubmissionContract', description: 'Smart contract for managing accreditation submissions' })
@@ -896,5 +901,270 @@ export class SubmissionContract extends Contract {
 
         await iterator.close();
         return JSON.stringify(allResults);
+    }
+
+    // =====================================================
+    // PHASE 3B: AL (Asesmen Lapangan) Scheduling Functions
+    // =====================================================
+
+    /**
+     * PHASE 3B STEP 18: KEA proposes AL schedule date and venue
+     */
+    @Transaction()
+    @Returns('string')
+    public async ProposeALSchedule(
+        ctx: Context,
+        submissionId: string,
+        proposedDate: string,
+        proposedEndDate: string,
+        proposedVenue: string,
+        proposedBy: string
+    ): Promise<string> {
+        console.info('============= START : Propose AL Schedule ===========');
+
+        // Only KEA can propose AL schedule
+        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekadminMSP'], 'ProposeALSchedule');
+
+        const submission = await this.getSubmission(ctx, submissionId);
+
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const timestamp = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
+
+        const scheduleId = `SCHED-${submissionId}-${txTimestamp.seconds.low}`;
+
+        const schedule: ALSchedule = {
+            scheduleId,
+            proposedDate,
+            proposedEndDate: proposedEndDate || undefined,
+            proposedVenue,
+            proposedBy,
+            proposedAt: timestamp,
+            status: 'proposed'
+        };
+
+        // Store schedule history
+        if (!submission.alScheduleHistory) {
+            submission.alScheduleHistory = [];
+        }
+        if (submission.alSchedule) {
+            submission.alScheduleHistory.push(submission.alSchedule);
+        }
+
+        submission.alSchedule = schedule;
+        submission.updatedAt = timestamp;
+        submission.updatedBy = proposedBy;
+        submission.updatedByMsp = mspId;
+
+        // Initialize flow sync status if not exists
+        if (!submission.flowSyncStatus) {
+            submission.flowSyncStatus = {
+                flowACompleted: false,
+                flowBCompleted: false,
+                syncCompleted: false,
+                readyForAL: false
+            };
+        }
+
+        await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
+
+        const event: ALScheduleProposedEvent = {
+            submissionId,
+            scheduleId,
+            proposedDate,
+            proposedBy,
+            at: timestamp
+        };
+        ctx.stub.setEvent('ALScheduleProposed', Buffer.from(JSON.stringify(event)));
+
+        console.info('============= END : Propose AL Schedule ===========');
+        return JSON.stringify(submission);
+    }
+
+    /**
+     * PHASE 3B STEP 19-20: Sekretariat Admin verifies and approves AL schedule
+     */
+    @Transaction()
+    @Returns('string')
+    public async ApproveALSchedule(
+        ctx: Context,
+        submissionId: string,
+        approved: boolean,
+        notes: string,
+        approvedBy: string
+    ): Promise<string> {
+        console.info('============= START : Approve AL Schedule ===========');
+
+        // Only Sekretariat Admin can approve AL schedule
+        const mspId = this.assertMSP(ctx, ['SekretariatAdminMSP', 'SekadminMSP'], 'ApproveALSchedule');
+
+        const submission = await this.getSubmission(ctx, submissionId);
+
+        if (!submission.alSchedule) {
+            throw new Error(`No AL schedule proposed for submission ${submissionId}`);
+        }
+
+        if (submission.alSchedule.status !== 'proposed') {
+            throw new Error(`AL schedule is already ${submission.alSchedule.status}`);
+        }
+
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const timestamp = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
+
+        submission.alSchedule.status = approved ? 'approved' : 'rejected';
+        submission.alSchedule.approvedBy = approvedBy;
+        submission.alSchedule.approvedAt = timestamp;
+        submission.alSchedule.approvalNotes = notes;
+
+        if (!approved) {
+            submission.alSchedule.rejectionReason = notes;
+        }
+
+        // Update flow sync status for Flow B
+        if (approved) {
+            if (!submission.flowSyncStatus) {
+                submission.flowSyncStatus = {
+                    flowACompleted: false,
+                    flowBCompleted: false,
+                    syncCompleted: false,
+                    readyForAL: false
+                };
+            }
+            submission.flowSyncStatus.flowBCompleted = true;
+            submission.flowSyncStatus.flowBCompletedAt = timestamp;
+
+            // Check if both flows are completed
+            if (submission.flowSyncStatus.flowACompleted && submission.flowSyncStatus.flowBCompleted) {
+                submission.flowSyncStatus.syncCompleted = true;
+                submission.flowSyncStatus.syncCompletedAt = timestamp;
+                submission.flowSyncStatus.readyForAL = true;
+
+                // Emit sync event
+                const syncEvent: FlowsSynchronizedEvent = {
+                    submissionId,
+                    flowACompletedAt: submission.flowSyncStatus.flowACompletedAt || timestamp,
+                    flowBCompletedAt: timestamp,
+                    syncCompletedAt: timestamp
+                };
+                ctx.stub.setEvent('FlowsSynchronized', Buffer.from(JSON.stringify(syncEvent)));
+            }
+        }
+
+        submission.updatedAt = timestamp;
+        submission.updatedBy = approvedBy;
+        submission.updatedByMsp = mspId;
+
+        await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
+
+        const event: ALScheduleApprovedEvent = {
+            submissionId,
+            scheduleId: submission.alSchedule.scheduleId,
+            approved,
+            approvedBy,
+            at: timestamp
+        };
+        ctx.stub.setEvent('ALScheduleApproved', Buffer.from(JSON.stringify(event)));
+
+        console.info('============= END : Approve AL Schedule ===========');
+        return JSON.stringify(submission);
+    }
+
+    /**
+     * PHASE 3B STEP 21: Check if both flows (A and B) are synchronized
+     * Called when AK consistency is confirmed (Flow A complete) or AL is approved (Flow B complete)
+     */
+    @Transaction()
+    @Returns('string')
+    public async CheckFlowsSynchronized(
+        ctx: Context,
+        submissionId: string,
+        checkedBy: string
+    ): Promise<string> {
+        console.info('============= START : Check Flows Synchronized ===========');
+
+        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekadminMSP'], 'CheckFlowsSynchronized');
+
+        const submission = await this.getSubmission(ctx, submissionId);
+
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const timestamp = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
+
+        // Initialize flow sync status if not exists
+        if (!submission.flowSyncStatus) {
+            submission.flowSyncStatus = {
+                flowACompleted: false,
+                flowBCompleted: false,
+                syncCompleted: false,
+                readyForAL: false
+            };
+        }
+
+        // Check Flow A: AK consistent
+        if (submission.akConsistent === true && !submission.flowSyncStatus.flowACompleted) {
+            submission.flowSyncStatus.flowACompleted = true;
+            submission.flowSyncStatus.flowACompletedAt = submission.akConsistencyCheckedAt || timestamp;
+        }
+
+        // Check Flow B: AL schedule approved
+        if (submission.alSchedule?.status === 'approved' && !submission.flowSyncStatus.flowBCompleted) {
+            submission.flowSyncStatus.flowBCompleted = true;
+            submission.flowSyncStatus.flowBCompletedAt = submission.alSchedule.approvedAt || timestamp;
+        }
+
+        // Check if both flows are completed (Parallel Gateway Join)
+        if (submission.flowSyncStatus.flowACompleted && submission.flowSyncStatus.flowBCompleted) {
+            if (!submission.flowSyncStatus.syncCompleted) {
+                submission.flowSyncStatus.syncCompleted = true;
+                submission.flowSyncStatus.syncCompletedAt = timestamp;
+                submission.flowSyncStatus.readyForAL = true;
+
+                // Emit sync event
+                const syncEvent: FlowsSynchronizedEvent = {
+                    submissionId,
+                    flowACompletedAt: submission.flowSyncStatus.flowACompletedAt || timestamp,
+                    flowBCompletedAt: submission.flowSyncStatus.flowBCompletedAt || timestamp,
+                    syncCompletedAt: timestamp
+                };
+                ctx.stub.setEvent('FlowsSynchronized', Buffer.from(JSON.stringify(syncEvent)));
+            }
+        }
+
+        submission.updatedAt = timestamp;
+        submission.updatedBy = checkedBy;
+        submission.updatedByMsp = mspId;
+
+        await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
+
+        console.info('============= END : Check Flows Synchronized ===========');
+        return JSON.stringify(submission);
+    }
+
+    /**
+     * Query submissions ready for AL (both flows completed)
+     */
+    @Transaction(false)
+    @Returns('string')
+    public async QuerySubmissionsReadyForAL(ctx: Context): Promise<string> {
+        const queryString = JSON.stringify({
+            selector: {
+                docType: 'submission',
+                'flowSyncStatus.readyForAL': true
+            }
+        });
+        return await this.getQueryResultForQueryString(ctx, queryString);
+    }
+
+    /**
+     * Query submissions with pending AL schedule
+     */
+    @Transaction(false)
+    @Returns('string')
+    public async QueryPendingALSchedules(ctx: Context): Promise<string> {
+        const queryString = JSON.stringify({
+            selector: {
+                docType: 'submission',
+                'alSchedule.status': 'proposed'
+            }
+        });
+        return await this.getQueryResultForQueryString(ctx, queryString);
     }
 }

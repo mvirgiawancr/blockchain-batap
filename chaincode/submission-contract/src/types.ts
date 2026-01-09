@@ -111,6 +111,11 @@ export interface Submission {
     akConsistencyCheckedAt?: string;
     akConsistencyCheckedBy?: string;
 
+    // Phase 3B: AL Scheduling
+    alSchedule?: ALSchedule;
+    alScheduleHistory?: ALSchedule[];
+    flowSyncStatus?: FlowSyncStatus;
+
     // Deprecated fields (kept for backward compatibility)
     assignedAssessorId?: string;
     assignedBy?: string;
@@ -194,4 +199,54 @@ export interface AKConsistencyCheckedEvent {
     submissionId: string;
     consistent: boolean;
     at: string;
+}
+
+// Phase 3B: AL (Asesmen Lapangan) Scheduling
+export interface ALSchedule {
+    scheduleId: string;
+    proposedDate: string;
+    proposedEndDate?: string;
+    proposedVenue: string;
+    proposedBy: string;
+    proposedAt: string;
+    status: 'proposed' | 'approved' | 'rejected';
+    approvedBy?: string;
+    approvedAt?: string;
+    approvalNotes?: string;
+    rejectionReason?: string;
+}
+
+// Flow synchronization tracking
+export interface FlowSyncStatus {
+    flowACompleted: boolean;  // AK Assessment consistent
+    flowACompletedAt?: string;
+    flowBCompleted: boolean;  // AL Schedule approved
+    flowBCompletedAt?: string;
+    syncCompleted: boolean;   // Both flows finished
+    syncCompletedAt?: string;
+    readyForAL: boolean;      // Ready for field assessment
+}
+
+// Events for AL Scheduling
+export interface ALScheduleProposedEvent {
+    submissionId: string;
+    scheduleId: string;
+    proposedDate: string;
+    proposedBy: string;
+    at: string;
+}
+
+export interface ALScheduleApprovedEvent {
+    submissionId: string;
+    scheduleId: string;
+    approved: boolean;
+    approvedBy: string;
+    at: string;
+}
+
+export interface FlowsSynchronizedEvent {
+    submissionId: string;
+    flowACompletedAt: string;
+    flowBCompletedAt: string;
+    syncCompletedAt: string;
 }
