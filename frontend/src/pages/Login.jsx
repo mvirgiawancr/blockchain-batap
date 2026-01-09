@@ -4,12 +4,12 @@ import { Shield, Lock, User, ArrowRight, Loader2, Briefcase } from 'lucide-react
 import { login } from '../services/auth';
 
 const roleOptions = [
-  { value: 'upps', label: 'UPPS' },
-  { value: 'sekretariat', label: 'Sekretariat' },
-  { value: 'kea', label: 'KEA' },
+  { value: 'upps', label: 'UPPS (Program Studi)' },
+  { value: 'sekretariat', label: 'Sekretariat Admin' },
+  { value: 'kea', label: 'KEA (Koordinator Evaluasi)' },
   { value: 'asesor', label: 'Asesor' },
-  { value: 'assessor', label: 'Assessor (Legacy)' },
-  { value: 'admin', label: 'Admin' }
+  { value: 'majelis', label: 'Majelis Akreditasi' },
+  { value: 'admin', label: 'Administrator' }
 ];
 
 export default function Login({ onLogin }) {
@@ -51,7 +51,7 @@ export default function Login({ onLogin }) {
         };
         navigate(redirectMap[user.role] || '/', { replace: true });
       } else {
-        setError('Login failed. Please check your credentials.');
+        setError('Gagal masuk. Periksa kembali kredensial Anda.');
       }
     } catch (err) {
       const message = err.response?.data?.error || err.message;
@@ -69,8 +69,8 @@ export default function Login({ onLogin }) {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4 shadow-md">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-500 text-sm">Sign in to LAM-TEK Accreditation System</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">AkreChain</h1>
+            <p className="text-gray-500 text-sm">Masuk ke Sistem Akreditasi LAM-TEK</p>
           </div>
 
           {error && (
@@ -82,7 +82,7 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700 ml-1">Username</label>
+              <label className="text-sm font-medium text-gray-700 ml-1">Nama Pengguna</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -94,13 +94,13 @@ export default function Login({ onLogin }) {
                   onChange={handleChange}
                   required
                   className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 text-sm transition-all"
-                  placeholder="Enter your username"
+                  placeholder="Masukkan nama pengguna"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700 ml-1">Password</label>
+              <label className="text-sm font-medium text-gray-700 ml-1">Kata Sandi</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -118,7 +118,7 @@ export default function Login({ onLogin }) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700 ml-1">Role</label>
+              <label className="text-sm font-medium text-gray-700 ml-1">Peran</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Briefcase className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -145,7 +145,7 @@ export default function Login({ onLogin }) {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Sign In
+                  Masuk
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
@@ -154,9 +154,9 @@ export default function Login({ onLogin }) {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
-              Don't have an account?{' '}
+              Belum punya akun?{' '}
               <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                Create Account
+                Buat Akun
               </Link>
             </p>
           </div>
@@ -165,4 +165,3 @@ export default function Login({ onLogin }) {
     </div>
   );
 }
-

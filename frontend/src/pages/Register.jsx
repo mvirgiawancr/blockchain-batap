@@ -3,6 +3,25 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { User, Lock, Building, GraduationCap, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
 
+// MSP Org options sesuai fablo-config.json
+const mspOrgOptions = [
+  { value: 'UPPSMSP', label: 'UPPS MSP (Program Studi)' },
+  { value: 'SekadminMSP', label: 'Sekretariat Admin MSP' },
+  { value: 'SekkeuMSP', label: 'Sekretariat Keuangan MSP' },
+  { value: 'KEAMSP', label: 'KEA MSP (Koordinator Evaluasi)' },
+  { value: 'AsesorMSP', label: 'Asesor MSP' },
+  { value: 'MajelisMSP', label: 'Majelis Akreditasi MSP' }
+];
+
+const roleOptions = [
+  { value: 'upps', label: 'UPPS (Program Studi)' },
+  { value: 'sekretariat', label: 'Sekretariat Admin' },
+  { value: 'kea', label: 'KEA (Koordinator Evaluasi)' },
+  { value: 'asesor', label: 'Asesor' },
+  { value: 'majelis', label: 'Majelis Akreditasi' },
+  { value: 'admin', label: 'Administrator' }
+];
+
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -12,7 +31,7 @@ const Register = () => {
     role: 'upps',
     institution: '',
     programStudi: '',
-    mspOrg: 'Org1MSP'
+    mspOrg: 'UPPSMSP'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +54,7 @@ const Register = () => {
         navigate('/login');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      setError(err.response?.data?.error || 'Pendaftaran gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +89,7 @@ const Register = () => {
                     name="name"
                     required
                     className="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm transition-all"
-                    placeholder="John Doe"
+                    placeholder="Nama Lengkap"
                     value={formData.name}
                     onChange={handleChange}
                   />
@@ -78,7 +97,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 ml-1">Username</label>
+                <label className="text-xs font-medium text-gray-700 ml-1">Nama Pengguna</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -88,7 +107,7 @@ const Register = () => {
                     name="username"
                     required
                     className="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm transition-all"
-                    placeholder="johndoe"
+                    placeholder="username"
                     value={formData.username}
                     onChange={handleChange}
                   />
@@ -97,7 +116,7 @@ const Register = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700 ml-1">Password</label>
+              <label className="text-xs font-medium text-gray-700 ml-1">Kata Sandi</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -116,7 +135,7 @@ const Register = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 ml-1">Role</label>
+                <label className="text-xs font-medium text-gray-700 ml-1">Peran</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Briefcase className="h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -127,18 +146,15 @@ const Register = () => {
                     value={formData.role}
                     onChange={handleChange}
                   >
-                    <option value="upps">UPPS</option>
-                    <option value="sekretariat">Sekretariat</option>
-                    <option value="kea">KEA</option>
-                    <option value="asesor">Asesor</option>
-                    <option value="majelis">Majelis</option>
-                    <option value="admin">Admin</option>
+                    {roleOptions.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 ml-1">MSP Org</label>
+                <label className="text-xs font-medium text-gray-700 ml-1">Organisasi (MSP)</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Building className="h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -149,9 +165,9 @@ const Register = () => {
                     value={formData.mspOrg}
                     onChange={handleChange}
                   >
-                    <option value="Org1MSP">Org1MSP</option>
-                    <option value="Org2MSP">Org2MSP</option>
-                    <option value="Org3MSP">Org3MSP</option>
+                    {mspOrgOptions.map((org) => (
+                      <option key={org.value} value={org.value}>{org.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -167,7 +183,7 @@ const Register = () => {
                   type="text"
                   name="institution"
                   className="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm transition-all"
-                  placeholder="Nama Universitas"
+                  placeholder="Nama Universitas/Institusi"
                   value={formData.institution}
                   onChange={handleChange}
                 />
@@ -184,7 +200,7 @@ const Register = () => {
                   type="text"
                   name="programStudi"
                   className="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm transition-all"
-                  placeholder="Teknik Informatika"
+                  placeholder="Nama Program Studi"
                   value={formData.programStudi}
                   onChange={handleChange}
                 />

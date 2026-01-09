@@ -16,13 +16,17 @@ import SekretariatVerifyPage from './pages/SekretariatVerifyPage';
 import SekretariatUPPSPage from './pages/SekretariatUPPSPage';
 import SekretariatPaymentPage from './pages/SekretariatPaymentPage';
 import SekretariatReportsPage from './pages/SekretariatReportsPage';
+import SekretariatALApprovalPage from './pages/SekretariatALApprovalPage';
 import KEAAssignmentsPage from './pages/KEAAssignmentsPage';
 import KEAMonitoringPage from './pages/KEAMonitoringPage';
 import KEAConsistencyPage from './pages/KEAConsistencyPage';
+import KEAConsistencyDetailPage from './pages/KEAConsistencyDetailPage';
+import KEAALSchedulingPage from './pages/KEAALSchedulingPage';
 import AsesorAssessmentPage from './pages/AsesorAssessmentPage';
 import ComingSoonPage from './pages/ComingSoonPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+
 
 function ProtectedRoute({ children, roles }) {
   const location = useLocation();
@@ -186,6 +190,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/sekretariat/al-approval"
+            element={
+              <ProtectedRoute roles={['sekretariat', 'admin']}>
+                <SekretariatALApprovalPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* KEA Pages */}
           <Route
@@ -213,10 +225,26 @@ function App() {
             }
           />
           <Route
+            path="/kea/consistency/:submissionId"
+            element={
+              <ProtectedRoute roles={['kea', 'admin']}>
+                <KEAConsistencyDetailPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/kea/assessors"
             element={
               <ProtectedRoute roles={['kea', 'admin']}>
                 <ComingSoonPage user={currentUser} title="Data Asesor" role="kea" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kea/al-scheduling"
+            element={
+              <ProtectedRoute roles={['kea', 'admin']}>
+                <KEAALSchedulingPage user={currentUser} />
               </ProtectedRoute>
             }
           />

@@ -47,11 +47,37 @@ const Sidebar = ({ user, onLogout, menuItems }) => {
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                LAM-TEK 2025
-              </h1>
-              <p className="text-xs text-gray-400 mt-1">Blockchain Accreditation</p>
+            <div className="space-y-3">
+              {/* Institution Logos */}
+              <div className="flex items-center gap-2">
+                <a href="https://www.ipb.ac.id/" target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src="https://www.ipb.ac.id/wp-content/uploads/2023/12/Logo-IPB-University_Horizontal.png" 
+                    alt="IPB" 
+                    className="h-8 object-contain bg-white rounded px-1"
+                  />
+                </a>
+                <a href="https://www.unikom.ac.id/" target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src="/UNIKOM-LOGO-2025-High-Resolution-2048x2048.webp" 
+                    alt="UNIKOM" 
+                    className="h-8 w-8 object-contain bg-white rounded"
+                  />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src="/batap.jpg" 
+                    alt="BATAP" 
+                    className="h-8 w-8 object-contain rounded"
+                  />
+                </a>
+              </div>
+              <div>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  LAM-TEK 2025
+                </h1>
+                <p className="text-xs text-gray-400">Blockchain Accreditation</p>
+              </div>
             </div>
           )}
           <button
@@ -159,6 +185,7 @@ export const getMenuForRole = (role) => {
       { icon: FileCheck, label: 'Verifikasi Dokumen', path: '/sekretariat/verify' },
       { icon: Users, label: 'Manajemen UPPS', path: '/sekretariat/upps' },
       { icon: Banknote, label: 'Verifikasi Pembayaran', path: '/sekretariat/payment' },
+      { icon: Award, label: 'Verifikasi Jadwal AL', path: '/sekretariat/al-approval' },
       { icon: TrendingUp, label: 'Laporan', path: '/sekretariat/reports' },
     ],
     kea: [
@@ -166,6 +193,7 @@ export const getMenuForRole = (role) => {
       { icon: Users, label: 'Penugasan Asesor', path: '/kea/assignments' },
       { icon: ClipboardCheck, label: 'Monitoring AK', path: '/kea/monitoring' },
       { icon: TrendingUp, label: 'Analisis Konsistensi', path: '/kea/consistency' },
+      { icon: Award, label: 'Penjadwalan AL', path: '/kea/al-scheduling' },
       { icon: FileText, label: 'Data Asesor', path: '/kea/assessors' },
     ],
     asesor: [
