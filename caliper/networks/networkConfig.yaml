@@ -1,6 +1,5 @@
 name: Fablo Test Network UPPS
-version: "1.0"
-mutual-tls: false
+version: "2.0"
 
 caliper:
   blockchain: fabric
