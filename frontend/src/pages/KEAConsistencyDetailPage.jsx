@@ -7,13 +7,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/
 
 // Nama kriteria sesuai LAM-TEK
 const CRITERIA_NAMES = {
-  k1: 'K1: Visi, Misi, Tujuan & Strategi',
-  k2: 'K2: Tata Kelola & Kerjasama', 
-  k3: 'K3: Mahasiswa',
-  k4: 'K4: Sumber Daya Manusia',
-  k5: 'K5: Keuangan, Sarana & Prasarana',
-  k6: 'K6: Pendidikan',
-  k7: 'K7: Penelitian & PKM'
+  '1': 'K1: Visi, Misi, Tujuan & Strategi',
+  '2': 'K2: Tata Kelola & Kerjasama', 
+  '3': 'K3: Mahasiswa',
+  '4': 'K4: Sumber Daya Manusia',
+  '5': 'K5: Keuangan, Sarana & Prasarana',
+  '6': 'K6: Pendidikan',
+  '7': 'K7: Penelitian & PKM'
 };
 
 export default function KEAConsistencyDetailPage({ user }) {
