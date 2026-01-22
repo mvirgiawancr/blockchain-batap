@@ -4,6 +4,8 @@ import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import ResultModal from '../components/ResultModal';
 import { ClipboardCheck, CheckCircle, XCircle, Clock, FileText, RefreshCw } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export default function AsesorAssignmentsPage({ user }) {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
@@ -19,7 +21,7 @@ export default function AsesorAssignmentsPage({ user }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/assessor/assignments', {
+      const response = await fetch(`${API_BASE_URL}/assessor/assignments`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -42,7 +44,7 @@ export default function AsesorAssignmentsPage({ user }) {
   const handleResponse = async (submissionId, response) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8000/api/v1/asesor/assignments/${submissionId}/accept`, {
+      const res = await fetch(`${API_BASE_URL}/asesor/assignments/${submissionId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

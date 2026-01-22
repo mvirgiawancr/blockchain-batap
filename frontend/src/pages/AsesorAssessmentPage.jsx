@@ -36,7 +36,7 @@ export default function AsesorAssessmentPage({ user }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/submissions/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/submissions/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -82,7 +82,7 @@ export default function AsesorAssessmentPage({ user }) {
   const handleDownloadLED = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/download/${id}/led`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/download/${id}/led`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -110,7 +110,7 @@ export default function AsesorAssessmentPage({ user }) {
   const handleDownloadLKPS = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/download/${id}/lkps`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/download/${id}/lkps`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -141,7 +141,7 @@ export default function AsesorAssessmentPage({ user }) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/asesor/assignments/${id}/submit`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/asesor/assignments/${id}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
