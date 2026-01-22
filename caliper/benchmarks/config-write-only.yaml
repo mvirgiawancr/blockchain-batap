@@ -1,0 +1,53 @@
+test:
+  name: AkreChain Write-Only Benchmark
+  description: Benchmark khusus untuk operasi write (CreateSubmission)
+  workers:
+    number: 5
+  rounds:
+    - label: create-submission-light
+      description: Light load - 50 transactions at 5 TPS
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: create-submission-medium
+      description: Medium load - 100 transactions at 15 TPS
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: create-submission-heavy
+      description: Heavy load - 200 transactions at 30 TPS
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 30
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+monitors:
+  resource:
+    - module: docker
+      options:
+        interval: 5
+        containers:
+          - peer0.upps.akreditasi.local
+          - orderer0.group1.orderer.akreditasi.local

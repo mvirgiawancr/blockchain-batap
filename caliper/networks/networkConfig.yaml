@@ -1,0 +1,26 @@
+name: Fablo Test Network UPPS
+version: "1.0"
+mutual-tls: false
+
+caliper:
+  blockchain: fabric
+  sutOptions:
+    mutualTls: false
+
+channels:
+  - channelName: akreditasi
+    contracts:
+      - id: submission-contract
+
+organizations:
+  - mspid: UPPSMSP
+    identities:
+      certificates:
+        - name: 'User1'
+          clientPrivateKey:
+            path: '../fablo-target/fabric-config/crypto-config/peerOrganizations/upps.akreditasi.local/users/User1@upps.akreditasi.local/msp/keystore/priv-key.pem'
+          clientSignedCert:
+            path: '../fablo-target/fabric-config/crypto-config/peerOrganizations/upps.akreditasi.local/users/User1@upps.akreditasi.local/msp/signcerts/User1@upps.akreditasi.local-cert.pem'
+    connectionProfile:
+      path: './connection-profile.yaml'
+      discover: true

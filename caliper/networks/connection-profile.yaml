@@ -1,0 +1,49 @@
+name: fablo-test-network-upps
+version: "1.0.0"
+client:
+  organization: UPPS
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+      orderer: '300'
+
+organizations:
+  UPPS:
+    mspid: UPPSMSP
+    peers:
+      - peer0.upps.akreditasi.local
+    certificateAuthorities:
+      - ca.upps.akreditasi.local
+
+peers:
+  peer0.upps.akreditasi.local:
+    url: grpc://localhost:7041
+    grpcOptions:
+      ssl-target-name-override: peer0.upps.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+
+orderers:
+  orderer0.group1.orderer.akreditasi.local:
+    url: grpc://localhost:7030
+    grpcOptions:
+      ssl-target-name-override: orderer0.group1.orderer.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+
+certificateAuthorities:
+  ca.upps.akreditasi.local:
+    url: http://localhost:7040
+    caName: ca.upps.akreditasi.local
+    httpOptions:
+      verify: false
+
+channels:
+  akreditasi:
+    orderers:
+      - orderer0.group1.orderer.akreditasi.local
+    peers:
+      peer0.upps.akreditasi.local:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true

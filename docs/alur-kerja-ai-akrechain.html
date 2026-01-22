@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alur Kerja Prototipe AI - AkreChain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #1a365d;
+            margin-bottom: 10px;
+        }
+
+        .header h2 {
+            font-size: 1.1rem;
+            color: #718096;
+            font-weight: 400;
+        }
+
+        .header-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Workflow Container */
+        .workflow {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            position: relative;
+        }
+
+        /* Swimlanes Labels */
+        .lanes-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .lane-bg {
+            flex: 1;
+            border-right: 1px dashed #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 10px;
+        }
+
+        .lane-bg:last-child {
+            border-right: none;
+        }
+
+        .lane-title {
+            background: #edf2f7;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Flow Row */
+        .flow-row {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+            padding: 0 40px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 200px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .card-desc {
+            font-size: 0.75rem;
+            color: #718096;
+            line-height: 1.4;
+        }
+
+        /* Card Types */
+        .card-user {
+            border-top: 4px solid #4299e1;
+        }
+
+        .card-system {
+            border-top: 4px solid #ed8936;
+        }
+
+        .card-ai {
+            border-top: 4px solid #805ad5;
+        }
+
+        .card-decision {
+            border-top: 4px solid #ecc94b;
+            transform: rotate(0deg);
+            border-radius: 20px;
+        }
+
+        /* Connectors */
+        .connector {
+            position: absolute;
+            z-index: 0;
+            background: #cbd5e0;
+        }
+
+        .arrow-down {
+            width: 2px;
+            height: 40px;
+            left: 50%;
+            bottom: -40px;
+        }
+
+        .arrow-right {
+            height: 2px;
+            top: 50%;
+        }
+
+        /* Special Labels */
+        .rag-box {
+            position: absolute;
+            right: -140px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #faf5ff;
+            border: 1px solid #d6bcfa;
+            padding: 15px;
+            border-radius: 10px;
+            width: 120px;
+            text-align: center;
+        }
+
+        .rag-box h4 {
+            font-size: 0.8rem;
+            color: #553c9a;
+            margin-bottom: 5px;
+        }
+
+        .rag-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Step Numbers */
+        .step-num {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 25px;
+            height: 25px;
+            background: #2d3748;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .tech-item {
+            font-size: 0.85rem;
+            color: #718096;
+            background: #edf2f7;
+            padding: 5px 12px;
+            border-radius: 15px;
+        }
+
+        /* Grid Layout for specific positioning */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        /* Custom Arrows SVG */
+        .arrows-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ALUR KERJA PROTOTIPE AI</h1>
+            <h2>AkreChain - Automated Scoring & Analysis System</h2>
+            <div class="header-badge">LAM-TEK 2025</div>
+        </div>
+
+        <!-- Lane Headers -->
+        <div class="lanes-bg">
+            <div class="lane-bg">
+                <div class="lane-title" style="color: #2b6cb0;">PENGGUNA (UPPS)</div>
+            </div>
+            <div class="lane-bg">
+                <div class="lane-title" style="color: #c05621;">SISTEM ORCHESTRATOR</div>
+            </div>
+            <div class="lane-bg">
+                <div class="lane-title" style="color: #553c9a;">AI ENGINE (GEMINI)</div>
+            </div>
+        </div>
+
+        <!-- SVG for Arrows -->
+        <svg class="arrows-svg">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#a0aec0" />
+                </marker>
+            </defs>
+            <!-- Validated approximate paths based on grid -->
+            <!-- 1 to 2 -->
+            <path d="M 200 180 L 600 180" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+            <!-- 2 to 3 -->
+            <path d="M 600 240 L 600 320" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+            <!-- 3 to 4 -->
+            <path d="M 700 380 L 1000 380" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+            <!-- 4 to 5 -->
+            <path d="M 1000 440 L 1000 520" stroke="#a0aec0" stroke-width="2" fill="none"
+                marker-end="url(#arrowhead)" />
+            <!-- 5 to 6 -->
+            <path d="M 1000 640 L 600 640" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+            <!-- 6 to 7 -->
+            <path d="M 600 700 L 600 780" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+            <!-- 7 to 8 -->
+            <path d="M 500 840 L 200 840" stroke="#a0aec0" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+        </svg>
+
+        <div class="grid-layout" style="margin-top: 60px;">
+            <!-- Column 1: User -->
+            <div class="col">
+                <div class="card card-user" style="margin-top: 60px;">
+                    <div class="step-num">1</div>
+                    <div class="card-icon">📤</div>
+                    <div class="card-title">Upload Dokumen</div>
+                    <div class="card-desc">UPPS mengunggah LED (PDF) dan LKPS (Excel)</div>
+                </div>
+
+                <div class="card card-user" style="margin-top: 580px;">
+                    <div class="step-num">8</div>
+                    <div class="card-icon">✅</div>
+                    <div class="card-title">Validasi Hasil</div>
+                    <div class="card-desc">Lihat skor sementara & rekomendasi AI</div>
+                </div>
+            </div>
+
+            <!-- Column 2: System -->
+            <div class="col">
+                <div class="card card-system" style="margin-top: 60px;">
+                    <div class="step-num">2</div>
+                    <div class="card-icon">⚙️</div>
+                    <div class="card-title">Pre-processing</div>
+                    <div class="card-desc">Ekstraksi teks PDF & parsing data Excel</div>
+                </div>
+
+                <div class="card card-system">
+                    <div class="step-num">3</div>
+                    <div class="card-icon">📋</div>
+                    <div class="card-title">Rule Check</div>
+                    <div class="card-desc">Validasi kelengkapan & format data</div>
+                </div>
+
+                <div class="card card-system" style="margin-top: 200px;">
+                    <div class="step-num">6</div>
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Kompilasi Skor</div>
+                    <div class="card-desc">Gabungkan hasil kuantitatif & kualitatif</div>
+                </div>
+
+                <div class="card card-system">
+                    <div class="step-num">7</div>
+                    <div class="card-icon">💾</div>
+                    <div class="card-title">Simpan Data</div>
+                    <div class="card-desc">Simpan hasil analisis ke Database & IPFS</div>
+                </div>
+            </div>
+
+            <!-- Column 3: AI -->
+            <div class="col">
+                <div class="card card-ai" style="margin-top: 260px;">
+                    <div class="step-num">4</div>
+                    <div class="card-icon">🧠</div>
+                    <div class="card-title">Analisis Konteks</div>
+                    <div class="card-desc">Retrieve Pedoman Penilaian (RAG)</div>
+
+                    <div class="rag-box">
+                        <div class="rag-icon">📚</div>
+                        <h4>Knowledge Base</h4>
+                        <div style="font-size: 0.65rem;">Pedoman LAM-TEK 2025</div>
+                    </div>
+                </div>
+
+                <div class="card card-ai">
+                    <div class="step-num">5</div>
+                    <div class="card-icon">🔍</div>
+                    <div class="card-title">7 Kriteria Analysis</div>
+                    <div class="card-desc">
+                        1. Diferensiasi Misi<br>
+                        2. Akuntabilitas<br>
+                        3. Relevansi<br>
+                        4. SDM... (Cross-check)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="tech-stack">
+                <span class="tech-item">Google Gemini Pro</span>
+                <span class="tech-item">LangChain / RAG</span>
+                <span class="tech-item">Node.js</span>
+                <span class="tech-item">Python Parser</span>
+            </div>
+            <p style="color: #a0aec0; font-size: 0.8rem; margin-top: 10px;">
+                Alur Data: Dokumen → Ekstraksi → Validasi Rules → Analisis AI (Context Aware) → Skor Final
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

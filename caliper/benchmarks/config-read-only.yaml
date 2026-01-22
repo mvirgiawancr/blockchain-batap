@@ -1,0 +1,66 @@
+test:
+  name: AkreChain Read-Only Benchmark
+  description: Benchmark khusus untuk operasi read (Query)
+  workers:
+    number: 5
+  rounds:
+    - label: query-single-light
+      description: Query single submission - light load at 50 TPS
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: benchmarks/workload/querySubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: query-single-heavy
+      description: Query single submission - heavy load at 100 TPS
+      txNumber: 300
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 100
+      workload:
+        module: benchmarks/workload/querySubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: query-all-light
+      description: Query all submissions - light load at 10 TPS
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/workload/queryAllSubmissions.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: query-all-heavy
+      description: Query all submissions - heavy load at 30 TPS
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 30
+      workload:
+        module: benchmarks/workload/queryAllSubmissions.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+monitors:
+  resource:
+    - module: docker
+      options:
+        interval: 5
+        containers:
+          - peer0.upps.akreditasi.local
+          - orderer0.group1.orderer.akreditasi.local

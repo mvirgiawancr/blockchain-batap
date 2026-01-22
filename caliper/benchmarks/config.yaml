@@ -1,0 +1,53 @@
+test:
+  name: AkreChain TPS Benchmark
+  description: Benchmark TPS untuk jaringan AkreChain menggunakan Hyperledger Caliper
+  workers:
+    number: 5
+  rounds:
+    - label: create-submission
+      description: Benchmark CreateSubmission (Write Operation)
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: query-submission
+      description: Benchmark QuerySubmission (Read Operation)
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: benchmarks/workload/querySubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: query-all-submissions
+      description: Benchmark QueryAllSubmissions (Read All Operation)
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: benchmarks/workload/queryAllSubmissions.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+monitors:
+  resource:
+    - module: docker
+      options:
+        interval: 5
+        containers:
+          - peer0.upps.akreditasi.local
+          - orderer0.group1.orderer.akreditasi.local
