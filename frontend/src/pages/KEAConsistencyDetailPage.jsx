@@ -173,12 +173,12 @@ export default function KEAConsistencyDetailPage({ user }) {
                   <p className="text-sm text-gray-600 mt-1 truncate">{data.assessor2.name}</p>
                 </div>
                 <div className={`bg-white rounded-xl shadow-sm p-6 border-l-4 ${
-                  data.scoreDifference <= 15 ? 'border-green-500' : 'border-red-500'
+                  data.scoreDifference <= 5 ? 'border-green-500' : 'border-red-500'
                 }`}>
                   <p className="text-sm text-gray-500 mb-1">Selisih Total</p>
                   <p className="text-3xl font-bold text-gray-900">{data.scoreDifference.toFixed(2)}</p>
-                  <p className={`text-sm mt-1 ${data.scoreDifference <= 15 ? 'text-green-600' : 'text-red-600'}`}>
-                    {data.scoreDifference <= 15 ? '✓ Dalam batas toleransi' : '⚠ Melebihi batas (15)'}
+                  <p className={`text-sm mt-1 ${data.scoreDifference <= 5 ? 'text-green-600' : 'text-red-600'}`}>
+                    {data.scoreDifference <= 5 ? '✓ Dalam batas toleransi' : '⚠ Melebihi batas (5)'}
                   </p>
                 </div>
               </div>
@@ -202,7 +202,6 @@ export default function KEAConsistencyDetailPage({ user }) {
                           <div className="text-xs font-normal opacity-80">Asesor 2</div>
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold">Selisih</th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -225,15 +224,6 @@ export default function KEAConsistencyDetailPage({ user }) {
                                 {diff.toFixed(2)}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              {diff <= 5 ? (
-                                <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
-                              ) : diff <= 10 ? (
-                                <AlertTriangle className="w-5 h-5 text-yellow-500 mx-auto" />
-                              ) : (
-                                <XCircle className="w-5 h-5 text-red-500 mx-auto" />
-                              )}
-                            </td>
                           </tr>
                         );
                       })}
@@ -249,13 +239,6 @@ export default function KEAConsistencyDetailPage({ user }) {
                         </td>
                         <td className="px-6 py-4 text-center text-lg font-bold text-gray-900">
                           {data.scoreDifference.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {data.scoreDifference <= 15 ? (
-                            <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
-                          ) : (
-                            <XCircle className="w-6 h-6 text-red-500 mx-auto" />
-                          )}
                         </td>
                       </tr>
                     </tfoot>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Script Presentasi - Print Version</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            padding: 15px;
+            color: #1e293b;
+        }
+
+        h1 {
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #1A56DB;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .slide {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #1A56DB;
+            page-break-inside: avoid;
+        }
+
+        .slide-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .slide-num {
+            background: #1A56DB;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .slide-title {
+            font-weight: 700;
+            color: #1A56DB;
+            font-size: 12px;
+        }
+
+        .duration {
+            margin-left: auto;
+            color: #64748b;
+            font-size: 10px;
+        }
+
+        .script p {
+            margin-bottom: 6px;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        .emphasis {
+            color: #1A56DB;
+            font-weight: 700;
+        }
+
+        /* Q&A Section */
+        .qa-section {
+            grid-column: span 2;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #dc2626;
+        }
+
+        h2 {
+            font-size: 14px;
+            color: #dc2626;
+            margin-bottom: 10px;
+        }
+
+        .qa-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .qa-item {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 10px;
+            page-break-inside: avoid;
+        }
+
+        .qa-q {
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .qa-a {
+            font-size: 10px;
+            color: #1e293b;
+        }
+
+        .qa-a strong {
+            color: #1A56DB;
+        }
+
+        @media print {
+            body {
+                padding: 10px;
+            }
+
+            .slide,
+            .qa-item {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📝 SCRIPT PRESENTASI SIDANG - AKRECHAIN</h1>
+
+    <div class="container">
+        <!-- Slide 1 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">1</div>
+                <div class="slide-title">Cover - Pembukaan</div>
+                <span class="duration">~30 dtk</span>
+            </div>
+            <div class="script">
+                <p>"Assalamualaikum. Selamat pagi/siang Bapak/Ibu dosen penguji."</p>
+                <p>"Nama saya <span class="emphasis">Moch Virgiawan Caesar R.</span>, NIM <span
+                        class="emphasis">10122164</span>, Teknik Informatika UNIKOM."</p>
+                <p>"Judul: <span class="highlight">Sistem Akreditasi Berbasis Blockchain dengan Integrasi AI untuk
+                        Automated Assessment</span>."</p>
+            </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">2</div>
+                <div class="slide-title">Latar Belakang</div>
+                <span class="duration">~2 mnt</span>
+            </div>
+            <div class="script">
+                <p>"Proses akreditasi menghadapi beberapa tantangan:"</p>
+                <p><span class="emphasis">1.</span> Verifikasi dokumen <span class="highlight">manual & lambat</span>
+                </p>
+                <p><span class="emphasis">2.</span> <span class="highlight">Kurang transparansi</span> tracking status
+                </p>
+                <p><span class="emphasis">3.</span> Penilaian <span class="highlight">subjektif & tidak konsisten</span>
+                </p>
+                <p><span class="emphasis">4.</span> Ancaman <span class="highlight">integritas data</span></p>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">3</div>
+                <div class="slide-title">Identifikasi Masalah</div>
+                <span class="duration">~1 mnt</span>
+            </div>
+            <div class="script">
+                <p>"Tiga masalah utama:"</p>
+                <p><span class="emphasis">1.</span> Bagaimana menjamin <span class="highlight">integritas &
+                        transparansi</span> dengan Blockchain?</p>
+                <p><span class="emphasis">2.</span> Bagaimana integrasi <span class="highlight">AI untuk scoring</span>
+                    7 kriteria LAM-TEK?</p>
+                <p><span class="emphasis">3.</span> Bagaimana <span class="highlight">otomasi workflow</span> dengan
+                    Smart Contract?</p>
+            </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">4</div>
+                <div class="slide-title">Maksud & Tujuan</div>
+                <span class="duration">~1.5 mnt</span>
+            </div>
+            <div class="script">
+                <p><span class="emphasis">Maksud:</span> Mengembangkan <span class="highlight">DSS</span> Blockchain+AI
+                    untuk akreditasi LAM-TEK.</p>
+                <p><span class="emphasis">Tujuan 1:</span> <span class="highlight">Keaslian data</span> - Hyperledger
+                    immutable</p>
+                <p><span class="emphasis">Tujuan 2:</span> <span class="highlight">Objektivitas</span> - AI second
+                    opinion</p>
+                <p><span class="emphasis">Tujuan 3:</span> <span class="highlight">Efisiensi</span> - Otomasi workflow
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">5</div>
+                <div class="slide-title">Batasan Masalah</div>
+                <span class="duration">~1.5 mnt</span>
+            </div>
+            <div class="script">
+                <p>• Lingkup: <span class="highlight">LAM-TEK 2025</span> (7 kriteria)</p>
+                <p>• Sebagai <span class="highlight">DSS</span>, keputusan akhir tetap di asesor</p>
+                <p>• Dokumen: <span class="highlight">LED-PS & LKPS</span></p>
+                <p>• Blockchain: <span class="highlight">metadata & audit</span>, dokumen di IPFS</p>
+                <p>• AI: <span class="highlight">validasi awal</span>, bukan penentu akhir</p>
+                <p>• Environment: <span class="highlight">development</span></p>
+            </div>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">6</div>
+                <div class="slide-title">Metodologi</div>
+                <span class="duration">~1 mnt</span>
+            </div>
+            <div class="script">
+                <p>"Metode <span class="highlight">Prototype</span>:"</p>
+                <p><span class="emphasis">1.</span> Communication & Planning</p>
+                <p><span class="emphasis">2.</span> Modeling Quick Design</p>
+                <p><span class="emphasis">3.</span> Construction of Prototype</p>
+                <p><span class="emphasis">4.</span> Deployment & Feedback</p>
+            </div>
+        </div>
+
+        <!-- Slide 7 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">7</div>
+                <div class="slide-title">Arsitektur Sistem</div>
+                <span class="duration">~2 mnt</span>
+            </div>
+            <div class="script">
+                <p>"<span class="highlight">6 Layer</span> arsitektur:"</p>
+                <p><span class="emphasis">1.</span> Pengguna - UPPS, Asesor, Admin</p>
+                <p><span class="emphasis">2.</span> Antarmuka - React.js</p>
+                <p><span class="emphasis">3.</span> Backend - Express.js</p>
+                <p><span class="emphasis">4.</span> Storage - PostgreSQL, Blockchain, IPFS</p>
+                <p><span class="emphasis">5.</span> External - Google Gemini</p>
+                <p><span class="emphasis">6.</span> Output - Skor, Rekomendasi, Audit</p>
+            </div>
+        </div>
+
+        <!-- Slide 8 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">8</div>
+                <div class="slide-title">Arsitektur Blockchain</div>
+                <span class="duration">~1.5 mnt</span>
+            </div>
+            <div class="script">
+                <p>"<span class="highlight">Hyperledger Fabric</span> - Permissioned Network"</p>
+                <p>"<span class="emphasis">2 Organization</span>: UPPS & LAM-TEK"</p>
+                <p>"Smart Contract mengelola workflow"</p>
+                <p>"Keuntungan: <span class="highlight">privasi terjamin</span>"</p>
+            </div>
+        </div>
+
+        <!-- Slide 9 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">9</div>
+                <div class="slide-title">Integrasi AI</div>
+                <span class="duration">~1.5 mnt</span>
+            </div>
+            <div class="script">
+                <p><span class="emphasis">1. Upload</span> → Dokumen ke IPFS, hash ke blockchain</p>
+                <p><span class="emphasis">2. Analysis</span> → Gemini extract & scoring</p>
+                <p><span class="emphasis">3. Record</span> → Hasil ke blockchain</p>
+                <p><span class="emphasis">4. Validate</span> → Asesor review, <span class="highlight">AI = second
+                        opinion</span></p>
+            </div>
+        </div>
+
+        <!-- Slide 10 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">10</div>
+                <div class="slide-title">Kesimpulan</div>
+                <span class="duration">~1 mnt</span>
+            </div>
+            <div class="script">
+                <p>"4 nilai utama:"</p>
+                <p><span class="emphasis">Innovation</span> - Blockchain + AI paradigma baru</p>
+                <p><span class="emphasis">Security</span> - Immutable, anti manipulasi</p>
+                <p><span class="emphasis">Efficiency</span> - Automated assessment</p>
+                <p><span class="emphasis">Fairness</span> - Kurangi bias subjektif</p>
+            </div>
+        </div>
+
+        <!-- Slide 11 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-num">11</div>
+                <div class="slide-title">Penutup</div>
+                <span class="duration">~30 dtk</span>
+            </div>
+            <div class="script">
+                <p>"Demikian proposal skripsi saya."</p>
+                <p>"Mohon kritik dan saran untuk perbaikan."</p>
+                <p>"Terima kasih. Wassalamualaikum."</p>
+            </div>
+        </div>
+
+        <!-- Q&A Section -->
+        <div class="qa-section">
+            <h2>❓ KEMUNGKINAN PERTANYAAN & JAWABAN</h2>
+            <div class="qa-grid">
+                <div class="qa-item">
+                    <div class="qa-q">Kenapa Hyperledger bukan Ethereum?</div>
+                    <div class="qa-a"><strong>Permissioned</strong> = cocok data sensitif. <strong>Tanpa crypto</strong>
+                        = sesuai enterprise. <strong>Performance</strong> lebih tinggi. Ethereum = public, tidak cocok
+                        data rahasia.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Bagaimana jika AI salah scoring?</div>
+                    <div class="qa-a">AI = <strong>second opinion/DSS</strong>, bukan penentu akhir. Asesor tetap review
+                        & tentukan skor final. Hasil AI & asesor dibandingkan untuk evaluasi.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Apa yang disimpan di blockchain?</div>
+                    <div class="qa-a"><strong>Hash dokumen</strong> (verifikasi), <strong>metadata</strong>,
+                        <strong>status</strong>, <strong>skor</strong>, <strong>audit trail</strong>. Dokumen asli di
+                        <strong>IPFS</strong>.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Bagaimana keamanan sistem?</div>
+                    <div class="qa-a"><strong>JWT</strong> auth, <strong>RBAC</strong> (role-based), <strong>Blockchain
+                            immutable</strong>, <strong>Audit trail</strong>, <strong>Permissioned network</strong>,
+                        <strong>IPFS content addressing</strong>.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Apa 7 kriteria LAM-TEK?</div>
+                    <div class="qa-a">1. Visi Misi, 2. Tata Kelola, 3. Mahasiswa, 4. SDM, 5. Keuangan/Sarpras, 6.
+                        Pendidikan, 7. Penelitian & PkM.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Kenapa Google Gemini?</div>
+                    <div class="qa-a"><strong>Multimodal</strong> (teks+gambar), <strong>Long context</strong>,
+                        <strong>API stabil</strong>, <strong>Cost effective</strong>. Arsitektur modular, bisa ganti
+                        model.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Rencana pengujian?</div>
+                    <div class="qa-a"><strong>Unit Testing</strong>, <strong>Integration Testing</strong>,
+                        <strong>Functional Testing</strong>, <strong>Performance Testing</strong> (TPS),
+                        <strong>UAT</strong>. Semua di dev environment.</div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-q">Apa novelty penelitian?</div>
+                    <div class="qa-a"><strong>Integrasi Blockchain+AI</strong> untuk akreditasi (belum banyak).
+                        <strong>Spesifik LAM-TEK 2025</strong>. <strong>Hybrid on/off-chain</strong>. <strong>AI as
+                            second opinion</strong>.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

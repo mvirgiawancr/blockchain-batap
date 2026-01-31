@@ -5,6 +5,76 @@ import { Calendar, MapPin, Clock, Send, CheckCircle, XCircle, RefreshCw, AlertTr
 import { API_BASE_URL } from '../config/api';
 
 /**
+ * LAM-TEK 2025 Batch Schedules
+ * Periode Asesmen Lapangan per batch
+ */
+const BATCH_SCHEDULES = [
+  { 
+    batch: 1, 
+    label: 'Batch 1 (Januari - April)', 
+    alStartMonth: 2, alStartDay: 15,  // 15 Februari
+    alEndMonth: 4, alEndDay: 21       // 21 April
+  },
+  { 
+    batch: 2, 
+    label: 'Batch 2 (Mei - Agustus)', 
+    alStartMonth: 6, alStartDay: 15,  // 15 Juni
+    alEndMonth: 8, alEndDay: 21       // 21 Agustus
+  },
+  { 
+    batch: 3, 
+    label: 'Batch 3 (September - Desember)', 
+    alStartMonth: 10, alStartDay: 15, // 15 Oktober
+    alEndMonth: 12, alEndDay: 21      // 21 Desember
+  }
+];
+
+/**
+ * Get the nearest batch based on current date
+ * Returns the batch whose AL period is closest (either upcoming or current)
+ */
+const getNearestBatch = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  
+  // Check each batch and find the nearest one
+  for (const batch of BATCH_SCHEDULES) {
+    const alStart = new Date(currentYear, batch.alStartMonth - 1, batch.alStartDay);
+    const alEnd = new Date(currentYear, batch.alEndMonth - 1, batch.alEndDay, 23, 59, 59);
+    
+    // If we're within or before the AL period of this batch
+    if (now <= alEnd) {
+      return batch.batch;
+    }
+  }
+  
+  // If we're past all batches this year, return batch 1 for next year
+  return 1;
+};
+
+/**
+ * Get min/max dates for date picker based on selected batch
+ */
+const getBatchDateRange = (batchNumber) => {
+  const batch = BATCH_SCHEDULES.find(b => b.batch === batchNumber);
+  if (!batch) return { min: '', max: '' };
+  
+  const now = new Date();
+  let year = now.getFullYear();
+  
+  // If the batch's AL period has already passed this year, use next year
+  const alEnd = new Date(year, batch.alEndMonth - 1, batch.alEndDay);
+  if (now > alEnd) {
+    year += 1;
+  }
+  
+  const minDate = `${year}-${String(batch.alStartMonth).padStart(2, '0')}-${String(batch.alStartDay).padStart(2, '0')}T08:00`;
+  const maxDate = `${year}-${String(batch.alEndMonth).padStart(2, '0')}-${String(batch.alEndDay).padStart(2, '0')}T17:00`;
+  
+  return { min: minDate, max: maxDate, year };
+};
+
+/**
  * KEA AL Scheduling Page
  * Step 18: KEA mengusulkan jadwal Asesmen Lapangan
  * Step 21: Melihat status sinkronisasi alur A dan B
@@ -27,6 +97,7 @@ export default function KEAALSchedulingPage({ user }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [selectedBatch, setSelectedBatch] = useState(getNearestBatch());
 
   useEffect(() => {
     fetchData();
@@ -441,6 +512,37 @@ export default function KEAALSchedulingPage({ user }) {
             </div>
 
             <div className="space-y-4 mb-6">
+              {/* Batch Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Batch Akreditasi <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedBatch}
+                  onChange={(e) => {
+                    setSelectedBatch(Number(e.target.value));
+                    setFormData({ ...formData, proposedDate: '', proposedEndDate: '' });
+                  }}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+                >
+                  {BATCH_SCHEDULES.map(batch => (
+                    <option key={batch.batch} value={batch.batch}>
+                      {batch.label}
+                    </option>
+                  ))}
+                </select>
+                {(() => {
+                  const range = getBatchDateRange(selectedBatch);
+                  const batchInfo = BATCH_SCHEDULES.find(b => b.batch === selectedBatch);
+                  return (
+                    <p className="text-xs text-purple-600 mt-1 font-medium">
+                      📅 Periode AL: {batchInfo?.alStartDay} {['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][batchInfo?.alStartMonth]} - {batchInfo?.alEndDay} {['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][batchInfo?.alEndMonth]} {range.year}
+                    </p>
+                  );
+                })()}
+              </div>
+
+              {/* Tanggal Mulai AL */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tanggal Mulai AL <span className="text-red-500">*</span>
@@ -449,10 +551,13 @@ export default function KEAALSchedulingPage({ user }) {
                   type="datetime-local"
                   value={formData.proposedDate}
                   onChange={(e) => setFormData({ ...formData, proposedDate: e.target.value })}
+                  min={getBatchDateRange(selectedBatch).min}
+                  max={getBatchDateRange(selectedBatch).max}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
 
+              {/* Tanggal Selesai AL */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tanggal Selesai AL (Opsional)
@@ -461,10 +566,13 @@ export default function KEAALSchedulingPage({ user }) {
                   type="datetime-local"
                   value={formData.proposedEndDate}
                   onChange={(e) => setFormData({ ...formData, proposedEndDate: e.target.value })}
+                  min={formData.proposedDate || getBatchDateRange(selectedBatch).min}
+                  max={getBatchDateRange(selectedBatch).max}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
 
+              {/* Lokasi */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tempat/Lokasi AL

@@ -1,0 +1,896 @@
+﻿SISTEM AKREDITASI BERBASIS BLOCKCHAIN DENGAN INTEGRASI ARTIFICIAL INTELLIGENCE UNTUK AUTOMATED ASSESMENT
+
+
+Disusun Untuk Proposal Skripsi 
+Semester Ganjil Tahun Ajaran 2025/2026
+
+
+
+
+OLEH:
+Moch Virgiawan Caesar Ridollohi
+10122164
+
+
+
+
+  
+
+
+
+
+
+Program Studi Teknik Informatika 
+Fakultas Teknik Dan Ilmu Komputer 
+Universitas Komputer Indonesia 
+2026
+1. Latar Belakang Masalah
+Akreditasi merupakan proses penting dalam menjamin kualitas pendidikan tinggi di Indonesia [1]. Lembaga Akreditasi Mandiri Teknik (LAM-TEK) bertugas melakukan penilaian kelayakan program studi teknik untuk memastikan standar mutu yang telah ditetapkan terpenuhi [1]. Namun, sistem akreditasi konvensional yang berlaku saat ini menghadapi berbagai tantangan signifikan yang menghambat efisiensi, transparansi, dan objektivitas proses akreditasi.
+Permasalahan dalam proses akreditasi saat ini mencakup verifikasi dan validasi dokumen yang memakan waktu serta rentan terhadap perubahan tanpa pencatatan yang jelas, sehingga menimbulkan keraguan terhadap validitas data yang disampaikan oleh institusi [2]. Selain itu, transparansi proses penilaian masih terbatas, menyebabkan institusi tidak memiliki visibilitas yang memadai terhadap proses asesmen dan akuntabilitas pengambilan keputusan. Beban administratif juga tergolong tinggi karena proses pengunggahan dan evaluasi dokumen masih banyak dilakukan secara manual dan belum terintegrasi, yang berdampak pada inefisiensi waktu dan biaya. Di sisi lain, perbedaan interpretasi kriteria antar asesor berpotensi menimbulkan inkonsistensi penilaian, sehingga mempengaruhi keadilan hasil akreditasi. Proses penugasan asesor yang masih dilakukan secara manual tanpa dukungan sistem rekomendasi berbasis kompetensi juga menyulitkan pencocokan keahlian asesor dengan bidang program studi yang dinilai, yang pada akhirnya dapat menurunkan kualitas asesmen.
+Di era transformasi digital dan Industry 4.0, teknologi blockchain dan artificial intelligence (AI) menawarkan solusi inovatif untuk mengatasi permasalahan-permasalahan tersebut. Blockchain, khususnya Hyperledger Fabric, dengan karakteristik desentralisasi, immutability, dan transparansi, dapat memastikan integritas data akreditasi dan mencegah manipulasi dokumen [3], [4]. Setiap transaksi dalam blockchain tercatat secara permanen dan dapat diaudit oleh semua participant yang berwenang, sehingga meningkatkan trustworthy process [5]. Sementara itu, Artificial Intelligence dengan kemampuan Natural Language Processing (NLP) dapat dimanfaatkan untuk melakukan automated assessment yang konsisten, objektif, dan efisien dalam mengevaluasi dokumen-dokumen akreditasi [6], [7], serta memberikan rekomendasi asesor yang tepat berdasarkan kecocokan expertise [8].
+Penelitian ini mengembangkan sistem akreditasi berbasis blockchain yang terintegrasi dengan teknologi AI untuk automated assessment pada konteks akreditasi LAM-TEK 2025 dengan 7 kriteria penilaian [1]. Sistem yang dibangun memanfaatkan Hyperledger Fabric sebagai platform blockchain [4], smart contract untuk mengotomasi workflow akreditasi, IPFS untuk penyimpanan dokumen terdesentralisasi dengan enkripsi [9], [10], Google Gemini AI untuk analisis dokumen dan automated scoring [11], serta database untuk menyimpan data off-chain. Dengan integrasi blockchain dan AI ini, diharapkan dapat tercapai sistem akreditasi yang lebih transparan, efisien, akurat, terpercaya, dan fair bagi semua stakeholder yang terlibat [12], [13], [14].
+2. Identifikasi Masalah
+Berdasarkan latar belakang yang telah diuraikan, maka identifikasi masalah dalam penelitian ini adalah:
+1. Bagaimana merancang sistem akreditasi berbasis blockchain yang mampu menjamin integritas data, immutability, dan transparansi proses submission akreditasi LAM-TEK?
+2. Bagaimana mengintegrasikan Artificial Intelligence untuk mendukung validasi dan penilaian awal dokumen LED-PS dan LKPS sesuai dengan 7 kriteria akreditasi LAM-TEK 2025?
+3. Bagaimana mengotomasi alur kerja akreditasi serta mengevaluasi kinerja, akurasi keluaran AI, dan keamanan sistem yang dikembangkan?
+3. Maksud dan Tujuan
+   1. Maksud Penelitian
+Penelitian ini dimaksudkan untuk mengembangkan sistem pendukung akreditasi program studi berbasis blockchain dengan integrasi Artificial Intelligence guna meningkatkan integritas data, transparansi proses, serta efisiensi pengelolaan dan penilaian dokumen akreditasi sesuai dengan instrumen LAM-TEK 2025.
+   2. Tujuan Penelitian
+Adapun tujuan yang ingin dicapai dalam penelitian ini adalah:
+1. Menjamin keutuhan dan keterlacakan data dokumen akreditasi melalui penerapan teknologi blockchain yang bersifat imutabel dan transparan.
+2. Mendukung proses validasi dan penilaian awal dokumen akreditasi menggunakan Artificial Intelligence agar lebih konsisten dan objektif.
+3. Meningkatkan efisiensi dan akuntabilitas alur kerja akreditasi melalui otomasi proses serta pengelolaan dokumen yang aman.
+4. Batasan Masalah
+Agar penelitian ini lebih terfokus dan terarah, maka ditetapkan batasan masalah sebagai berikut:
+1. Penelitian ini dibatasi pada proses akreditasi program studi di bidang teknik berdasarkan instrumen akreditasi LAM-TEK 2025 yang mencakup tujuh kriteria penilaian.
+2. Sistem yang dirancang berfungsi sebagai sistem pendukung akreditasi, sehingga keputusan akhir akreditasi tetap berada pada kewenangan lembaga akreditasi dan asesor.
+3. Dokumen akreditasi yang dianalisis dalam penelitian ini terbatas pada Laporan Evaluasi Diri Program Studi (LED-PS) dan Laporan Kinerja Program Studi (LKPS).
+4. Teknologi blockchain digunakan untuk pencatatan metadata, status proses, dan jejak audit dokumen, sedangkan penyimpanan dokumen dilakukan secara terpisah dengan mekanisme keamanan yang sesuai.
+5. Pemanfaatan Artificial Intelligence dalam penelitian ini dibatasi pada validasi awal dokumen, analisis indikator, dan dukungan penilaian, bukan sebagai penentu keputusan akhir akreditasi.
+6. Pengujian sistem dilakukan pada lingkungan pengembangan (development environment) untuk menilai fungsionalitas, keamanan, dan dukungan penilaian yang dihasilkan sistem.
+5. Metodologi Penelitian
+Metodologi penelitian merupakan tahapan sistematis yang digunakan untuk menyelesaikan permasalahan penelitian secara rasional dan terstruktur. Metodologi ini diperlukan untuk memperoleh data yang relevan serta menghasilkan rancangan sistem yang sesuai dengan kebutuhan penelitian. Penelitian ini menggunakan pendekatan analisis deskriptif, yaitu metode yang bertujuan untuk menggambarkan fakta, karakteristik, serta hubungan antar fenomena yang berkaitan dengan proses akreditasi program studi.
+Penelitian ini terdiri dari dua tahap utama, yaitu tahap pengumpulan data dan tahap pengembangan prototipe sistem. Tahapan penelitian disusun secara berurutan mulai dari identifikasi masalah hingga penarikan kesimpulan dan saran.
+  
+
+Gambar 1. Metodologi Penelitian
+        5.1 Metode Pengumpulan Data
+        Metode pengumpulan data yang digunakan dalam penelitian ini meliputi:
+1. Observasi
+Metode observasi dilakukan dengan mengamati secara langsung proses pengelolaan dan penilaian dokumen akreditasi program studi yang sedang berjalan, khususnya pada tahapan pengunggahan dokumen LED-PS dan LKPS, proses validasi, serta alur penilaian oleh asesor. Melalui observasi ini, peneliti dapat memahami permasalahan yang terjadi, seperti kompleksitas dokumen, keterbatasan pencatatan riwayat perubahan, serta potensi pemanfaatan teknologi blockchain dan Artificial Intelligence sebagai sistem pendukung akreditasi.
+2. Studi Literatur
+Studi literatur dilakukan dengan mempelajari berbagai referensi ilmiah berupa buku, jurnal, artikel, dan dokumen resmi yang berkaitan dengan sistem akreditasi perguruan tinggi, instrumen akreditasi LAM-TEK 2025, teknologi blockchain, smart contract, Artificial Intelligence, serta penyimpanan data terdesentralisasi. Studi literatur ini bertujuan untuk memperoleh landasan teori yang kuat dan menjadi acuan dalam perancangan sistem yang diusulkan.
+        5.2 Metode Pembangunan Perangkat Lunak
+        Metode pengembangan perangkat lunak yang digunakan dalam penelitian ini adalah metode Prototype. Metode ini dipilih karena memungkinkan peneliti untuk mengembangkan sistem secara bertahap melalui pembuatan purwarupa (prototype) yang dapat dievaluasi dan disempurnakan berdasarkan kebutuhan pengguna.
+Penggunaan metode prototype dinilai sesuai karena sistem akreditasi berbasis blockchain dan Artificial Intelligence memiliki kompleksitas yang cukup tinggi, sehingga diperlukan visualisasi awal sistem untuk mempermudah pemahaman alur, fungsi, dan kebutuhan pengguna sebelum pengembangan dilakukan secara lebih lanjut.
+ Gambar 2.Model Prototype(Pressman: 2010) | Download Scientific Diagram 
+
+Gambar 2. Metode Prototype
+Tahapan metode prototype yang digunakan dalam penelitian ini terdiri dari:
+1) Communication
+Pada tahap ini, peneliti melakukan komunikasi dan diskusi dengan dosen pembimbing serta mempelajari dokumen terkait akreditasi LAM-TEK untuk menentukan tujuan utama sistem yang akan dikembangkan. Tahap ini bertujuan untuk mengidentifikasi kebutuhan umum sistem, ruang lingkup penelitian, serta permasalahan yang ingin diselesaikan melalui sistem akreditasi berbasis blockchain dan Artificial Intelligence.
+2) Quick Plan
+Tahap quick plan merupakan tahap perencanaan awal yang dilakukan berdasarkan hasil komunikasi sebelumnya. Pada tahap ini, peneliti menyusun gambaran umum sistem, meliputi alur proses akreditasi, peran pengguna (UPPS, asesor, dan pihak terkait), serta pemanfaatan blockchain dan Artificial Intelligence sebagai sistem pendukung. Perencanaan ini digunakan sebagai dasar dalam pembuatan prototype awal.
+3) Quick Design
+Pada tahap quick design, peneliti mulai menyusun rancangan awal sistem yang mencakup perancangan alur proses, struktur sistem, serta gambaran antarmuka pengguna secara sederhana. Rancangan ini bertujuan untuk memberikan visualisasi awal mengenai bagaimana sistem akreditasi akan berjalan, sehingga dapat dievaluasi dan dikembangkan lebih lanjut.
+4) Prototype Construction
+Tahap prototype construction merupakan tahap pembangunan prototype sistem berdasarkan rancangan yang telah dibuat. Pada tahap ini, peneliti mengimplementasikan fungsi utama sistem secara terbatas, seperti pengelolaan dokumen akreditasi, pencatatan proses menggunakan blockchain, serta pemanfaatan Artificial Intelligence untuk mendukung validasi awal dokumen. Prototype ini belum bersifat final, tetapi digunakan sebagai alat evaluasi awal.
+5) Delivery and Feedback
+Tahap delivery and feedback merupakan tahap evaluasi prototype yang telah dikembangkan. Prototype diuji dan dievaluasi untuk menilai kesesuaian fungsi sistem dengan kebutuhan penelitian. Masukan yang diperoleh pada tahap ini digunakan untuk menyempurnakan rancangan sistem sebelum dikembangkan lebih lanjut atau dijadikan dasar dalam analisis hasil penelitian.
+6. Deskripsi Umum Sistem
+6.1 Data Penelitian
+                6.1.1 SOP Akreditasi Konvensional LAM-TEK 2025
+Sebelum diterapkannya sistem akreditasi berbasis blockchain dan Artificial Intelligence, proses akreditasi program studi teknik pada LAM-TEK dilakukan melalui tahapan konvensional yang sebagian besar masih bersifat manual dan terpisah antar sistem. Berdasarkan hasil observasi dan studi literatur, alur standar operasional prosedur (SOP) akreditasi konvensional dapat dijelaskan sebagai berikut:
+1. Unit Pengelola Program Studi (UPPS) menyiapkan dokumen akreditasi berupa Laporan Evaluasi Diri Program Studi (LED-PS) dan Laporan Kinerja Program Studi (LKPS).
+2. UPPS mengunggah dokumen LED-PS dan LKPS ke sistem pengajuan akreditasi yang tersedia.
+3. Sekretariat melakukan pemeriksaan administratif awal terhadap kelengkapan dokumen yang diunggah.
+4. Ketua Evaluasi Akreditasi (KEA) menetapkan dan menugaskan asesor untuk melakukan penilaian dokumen.
+5. Asesor mengunduh dokumen dan melakukan penilaian berdasarkan instrumen akreditasi LAM-TEK.
+6. Hasil penilaian asesor direkap dan diperiksa kembali oleh KEA.
+7. Majelis melakukan rapat penetapan dan menentukan hasil akhir akreditasi program studi.
+Proses akreditasi konvensional tersebut memiliki beberapa kendala utama, antara lain lamanya proses validasi dokumen, keterbatasan pencatatan jejak perubahan dokumen, kurangnya transparansi proses penilaian, serta potensi inkonsistensi penilaian antar asesor. Selain itu, tidak terdapat sistem pendukung yang mampu memberikan rekomendasi asesor secara objektif berdasarkan keahlian dan bidang keilmuan.
+                6.1.2 Model Data
+Dalam proses akreditasi program studi, terdapat beberapa jenis data utama yang digunakan dan dikelola oleh sistem. Model data yang digunakan dalam penelitian ini dapat dilihat pada Tabel 1.
+Tabel 1 Model Data Sistem Akreditasi
+No
+	Jenis Data
+	Media Penyimpanan
+	Keterangan
+	1
+	Data Dokumen Akreditasi (LED-PS, LKPS)
+	IPFS (terenkripsi AES-256-CBC)
+	Digunakan sebagai bahan utama penilaian akreditasi program studi
+	2
+	Metadata Dokumen
+	Blockchain (On-chain)
+	Berisi hash IPFS, hash SHA-256, waktu unggah, dan status proses
+	3
+	Data Pengguna
+	PostgreSQL (Off-chain)
+	Menyimpan data akun UPPS, sekretariat, asesor, dan majelis
+	4
+	Profil Asesor
+	PostgreSQL (Off-chain)
+	Digunakan untuk rekomendasi asesor berdasarkan expertise
+	5
+	Rekomendasi AI
+	Blockchain (On-chain)
+	Berisi hasil analisis AI, skor awal, dan rekomendasi asesor
+	6
+	Hasil Penilaian Asesor
+	Blockchain (On-chain)
+	Menyimpan skor dan catatan penilaian asesor
+	7
+	Keputusan Akhir Akreditasi
+	Blockchain (On-chain)
+	Menyimpan hasil akhir penetapan akreditasi oleh majelis
+	6.2 Arsitektur Sistem
+        Arsitektur sistem akreditasi yang diusulkan dirancang menggunakan pendekatan terdistribusi dengan memanfaatkan teknologi blockchain, Artificial Intelligence, dan penyimpanan terdesentralisasi. Sistem ini dibangun menggunakan platform Hyperledger Fabric sebagai permissioned blockchain yang mendukung pengelolaan organisasi dan hak akses.
+
+
+  
+
+Gambar 3. Arsitektur Sistem
+Secara umum, arsitektur sistem terdiri dari beberapa komponen utama sebagai berikut:
+1. Unit Pengelola Program Studi (UPPS)
+UPPS bertindak sebagai pihak pengaju akreditasi yang bertugas mengunggah dokumen LED-PS dan LKPS serta memberikan persetujuan terhadap penugasan asesor.
+2. Sekretariat 
+Sekretariat berperan dalam melakukan pemeriksaan administratif, validasi awal dokumen, serta pengelolaan aspek administrasi dan keuangan proses akreditasi.
+3. Ketua Evaluasi Akreditasi (KEA)
+KEA bertanggung jawab dalam mengelola proses evaluasi, memilih dan menetapkan asesor dengan mempertimbangkan rekomendasi dari sistem Artificial Intelligence.
+4. Asesor
+Asesor melakukan penilaian dokumen akreditasi secara manual dengan dukungan hasil analisis dan skor awal dari Artificial Intelligence.
+5. Majelis
+Majelis merupakan pihak yang memiliki kewenangan untuk menetapkan keputusan akhir hasil akreditasi program studi.
+6. Blockchain Hyperledger Fabric
+Blockchain digunakan untuk mencatat seluruh proses penting akreditasi secara immutable, termasuk metadata dokumen, rekomendasi AI, penugasan asesor, hasil penilaian, dan keputusan akhir.
+   7. Smart Contract (Chaincode)
+Smart contract yang dikembangkan menggunakan TypeScript berfungsi untuk mengotomasi alur proses akreditasi dan memastikan setiap tahapan berjalan sesuai aturan.
+   8. Artificial Intelligence (Google Gemini)
+AI digunakan untuk menganalisis dokumen akreditasi, menghitung skor awal berdasarkan tujuh kriteria LAM-TEK 2025, serta memberikan rekomendasi asesor berdasarkan bidang keahlian.
+   9. IPFS dan Database
+IPFS digunakan untuk menyimpan dokumen LED-PS dan LKPS dalam bentuk terenkripsi, sedangkan PostgreSQL digunakan untuk menyimpan data off-chain seperti akun pengguna dan profil asesor.
+   7. Review Literatur
+Tabel 2. Review Literatur
+Review Literatur Pertama [3]
+	Judul Artikel
+	Blockchain Challenges and Opportunities: A Survey
+	Penulis
+	Z. Zheng, R. R. Mukkamala, R. Vatrapu, J. Ordieres-Mere
+	Judul Jurnal/Proceeding
+	International Journal of Web and Grid Services
+	Tahun Penerbitan
+	2018
+	Masalah Utama yang diangkat
+	Mengangkat permasalahan mendasar dalam adopsi teknologi blockchain, khususnya terkait keterbatasan skalabilitas, efisiensi transaksi, privasi data, serta tantangan integrasi blockchain dengan sistem informasi yang telah ada. Permasalahan ini menjadi krusial ketika blockchain diterapkan pada sistem yang bersifat kritikal dan melibatkan banyak pihak.
+	Kontribusi Penulis
+	Penulis memberikan survei komprehensif mengenai konsep dasar blockchain, karakteristik utama seperti desentralisasi, imutabilitas, dan transparansi, serta memetakan peluang dan tantangan penerapannya di berbagai domain. Artikel ini juga mengklasifikasikan isu teknis dan non-teknis yang perlu diperhatikan dalam pengembangan sistem berbasis blockchain.
+	Ikhtisar Artikel
+	Artikel ini membahas arsitektur blockchain, mekanisme konsensus, struktur data ledger, serta model deployment blockchain publik dan permissioned. Selain itu, penulis menyoroti berbagai studi kasus penggunaan blockchain dan menganalisis kendala utama yang menghambat adopsi teknologi ini secara luas.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain terbukti mampu meningkatkan integritas dan keterlacakan data. 
+b. Kesimpulan: Teknologi blockchain sangat sesuai untuk sistem yang membutuhkan transparansi dan audit trail. 
+c. Saran: Diperlukan penelitian lanjutan untuk meningkatkan skalabilitas dan efisiensi blockchain.
+	Persamaan dan Perbedaan dengan Penelitian
+	a.Persamaan: Sama-sama memanfaatkan blockchain untuk menjamin integritas dan transparansi data. 
+b. Perbedaan: Artikel ini bersifat survei umum lintas domain, sedangkan penelitian penulis berfokus pada implementasi blockchain dalam sistem akreditasi LAM-TEK yang terintegrasi dengan AI.
+	Komentar
+	-
+	Review Literatur Kedua [5]
+	Judul Artikel
+	A Systematic Literature Review of Blockchain-Based Applications: Current Status, Classification and Open Issues
+	Penulis
+	F. Casino, T. K. Dasaklis, C. Patsakis
+	Judul Jurnal/Proceeding
+	Telematics and Informatics
+	Tahun Penerbitan
+	
+
+
+
+	
+
+2019
+	
+
+	Masalah Utama yang diangkat
+	Kurangnya pemetaan sistematis terhadap aplikasi blockchain di berbagai sektor, termasuk pendidikan, menyebabkan kesulitan dalam memahami pola penerapan, manfaat, dan keterbatasan teknologi blockchain.
+	Kontribusi Penulis
+	Penulis menyusun systematic literature review terhadap ratusan publikasi blockchain dan mengklasifikasikan aplikasi blockchain berdasarkan domain, tujuan, serta teknologi pendukung yang digunakan.
+	Ikhtisar Artikel
+	Artikel ini mengulas perkembangan aplikasi blockchain pada sektor keuangan, kesehatan, pemerintahan, dan pendidikan. Selain itu, dibahas pula isu terbuka seperti interoperabilitas, keamanan, privasi, dan regulasi.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain memiliki potensi besar dalam meningkatkan transparansi dan keamanan sistem. 
+b. Kesimpulan: Adopsi blockchain masih terbatas pada skala kecil. 
+c. Saran: Penelitian perlu difokuskan pada implementasi domain-spesifik.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan blockchain sebagai solusi sistem terdistribusi. 
+b. Perbedaan: Artikel ini bersifat tinjauan umum, sedangkan penelitian penulis mengimplementasikan blockchain secara spesifik pada proses akreditasi dan workflow penilaian.
+	Komentar
+	-
+	Review Literatur Ketiga [12]
+	Judul Artikel
+	EduCTX: A Blockchain-Based Higher Education Credit Platform
+	Penulis
+	M. Turkanović, M. Hölbl, K. Košič, M. Heričko, A. Kamišalić
+	Judul Jurnal/Proceeding
+	IEEE Access
+	Tahun Penerbitan
+	
+
+
+
+	
+
+2018
+	
+
+	Masalah Utama yang diangkat
+	Sistem pencatatan kredit akademik yang bersifat terpusat dan sulit diverifikasi lintas institusi, sehingga rawan manipulasi dan memerlukan proses verifikasi manual yang lama.
+	Kontribusi Penulis
+	Penulis mengusulkan platform EduCTX berbasis blockchain permissioned untuk menyimpan, mentransfer, dan memverifikasi kredit akademik mahasiswa secara aman dan transparan.
+	Ikhtisar Artikel
+	Artikel menjelaskan arsitektur sistem EduCTX, peran smart contract, serta mekanisme pencatatan data akademik dalam blockchain untuk menjamin keaslian dan konsistensi data.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Sistem mampu menjamin keaslian kredit akademik. 
+b. Kesimpulan: Blockchain efektif untuk manajemen data pendidikan. 
+c. Saran: Perlu pengujian lebih lanjut pada skala besar.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama menerapkan blockchain dalam konteks pendidikan tinggi. 
+b. Perbedaan: EduCTX fokus pada kredit mahasiswa, sedangkan penelitian penulis fokus pada proses akreditasi program studi.
+	Komentar
+	-
+	Review Literatur Keempat [15]
+	Judul Artikel
+	Exploring Blockchain Technology and Its Potential Applications for Education
+	Penulis
+	G. Chen, B. Xu, M. Lu, N.-S. Chen
+	Judul Jurnal/Proceeding
+	Smart Learning Environments
+	Tahun Penerbitan
+	
+
+
+
+	2018
+	Masalah Utama yang diangkat
+	Permasalahan utama yang diangkat dalam artikel ini adalah rendahnya tingkat kepercayaan terhadap sistem pendidikan digital yang masih bergantung pada pengelolaan data terpusat. Sistem tersebut dinilai rentan terhadap manipulasi data akademik, sulit diverifikasi lintas institusi, serta membutuhkan proses validasi manual yang memakan waktu.
+	Kontribusi Penulis
+	Penulis mengidentifikasi berbagai potensi penerapan teknologi blockchain dalam sektor pendidikan, termasuk pengelolaan sertifikat akademik, pencatatan hasil evaluasi, serta penyimpanan data institusi pendidikan secara terdesentralisasi dan transparan.
+	Ikhtisar Artikel
+	Artikel ini membahas karakteristik utama blockchain seperti imutabilitas, transparansi, dan desentralisasi, serta menganalisis bagaimana karakteristik tersebut dapat digunakan untuk meningkatkan kepercayaan dan efisiensi dalam sistem pendidikan. Beberapa skenario penerapan blockchain di pendidikan tinggi juga disajikan sebagai landasan konseptual.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain berpotensi meningkatkan keaslian dan keterlacakan data pendidikan.
+b. Kesimpulan: Teknologi blockchain relevan untuk diterapkan pada sistem pendidikan formal.
+c. Saran: Diperlukan implementasi nyata dan studi lanjutan untuk menguji efektivitas blockchain dalam skala besar.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan blockchain dalam konteks pendidikan tinggi.
+b. Perbedaan: Artikel ini tidak mengintegrasikan artificial intelligence dan tidak berfokus pada proses akreditasi program studi.
+	Komentar
+	-
+	Review Literatur Kelima [8]
+	Judul Artikel
+	Educational Data Mining and Learning Analytics for 21st Century Higher Education
+	Penulis
+	H. Aldowah, H. Al-Samarraie, W. M. Fauzy
+	Judul Jurnal/Proceeding
+	Telematics and Informatics
+	Tahun Penerbitan
+	
+
+
+
+	2019
+	Masalah Utama yang diangkat
+	Artikel ini mengangkat permasalahan proses evaluasi dan pengambilan keputusan di pendidikan tinggi yang masih bersifat manual, subjektif, dan kurang berbasis data. Hal tersebut menyebabkan ketidakkonsistenan penilaian dan keterbatasan dalam memanfaatkan data akademik secara optimal.
+	Kontribusi Penulis
+	Kontribusi utama penelitian ini adalah penyajian tinjauan komprehensif mengenai penerapan educational data mining dan learning analytics untuk mendukung evaluasi akademik, prediksi kinerja mahasiswa, serta pengambilan keputusan berbasis data.
+	Ikhtisar Artikel
+	Artikel ini mengulas berbagai teknik artificial intelligence yang digunakan dalam pendidikan, termasuk analisis data akademik, sistem rekomendasi, dan automated assessment. Penulis juga membahas tantangan penerapan AI, seperti isu privasi data dan kebutuhan sumber daya manusia yang kompeten.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: AI mampu meningkatkan objektivitas dan efisiensi proses evaluasi pendidikan.
+b. Kesimpulan: Learning analytics dan AI memiliki peran penting dalam pendidikan tinggi modern.
+c. Saran: Integrasi AI perlu disertai dengan mekanisme transparansi dan pengawasan.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan AI untuk mendukung assessment dan pengambilan keputusan.
+b. Perbedaan: Penelitian ini tidak mengintegrasikan blockchain sebagai mekanisme pencatatan hasil penilaian.
+	Komentar
+	-
+	Review Literatur Keenam [14]
+	Judul Artikel
+	Blockchain for AI: Review and Open Research Challenges
+	Penulis
+	K. Salah, M. H. Rehman, N. Nizamuddin, A. Al-Fuqaha
+	Judul Jurnal/Proceeding
+	IEEE Access
+	Tahun Penerbitan
+	
+
+
+
+	2019
+	Masalah Utama yang diangkat
+	Artikel ini membahas permasalahan kurangnya kepercayaan, transparansi, dan auditability dalam sistem artificial intelligence yang bersifat terpusat. Keluaran AI sering kali sulit diverifikasi dan tidak memiliki jejak audit yang jelas.
+	Kontribusi Penulis
+	Penulis menyajikan tinjauan menyeluruh mengenai integrasi blockchain dan AI sebagai solusi untuk meningkatkan kepercayaan terhadap sistem AI. Blockchain diposisikan sebagai lapisan kepercayaan (trust layer) yang mampu mencatat keluaran AI secara imutabel.
+	Ikhtisar Artikel
+	Artikel ini mengulas berbagai skenario integrasi blockchain–AI, termasuk pencatatan hasil analisis AI, pengelolaan data pelatihan AI, serta optimalisasi blockchain menggunakan AI. Selain itu, penulis mengidentifikasi tantangan penelitian terbuka seperti skalabilitas dan privasi.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Integrasi blockchain dan AI meningkatkan transparansi dan keterlacakan sistem.
+b. Kesimpulan: Blockchain dan AI saling melengkapi dalam membangun sistem yang terpercaya.
+c. Saran: Diperlukan penelitian lanjutan untuk mengatasi isu performa dan privasi.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama mengintegrasikan blockchain dan AI.
+b. Perbedaan: Artikel ini bersifat umum lintas domain, sedangkan penelitian penulis fokus pada sistem akreditasi LAM-TEK 2025.
+	Komentar
+	-
+	Review Literatur Kedelapan [16]
+	Judul Artikel
+	Blockchain-Based Applications in Education: A Systematic Review
+	Penulis
+	A. Alammary, S. Alhazmi, M. Almasri, S. Gillani
+	Judul Jurnal/Proceeding
+	Applied Sciences
+	Tahun Penerbitan
+	2019
+	Masalah Utama yang diangkat
+	Artikel ini membahas kurangnya pemetaan menyeluruh terhadap penerapan teknologi blockchain di sektor pendidikan, yang menyebabkan sulitnya memahami pola penggunaan, manfaat, serta tantangan implementasi blockchain dalam pendidikan formal.
+	Kontribusi Penulis
+	Kontribusi utama penelitian ini adalah penyusunan systematic literature review terhadap berbagai publikasi terkait blockchain di pendidikan. Penulis mengelompokkan aplikasi blockchain berdasarkan tujuan penggunaan, seperti sertifikasi akademik, manajemen data pendidikan, dan sistem evaluasi.
+	Ikhtisar Artikel
+	Artikel ini mengulas tren penelitian blockchain pendidikan, teknologi yang digunakan, serta tantangan utama yang dihadapi, termasuk masalah skalabilitas, integrasi dengan sistem lama, dan penerimaan pengguna.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain berpotensi meningkatkan transparansi dan keamanan data pendidikan.
+b. Kesimpulan: Adopsi blockchain di pendidikan masih berada pada tahap awal.
+c. Saran: Penelitian selanjutnya perlu difokuskan pada implementasi sistem nyata dan evaluasi kinerjanya.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan blockchain untuk meningkatkan kepercayaan sistem pendidikan.
+b. Perbedaan: Artikel ini tidak mengintegrasikan artificial intelligence dalam proses evaluasi.
+	Komentar
+	-
+	Review Literatur Kesembilan [17]
+	Judul Artikel
+	Blockchain in Education Management: Present and Future Applications
+	Penulis
+	P. Bhaskar, C. K. Tiwari, A. Joshi
+	Judul Jurnal/Proceeding
+	Interactive Technology and Smart Education
+	Tahun Penerbitan
+	
+
+
+
+	2020
+	Masalah Utama yang diangkat
+	Artikel ini mengangkat permasalahan pengelolaan administrasi pendidikan yang masih manual, tidak terintegrasi, dan rentan terhadap inkonsistensi data. Sistem manajemen pendidikan tradisional dinilai belum mampu menjamin transparansi dan keamanan data akademik.
+	Kontribusi Penulis
+	Penulis membahas penerapan blockchain dalam manajemen pendidikan, termasuk pengelolaan data mahasiswa, sertifikat, serta proses administrasi institusi pendidikan. Artikel ini juga mengkaji potensi penggunaan blockchain di masa depan untuk tata kelola pendidikan terdesentralisasi.
+	Ikhtisar Artikel
+	Penelitian ini memberikan gambaran mengenai bagaimana blockchain dapat meningkatkan efisiensi administrasi pendidikan serta mengurangi ketergantungan pada pihak ketiga. Selain itu, tantangan implementasi seperti kesiapan infrastruktur dan regulasi juga dibahas.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain mampu meningkatkan keamanan dan efisiensi pengelolaan data pendidikan.
+b. Kesimpulan: Blockchain berpotensi besar untuk transformasi manajemen pendidikan.
+c. Saran: Diperlukan dukungan kebijakan dan kesiapan institusi.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama menggunakan blockchain di sektor pendidikan tinggi.
+b. Perbedaan: Artikel ini tidak membahas automated assessment berbasis AI.
+	Komentar
+	-
+	Review Literatur Kesepuluh [18]
+	Judul Artikel
+	Current Status, Issues, and Challenges of Blockchain Applications in Education
+	Penulis
+	Y. Ma, Y. Fang
+	Judul Jurnal/Proceeding
+	International Journal of Emerging Technologies in Learning
+	Tahun Penerbitan
+	
+
+
+
+	2020
+	Masalah Utama yang diangkat
+	Artikel ini membahas kondisi terkini penerapan blockchain dalam pendidikan serta mengidentifikasi berbagai permasalahan dan tantangan yang masih dihadapi. Penulis menyoroti bahwa sebagian besar implementasi blockchain pendidikan masih bersifat eksperimental.
+	Kontribusi Penulis
+	Kontribusi utama penelitian ini adalah pemetaan status penerapan blockchain di pendidikan, termasuk identifikasi isu teknis seperti skalabilitas dan keamanan, serta isu non-teknis seperti kurangnya pemahaman dan dukungan kebijakan.
+	Ikhtisar Artikel
+	Artikel ini mengulas berbagai studi kasus penerapan blockchain dalam pendidikan dan menilai tingkat kesiapan teknologi tersebut untuk diadopsi secara luas.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain memiliki potensi besar namun belum matang secara implementasi.
+b. Kesimpulan: Diperlukan pendekatan bertahap dalam adopsi blockchain pendidikan.
+c. Saran: Fokus pada pengembangan use-case yang jelas dan terukur.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama meneliti penerapan blockchain dalam pendidikan.
+b. Perbedaan: Penelitian ini tidak mengintegrasikan AI untuk proses penilaian.
+	Komentar
+	-
+	Review Literatur Kesebelas [19]
+	Judul Artikel
+	Blockchain in Education: Opportunities, Applications, and Challenges
+	Penulis
+	M.-F. Steiu
+	Judul Jurnal/Proceeding
+	First Monday
+	Tahun Penerbitan
+	
+
+
+
+	2020
+	Masalah Utama yang diangkat
+	Artikel ini mengangkat peluang dan tantangan penerapan teknologi blockchain dalam sektor pendidikan, khususnya dalam meningkatkan transparansi, keamanan, dan kepercayaan terhadap sistem pendidikan digital. Penulis menyoroti bahwa sistem pendidikan tradisional masih menghadapi permasalahan terkait keaslian sertifikat, validitas data akademik, serta keterbatasan mekanisme audit.
+	Kontribusi Penulis
+	Kontribusi utama artikel ini adalah pemetaan berbagai peluang penggunaan blockchain di pendidikan, seperti verifikasi sertifikat akademik, pencatatan hasil pembelajaran, serta sistem pembelajaran terdesentralisasi. Penulis juga membahas tantangan implementasi, termasuk kesiapan institusi, regulasi, dan adopsi teknologi oleh pemangku kepentingan.
+	Ikhtisar Artikel
+	Artikel ini menyajikan analisis konseptual mengenai bagaimana blockchain dapat mengubah proses pendidikan menjadi lebih transparan dan akuntabel. Selain itu, dibahas pula risiko dan keterbatasan yang perlu diperhatikan sebelum mengadopsi teknologi ini secara luas.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain berpotensi meningkatkan transparansi dan kepercayaan dalam pendidikan.
+b. Kesimpulan: Teknologi blockchain menjanjikan, namun implementasinya memerlukan perencanaan matang.
+c. Saran: Diperlukan kerangka kebijakan dan regulasi yang mendukung adopsi blockchain di pendidikan.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan blockchain untuk meningkatkan akuntabilitas sistem pendidikan.
+b. Perbedaan: Artikel ini tidak mengintegrasikan artificial intelligence dalam proses evaluasi.
+	Komentar
+	-
+	Review Literatur Keduabelas [20]
+	Judul Artikel
+	Promises and Challenges of Blockchain in Education
+	Penulis
+	J. Park
+	Judul Jurnal/Proceeding
+	Smart Learning Environments
+	Tahun Penerbitan
+	
+
+
+
+	2021
+	Masalah Utama yang diangkat
+	Artikel ini membahas janji dan tantangan penerapan blockchain dalam pendidikan, dengan fokus pada transformasi sistem pengelolaan data akademik. Penulis menyoroti bahwa meskipun blockchain menawarkan transparansi dan keamanan, terdapat hambatan teknis dan organisasional yang perlu diatasi.
+	Kontribusi Penulis
+	Kontribusi penelitian ini terletak pada analisis kritis terhadap potensi blockchain untuk mendukung sistem pendidikan yang lebih terbuka dan terpercaya. Artikel ini mengkaji berbagai skenario penggunaan blockchain serta hambatan implementasinya.
+	Ikhtisar Artikel
+	Artikel ini juga menyoroti perlunya perubahan paradigma dalam tata kelola pendidikan agar teknologi blockchain dapat diterapkan secara efektif. Selain itu, dibahas pula isu integrasi dengan sistem yang telah ada.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain mampu meningkatkan keaslian dan transparansi data pendidikan.
+b. Kesimpulan: Implementasi blockchain memerlukan kesiapan teknis dan institusional.
+c. Saran: Diperlukan strategi adopsi bertahap dan evaluasi berkelanjutan.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama meneliti penerapan blockchain di pendidikan tinggi.
+b. Perbedaan: Artikel ini tidak membahas automated assessment berbasis AI.
+	Komentar
+	-
+	Review Literatur Ketigabelas [21]
+	Judul Artikel
+	Blockchain Technology Enhances Sustainable Higher Education
+	Penulis
+	R. Bucea-Manea-Țoniș, O. M. D. Martins, C. Gheorghită, V. Kuleto, M. P. Ilić, V. E. Simion
+	Judul Jurnal/Proceeding
+	Sustainability
+	Tahun Penerbitan
+	
+
+
+
+	2021
+	Masalah Utama yang diangkat
+	Artikel ini mengangkat permasalahan keberlanjutan dalam pendidikan tinggi, termasuk efisiensi pengelolaan data akademik dan kepercayaan terhadap kredensial pendidikan. Penulis menilai bahwa sistem pendidikan tradisional belum sepenuhnya mendukung praktik pendidikan berkelanjutan.
+	Kontribusi Penulis
+	Kontribusi penelitian ini adalah analisis peran blockchain dalam mendukung pendidikan tinggi berkelanjutan, khususnya melalui pengelolaan kredensial digital dan micro-credential yang aman dan transparan.
+	Ikhtisar Artikel
+	Artikel ini mengkaji bagaimana blockchain dapat mendukung pembelajaran sepanjang hayat dan meningkatkan inklusivitas pendidikan. Selain itu, dibahas tantangan adopsi teknologi dari perspektif teknis dan sosial.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain mendukung pengelolaan kredensial pendidikan yang berkelanjutan.
+b. Kesimpulan: Blockchain relevan untuk mendukung transformasi pendidikan tinggi.
+c. Saran: Diperlukan kolaborasi antar pemangku kepentingan untuk implementasi efektif.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama menggunakan blockchain dalam konteks pendidikan tinggi.
+b. Perbedaan: Penelitian ini tidak mengintegrasikan AI untuk proses penilaian akreditasi.
+	Komentar
+	-
+	Review Literatur Keempat belas [22]
+	Judul Artikel
+	Blockchain Applications in Education: A Systematic Literature Review
+	Penulis
+	C. Delgado-von-Eitzen, L. Anido-Rifón, M. J. Fernández-Iglesias
+	Judul Jurnal/Proceeding
+	Applied Sciences
+	Tahun Penerbitan
+	
+
+
+
+	2021
+	Masalah Utama yang diangkat
+	Artikel ini membahas berbagai aplikasi blockchain dalam pendidikan melalui pendekatan systematic literature review. Permasalahan utama yang diangkat adalah kurangnya konsistensi dan standar dalam penerapan blockchain pendidikan.
+	Kontribusi Penulis
+	Kontribusi utama penelitian ini adalah penyusunan tinjauan sistematis yang mengelompokkan penelitian blockchain pendidikan berdasarkan tujuan dan pendekatan teknis. Artikel ini juga mengidentifikasi celah penelitian yang masih terbuka.
+	Ikhtisar Artikel
+	Artikel ini mengulas penggunaan blockchain untuk sertifikat, evaluasi akademik, serta manajemen institusi pendidikan. Tantangan seperti interoperabilitas dan privasi juga dibahas secara mendalam.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain berpotensi meningkatkan keamanan dan transparansi sistem pendidikan.
+b. Kesimpulan: Penelitian blockchain pendidikan masih berkembang.
+c. Saran: Penelitian selanjutnya perlu fokus pada evaluasi kinerja sistem.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama memanfaatkan blockchain untuk pendidikan tinggi.
+b. Perbedaan: Artikel ini tidak mengintegrasikan AI dalam workflow penilaian.
+	Komentar
+	-
+	Review Literatur Kelima belas [23]
+	Judul Artikel
+	Blockchain System in the Higher Education
+	Penulis
+	R. Raimundo, A. Rosário
+	Judul Jurnal/Proceeding
+	European Journal of Investigation in Health, Psychology and Education
+	Tahun Penerbitan
+	
+
+
+
+	2021
+	Masalah Utama yang diangkat
+	Artikel ini mengangkat permasalahan keaslian dan verifikasi dokumen akademik di pendidikan tinggi. Sistem tradisional dinilai tidak efisien dan memerlukan proses verifikasi manual yang panjang.
+	Kontribusi Penulis
+	Penulis mengusulkan sistem berbasis blockchain untuk mengelola dan memverifikasi dokumen akademik seperti ijazah dan transkrip nilai. Artikel ini menjelaskan desain sistem serta manfaat yang diperoleh dari penggunaan blockchain.
+	Ikhtisar Artikel
+	Artikel ini juga membahas tantangan implementasi, termasuk kebutuhan pelatihan sumber daya manusia dan integrasi dengan sistem yang sudah ada.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain meningkatkan keandalan dan efisiensi verifikasi dokumen akademik.
+b. Kesimpulan: Sistem berbasis blockchain cocok untuk pendidikan tinggi.
+c. Saran: Diperlukan studi lanjutan untuk implementasi berskala besar.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Sama-sama menerapkan blockchain dalam pendidikan tinggi.
+b. Perbedaan: Penelitian ini tidak melibatkan AI untuk assessment otomatis.
+	Komentar
+	-
+	Review Literatur Keenam belas [24]
+	Judul Artikel
+	Blockchain-based framework and platform for validation, authentication & equivalency of academic certification and institution’s accreditation: UAE case study and system performance
+	Penulis
+	M. Al Hemairy, M. Abu Talib, A. Khalil, A. Zulfiqar, T. Mohamed
+	Judul Jurnal/Proceeding
+	Education and Information Technologies
+	Tahun Penerbitan
+	
+
+
+
+	2024
+	Masalah Utama yang diangkat
+	Proses penyetaraan (equivalency) ijazah dan validasi akreditasi institusi di tingkat nasional (studi kasus Uni Emirat Arab) yang birokratis, lambat, dan rentan terhadap ijazah dari "diploma mills" (universitas palsu).
+	Kontribusi Penulis
+	Kontribusi utama penelitian ini adalah penyusunan tinjauan sistematis yang mengelompokkan penelitian blockchain pendidikan berdasarkan tujuan dan pendekatan teknis. Artikel ini juga mengidentifikasi celah penelitian yang masih terbuka.
+	Ikhtisar Artikel
+	Artikel ini merancang sistem berbasis Ethereum dimana Kementerian Pendidikan bertindak sebagai node otoritas yang menandatangani status akreditasi universitas di blockchain sebelum universitas dapat menerbitkan sertifikat. Ini menggabungkan verifikasi identitas mahasiswa, penerbitan kampus, dan pengesahan kementerian dalam satu alur kerja smart contract.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Sistem berhasil memangkas waktu verifikasi penyetaraan dari mingguan menjadi instan dengan keamanan kriptografi ECDSA.
+b. Kesimpulan: Keterlibatan regulator (pemerintah) dalam blockchain sangat krusial untuk legitimasi sistem nasional.
+c. Saran: Disarankan integrasi masa depan dengan Machine Learning untuk memprediksi tren kebutuhan pendidikan nasional.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Membahas validasi dan akreditasi dalam lingkup pendidikan tinggi.
+b. Perbedaan: Penelitian ini sangat menekankan pada peran regulator pemerintah (Kementerian) dan proses penyetaraan ijazah asing/swasta, bukan sekadar penerbitan ijazah internal kampus.
+	Komentar
+	-
+	Review Literatur Ketujuh belas [25]
+	Judul Artikel
+	Application and Evaluation of a Blockchain-Centric Platform for Smart Badge Accreditation in Higher Education Institutions
+	Penulis
+	C. Kontzinos, E. Karakolis, P. Kokkinakos, S. Skalidakis, D. Askounis, J. Psarras
+	Judul Jurnal/Proceeding
+	Applied Sciences
+	Tahun Penerbitan
+	
+
+
+
+	2021
+	Masalah Utama yang diangkat
+	Kesenjangan antara ijazah sarjana tradisional dengan kebutuhan pasar kerja akan keahlian spesifik (skills), serta sulitnya memverifikasi kompetensi lunak (soft skills) dan pencapaian mikro secara terpercaya.
+	Kontribusi Penulis
+	Mengimplementasikan platform "QualiChain" yang menerbitkan Smart Badges (lencana pintar) untuk memvalidasi kompetensi mikro secara granular, termasuk fitur validasi sejawat (peer-review) untuk soft skills.
+	Ikhtisar Artikel
+	Studi ini melakukan evaluasi pilot di National Technical University of Athens. Sistem menyimpan data pribadi secara off-chain untuk mematuhi GDPR, sementara hash lencana disimpan di blockchain. Fitur utamanya adalah dosen dapat membuat lencana untuk keahlian spesifik (misal: Python, Leadership) yang tidak tercantum detail di transkrip nilai biasa.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: 90% profesor yang terlibat menyatakan sistem ini integral untuk masa depan universitas.
+b. Kesimpulan: Blockchain efektif untuk micro-accreditation dan meningkatkan motivasi mahasiswa melalui gamifikasi lencana.
+c. Saran: Diperlukan mekanisme filter untuk membedakan bobot lencana yang diberikan oleh dosen versus lencana dari rekan sejawat.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Menggunakan blockchain untuk pencatatan prestasi akademik.
+b. Perbedaan: Fokus artikel ini adalah pada Micro-credentials dan Smart Badges (kompetensi kecil), sedangkan penelitian penulis mungkin lebih fokus pada akreditasi program studi atau ijazah penuh.
+	Komentar
+	-
+	Review Literatur Kedelapan belas [26]
+	Judul Artikel
+	A Zero-Knowledge Proof-Enabled Blockchain-Based Academic Record Verification System
+	Penulis
+	J. A. Berrios Moya, J. Ayoade, M. A. Uddin
+	Judul Jurnal/Proceeding
+	Sensors
+	Tahun Penerbitan
+	
+
+
+
+	2025
+	Masalah Utama yang diangkat
+	Dilema privasi dalam sistem blockchain transparan: bagaimana membuktikan keaslian nilai akademik atau kelulusan tanpa mengungkapkan data sensitif (seperti nilai transkrip detail atau IPK persis) kepada publik/verifikator.
+	Kontribusi Penulis
+	Sistem ini menggunakan arsitektur rantai ganda (dual-chain): rantai privat untuk data terenkripsi dan rantai publik untuk bukti verifikasi. Mahasiswa dapat membuktikan klaim (misal: "IPK saya di atas 3.0") kepada perusahaan tanpa perusahaan melihat angka IPK aslinya, menjaga privasi penuh namun tetap terverifikasi (trustless).
+	Ikhtisar Artikel
+	Artikel ini mengulas penggunaan blockchain untuk sertifikat, evaluasi akademik, serta manajemen institusi pendidikan. Tantangan seperti interoperabilitas dan privasi juga dibahas secara mendalam.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Sistem mampu memberikan privasi absolut bagi mahasiswa sambil mencegah pemalsuan.
+b. Kesimpulan: zk-SNARKs adalah solusi vital untuk adopsi blockchain di pendidikan yang sensitif terhadap regulasi data pribadi.
+c. Saran: Perlu pengujian skalabilitas lebih lanjut pada jaringan mainnet dengan volume transaksi tinggi.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Fokus pada verifikasi rekaman akademik. 
+b. Perbedaan: Penelitian ini memiliki fokus teknis yang berat pada aspek Privasi (Privacy-Preserving) menggunakan Zero-Knowledge Proofs, berbeda dengan sistem verifikasi standar yang biasanya terbuka.
+	Komentar
+	-
+	Review Literatur Kesembilan belas [27]
+	Judul Artikel
+	A Blockchain-Based Solution for Diploma Management in Universities
+	Penulis
+	M. Caramihai, I. Severin
+	Judul Jurnal/Proceeding
+	Sustainability
+	Tahun Penerbitan
+	
+
+
+
+	2023
+	Masalah Utama yang diangkat
+	Masalah keberlanjutan (sustainability) dalam manajemen diploma fisik yang boros sumber daya (kertas, logistik, arsip), serta resistensi budaya staf administrasi universitas terhadap adopsi teknologi baru.
+	Kontribusi Penulis
+	Menganalisis dampak blockchain terhadap efisiensi ekologis manajemen diploma dan mengidentifikasi hambatan "humanware" (sumber daya manusia) dalam implementasinya melalui survei dan model pilot.
+	Ikhtisar Artikel
+	Artikel ini menyajikan model manajemen diploma terdesentralisasi yang terintegrasi dengan dompet Web3 (MetaMask). Selain aspek teknis, penulis meneliti kesiapan institusi dan menemukan bahwa hambatan terbesar bukan pada teknologi, melainkan ketakutan staf akan otomatisasi pekerjaan.
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Blockchain secara signifikan mengurangi jejak karbon universitas terkait penerbitan dokumen.
+b. Kesimpulan: Implementasi teknis harus dibarengi dengan manajemen perubahan budaya di institusi.
+c. Saran: Pembentukan "Innovation Hubs" di kampus untuk melatih staf dan memfasilitasi transisi digital.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Penerapan blockchain untuk manajemen ijazah/diploma.
+b. Perbedaan: Artikel ini menyoroti aspek Keberlanjutan Lingkungan dan Resistensi SDM, sedangkan penelitian lain biasanya murni membahas arsitektur keamanan atau performa sistem.
+	Komentar
+	-
+	Review Literatur Kedua Puluh [28]
+	Judul Artikel
+	Blockchain-based decentralised micro-accreditation for lifelong learning
+	Penulis
+	A. Mikroyannidis, A. Third, J. Domingue
+	Judul Jurnal/Proceeding
+	Interactive Learning Environments
+	Tahun Penerbitan
+	
+
+
+
+	2024
+	Masalah Utama yang diangkat
+	Fragmentasi data pendidikan dalam konteks pembelajaran sepanjang hayat (lifelong learning). Sertifikat dari berbagai sumber (kursus online, universitas, bootcamp) sulit digabungkan dan tidak memiliki standar interoperabilitas.
+	Kontribusi Penulis
+	Menggabungkan teknologi Blockchain dengan Semantic Web (Linked Data) melalui pendekatan "LinkChains MerQL" untuk menciptakan portofolio kompetensi yang dapat ditumpuk (stackable) dan dapat dibaca mesin secara universal.
+	Ikhtisar Artikel
+	Penelitian ini memperkenalkan cara agar sertifikat mikro dari berbagai institusi yang berbeda dapat "berbicara" satu sama lain. Menggunakan Linked Data, sistem tidak hanya menyimpan hash, tetapi juga makna semantik dari kompetensi tersebut (misal: memahami bahwa "Machine Learning" adalah sub-skill dari "AI").
+	Hasil Penelitian, Kesimpulan dan Saran
+	a. Hasil Penelitian: Model ini memfasilitasi mobilitas pembelajar global dan jalur karir yang fleksibel.
+b. Kesimpulan: Standarisasi data semantik mutlak diperlukan agar blockchain pendidikan bisa berskala global.
+c. Saran: Diperlukan adopsi standar metadata yang lebih luas oleh penyedia pendidikan non-formal.
+	Persamaan dan Perbedaan dengan Penelitian
+	a. Persamaan: Desentralisasi data pendidikan.
+b. Perbedaan: Fokus pada interoperabilitas data menggunakan Semantic Web dan Linked Data untuk mendukung pembelajaran seumur hidup, bukan hanya verifikasi ijazah akhir studi.
+	Komentar
+	-
+	
+
+
+
+   8. Jadwal Dan Tempat Penelitian
+Tabel 3. Jadwal Dan Tempat Penelitian
+Kegiatan
+	Dec
+	Jan
+	Feb
+	Mar
+	Apr
+	May
+	2
+	3
+	4
+	1
+	2
+	3
+	4
+	1
+	2
+	4
+	1
+	2
+	3
+	4
+	1
+	2
+	3
+	4
+	1
+	2
+	3
+	4
+	Proposal
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	Bimbingan
+	Bab 1-2
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	Bab 3-4
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	Bab 5
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	Pembangunan Aplikasi
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	
+
+	
+
+   9. Sistematika Penulisan
+Sistematika penulisan ini disusun agar penulisan penelitian ini dapat tersusun dengan lebih baik dan untuk memberikan gambaran secara umum tentang permasalahan yang akan diteliti oleh peneliti. Maka, sistematika penulisan sebagai berikut :
+BAB 1 PENDAHULUAN 
+Bab ini berisi mengenai latar belakang, rumusan masalah, maksud dan tujuan, batasan masalah, metode penelitian, tahap pengumpulan data, model pengembangan perangkat lunak serta sistematika penulisan. 
+BAB 2 TINJAUAN PUSTAKA 
+Bab ini berisi mengenai bahasan konsep dasar dan teori pendukung yang berhubungan dengan pembangunan sistem. 
+
+
+
+
+BAB 3 ANALISIS DAN PERANCANGAN SISTEM 
+Bab ini diisi dengan bahasan mengenai deskripsi sistem, analisis kebutuhan dalam pembangunan sistem, serta perancangan sistem. 
+BAB 4 IMPLEMENTASI DAN PENGUJIAN SISTEM        
+Bab ini diisi dengan hasil implementasi analisis serta perancangan sistem yang dilakukan pada bab 3. Selain itu, diisi dengan hasil pengujian sistem untuk mengetahui kelayakan sistem yang dibangun. 
+BAB 5 KESIMPULAN DAN SARAN 
+Bab ini berisi kesimpulan yang diperoleh dari hasil pengujian sistem serta saran untuk pengembangan sistem yang telah dilakukan
+
+
+
+
+
+
+
+
+   10. Daftar Pustaka
+[1]        LAM-TEK, “Instrumen Akreditasi LAM-TEK 2025 - 7 Kriteria,” 2025, Lembaga Akreditasi Mandiri Teknik, Jakarta, Indonesia.
+[2]        A. Grech and A. F. Camilleri, “Blockchain in Education,” Publications Office of the European Union, Luxembourg, 2017.
+[3]        Z. Zheng and  et al., “Blockchain challenges and opportunities: A survey,” Int. J. Web Grid Serv., vol. 14, no. 4, pp. 352–375, 2018.
+[4]        E. Androulaki and  et al., “Hyperledger Fabric: A Distributed Operating System for Permissioned Blockchains,” in Proceedings of the 13th EuroSys Conference, Porto, Portugal, 2018.
+[5]        F. Casino, T. K. Dasaklis, and C. Patsakis, “A systematic literature review of blockchain-based applications: Current status, classification and open issues,” Telemat. Informatics, vol. 36, pp. 55–81, 2019.
+[6]        I. Goodfellow, Y. Bengio, and A. Courville, Deep Learning. Cambridge, MA, USA: MIT Press, 2016.
+[7]        D. Jurafsky and J. H. Martin, Speech and Language Processing, 3rd ed. Stanford, CA, USA: Stanford University, 2023.
+[8]        H. Aldowah, H. Al-Samarraie, and W. M. Fauzy, “Educational data mining and learning analytics for 21st century higher education: A review and synthesis,” Telemat. Informatics, vol. 37, pp. 13–49, 2019.
+[9]        J. Benet, “IPFS - Content Addressed, Versioned, P2P File System,” arXiv, 2014.
+[10]        N. I. of S. and Technology, “Advanced Encryption Standard (AES),” 2001, Federal Information Processing Standards Publication 197, Gaithersburg, MD, USA.
+[11]        G. DeepMind, “Gemini: A family of highly capable multimodal models,” 2024, Google Technical Report. [Online]. Available: https://deepmind.google/technologies/gemini/
+[12]        M. Turkanović, M. Hölbl, K. Košič, M. Heričko, and A. Kamišalić, “EduCTX: A Blockchain-Based Higher Education Credit Platform,” IEEE Access, vol. 6, pp. 5112–5127, 2018.
+[13]        Q. Sun, K. Xia, and J. Zhang, “Application of blockchain and artificial intelligence in education,” in Proc. 2020 Int. Conf. on Artificial Intelligence and Education (ICAIE), Tianjin, China, 2020, pp. 151–155.
+[14]        K. Salah, M. H. Rehman, N. Nizamuddin, and A. Al-Fuqaha, “Blockchain for AI: Review and Open Research Challenges,” IEEE Access, vol. 7, pp. 10127–10149, 2019.
+[15]        G. Chen, B. Xu, M. Lu, and N. Chen, “Exploring blockchain technology and its potential applications for education,” Smart Learn. Environ., vol. 5, no. 1, pp. 1–10, 2018.
+[16]        A. Alammary, S. Alhazmi, M. Almasri, and S. Gillani, “Blockchain-Based Applications in Education: A Systematic Review,” Appl. Sci., vol. 9, no. 12, p. 2400, 2019.
+[17]        P. Bhaskar, C. K. Tiwari, and A. Joshi, “Blockchain in Education Management: Present and Future Applications,” Interact. Technol. Smart Educ., vol. 18, no. 1, pp. 1–17, 2020, doi: 10.1108/ITSE-07-2020-0102.
+[18]        Y. Ma and Y. Fang, “Current Status, Issues, and Challenges of Blockchain Applications in Education,” Int. J. Emerg. Technol. Learn., vol. 15, no. 12, pp. 20–31, 2020, doi: 10.3991/ijet.v15i12.13875.
+[19]        M.-F. Steiu, “Blockchain in education: Opportunities, applications, and challenges,” First Monday, vol. 25, no. 9, 2020, doi: 10.5210/fm.v25i9.10654.
+[20]        J. Park, “Promises and challenges of Blockchain in education,” Smart Learn. Environ., vol. 8, no. 1, p. 33, 2021, doi: 10.1186/s40561-021-00179-2.
+[21]        R. Bucea-Manea-Țoniș, O. M. D. Martins, C. Gheorghită, V. Kuleto, M. P. Ilić, and V.-E. Simion, “Blockchain Technology Enhances Sustainable Higher Education,” Sustainability, vol. 13, no. 22, p. 12347, 2021, doi: 10.3390/su132212347.
+[22]        C. Delgado-von-Eitzen, L. Anido-Rifón, and M. J. Fernández-Iglesias, “Blockchain Applications in Education: A Systematic Literature Review,” Appl. Sci., vol. 11, no. 24, p. 11811, 2021, doi: 10.3390/app112411811.
+[23]        R. Raimundo and A. Rosário, “Blockchain System in the Higher Education,” Eur. J. Investig. Heal. Psychol. Educ., vol. 11, no. 1, pp. 276–293, 2021, doi: 10.3390/ejihpe11010021.
+[24]        M. Al Hemairy, M. Abu Talib, A. Khalil, A. Zulfiqar, and T. Mohamed, “Blockchain-based framework and platform for validation, authentication & equivalency of academic certification and institution’s accreditation: UAE case study and system performance,” Educ. Inf. Technol., vol. 29, no. 14, pp. 18203–18232, 2024, doi: 10.1007/s10639-024-12493-6.
+[25]        C. Kontzinos, E. Karakolis, P. Kokkinakos, S. Skalidakis, D. Askounis, and J. Psarras, “Application and Evaluation of a Blockchain-Centric Platform for Smart Badge Accreditation in Higher Education Institutions,” Appl. Sci., vol. 14, no. 12, 2024, doi: 10.3390/app14125191.
+[26]        J. A. Berrios Moya, J. Ayoade, and M. A. Uddin, “A Zero-Knowledge Proof-Enabled Blockchain-Based Academic Record Verification System,” Sensors, vol. 25, no. 11, 2025, doi: 10.3390/s25113450.
+[27]        M. Caramihai and I. Severin, “A Blockchain-Based Solution for Diploma Management in Universities,” Sustainability, vol. 15, no. 20, 2023, doi: 10.3390/su152015169.
+[28]        A. Mikroyannidis, A. Third, and J. Domingue, “Blockchain-based decentralised micro-accreditation for lifelong learning,” Interact. Learn. Environ., pp. 1–15, 2024, doi: 10.1080/10494820.2024.2401485.
