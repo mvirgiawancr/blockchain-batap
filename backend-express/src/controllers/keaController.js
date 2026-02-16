@@ -340,3 +340,99 @@ exports.getConsistencyDetail = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get pending UPPS rejections that need KEA review
+ * GET /api/v1/kea/pending-rejections
+ */
+exports.getPendingRejections = async (req, res) => {
+  try {
+    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    
+    // Filter for submissions where UPPS rejected the offer and KEA review is pending
+    const pendingRejections = submissions.filter(s => 
+      s.currentOffer && 
+      s.currentOffer.status === 'pending_kea_review' &&
+      s.currentOffer.keaReviewStatus === 'pending'
+    ).map(s => ({
+      submissionId: s.submissionId,
+      programStudi: s.programStudi,
+      institusi: s.institusi,
+      assessor1Name: s.currentOffer.assessor1Name,
+      assessor2Name: s.currentOffer.assessor2Name,
+      rejectionReason: s.currentOffer.rejectionReason,
+      uppsNotes: s.currentOffer.uppsNotes,
+      uppsResponseAt: s.currentOffer.uppsResponseAt,
+      offeredAt: s.currentOffer.offeredAt
+    }));
+
+    logger.info(`Retrieved ${pendingRejections.length} pending rejections for KEA review`);
+    res.json({
+      success: true,
+      count: pendingRejections.length,
+      data: pendingRejections
+    });
+  } catch (error) {
+    logger.error('Error getting pending rejections:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve pending rejections',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * KEA reviews UPPS rejection reason
+ * POST /api/v1/kea/review-rejection/:submissionId
+ * Body: { decision: 'reason_accepted' | 'reason_rejected', notes?: string }
+ */
+exports.reviewRejection = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const { decision, notes } = req.body;
+
+    if (!decision || !['reason_accepted', 'reason_rejected'].includes(decision)) {
+      return res.status(400).json({ 
+        error: 'Invalid decision. Must be "reason_accepted" or "reason_rejected"' 
+      });
+    }
+
+    const result = await fabricService.keaReviewRejection(
+      submissionId,
+      decision,
+      notes || '',
+      req.user.username,
+      { mspOrg: req.user.msp_org }
+    );
+
+    // Create notification for UPPS
+    const submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user.msp_org });
+    if (submission && submission.submittedBy) {
+      const message = decision === 'reason_accepted'
+        ? `Alasan penolakan asesor untuk ${submission.programStudi} diterima. Asesor baru akan ditugaskan.`
+        : `Alasan penolakan asesor untuk ${submission.programStudi} ditolak. Asesor telah ditugaskan.`;
+      
+      notificationController.createNotification(
+        submission.submittedBy,
+        'Hasil Review KEA',
+        message,
+        decision === 'reason_accepted' ? 'info' : 'warning'
+      );
+    }
+
+    logger.info(`KEA reviewed rejection for ${submissionId}: ${decision}`);
+    res.json({ 
+      success: true, 
+      message: decision === 'reason_accepted' 
+        ? 'Alasan diterima. Silakan tugaskan asesor baru.'
+        : 'Alasan ditolak. Asesor telah ditugaskan secara paksa.',
+      result 
+    });
+  } catch (error) {
+    logger.error('Error reviewing rejection:', error);
+    res.status(500).json({
+      error: 'Failed to review rejection',
+      message: error.message
+    });
+  }
+};

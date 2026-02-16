@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 const { query } = require('../config/database');
 
 const SALT_ROUNDS = 10;
@@ -304,7 +305,8 @@ class AuthService {
         userId: user.id,
         username: user.username,
         role: user.role,
-        mspOrg: user.msp_org
+        mspOrg: user.msp_org,
+        jti: uuidv4() // Unique identifier to prevent collisions
       },
       JWT_SECRET,
       { expiresIn }

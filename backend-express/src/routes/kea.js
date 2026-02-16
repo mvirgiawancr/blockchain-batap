@@ -29,4 +29,10 @@ router.get('/consistency/:submissionId/detail', authenticate, authorize(['kea', 
 // Set consistency check result
 router.post('/consistency/:submissionId', authenticate, authorize(['kea', 'admin']), keaController.setConsistency);
 
+// Get pending UPPS rejections that need KEA review
+router.get('/pending-rejections', authenticate, authorize(['kea', 'admin']), keaController.getPendingRejections);
+
+// KEA reviews UPPS rejection reason
+router.post('/review-rejection/:submissionId', authenticate, authorize(['kea', 'admin']), keaController.reviewRejection);
+
 module.exports = router;

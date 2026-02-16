@@ -14,6 +14,9 @@ export default function UPPSAssignmentsPage({ user }) {
   const [submitting, setSubmitting] = useState(false);
   // Result Modal state
   const [resultModal, setResultModal] = useState({ isOpen: false, type: 'success', title: '', message: '' });
+  // Rejection Modal state
+  const [rejectModal, setRejectModal] = useState({ isOpen: false, submissionId: null, programStudi: '' });
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     loadAssignments();
@@ -37,13 +40,22 @@ export default function UPPSAssignmentsPage({ user }) {
         // Filter for submissions with offers
         const offers = data.filter(s => s.currentOffer || s.assignedAssessors).map(s => {
           let status = 'pending';
+          let assessor1Status = s.currentOffer?.assessor1Response || 'pending';
+          let assessor2Status = s.currentOffer?.assessor2Response || 'pending';
+          
           if (s.assignedAssessors) {
             status = 'approved';
           } else if (s.currentOffer) {
-            if (s.currentOffer.uppsResponse === 'pending') {
-              status = 'pending_approval';
+            // Check if UPPS already responded
+            if (s.currentOffer.uppsResponse === 'accepted') {
+              status = 'accepted';
+            } else if (s.currentOffer.uppsResponse === 'rejected') {
+              status = 'rejected';
+            // Check if both assessors have accepted - only then UPPS can respond
+            } else if (assessor1Status === 'accepted' && assessor2Status === 'accepted') {
+              status = 'pending_approval'; // Ready for UPPS approval
             } else {
-              status = s.currentOffer.uppsResponse;
+              status = 'waiting_assessors'; // Waiting for assessors to accept
             }
           }
 
@@ -54,6 +66,8 @@ export default function UPPSAssignmentsPage({ user }) {
             institusi: s.institusi,
             assessor1: s.currentOffer?.assessor1Name || s.assignedAssessors?.assessor1Name,
             assessor2: s.currentOffer?.assessor2Name || s.assignedAssessors?.assessor2Name,
+            assessor1Status,
+            assessor2Status,
             offeredAt: s.currentOffer?.offeredAt,
             status: status
           };
@@ -71,7 +85,7 @@ export default function UPPSAssignmentsPage({ user }) {
     }
   };
 
-  const handleResponse = async (submissionId, response) => {
+  const handleResponse = async (submissionId, response, notes = '') => {
     setSubmitting(true);
 
     try {
@@ -82,7 +96,7 @@ export default function UPPSAssignmentsPage({ user }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ response })
+        body: JSON.stringify({ response, notes })
       });
 
       if (res.ok) {
@@ -92,8 +106,11 @@ export default function UPPSAssignmentsPage({ user }) {
           title: response === 'accepted' ? 'Penugasan Disetujui! 🎉' : 'Penugasan Ditolak',
           message: response === 'accepted' 
             ? 'Anda telah menyetujui penugasan asesor untuk submission ini. Asesor dapat segera memulai penilaian.'
-            : 'Anda telah menolak penugasan ini. KEA akan memilih asesor lain.'
+            : 'Alasan penolakan Anda telah dikirim ke KEA untuk ditinjau.'
         });
+        // Close reject modal if open
+        setRejectModal({ isOpen: false, submissionId: null, programStudi: '' });
+        setRejectReason('');
         loadAssignments();
       } else {
         const err = await res.json();
@@ -117,9 +134,29 @@ export default function UPPSAssignmentsPage({ user }) {
     }
   };
 
+  // Open rejection modal
+  const openRejectModal = (submissionId, programStudi) => {
+    setRejectModal({ isOpen: true, submissionId, programStudi });
+    setRejectReason('');
+  };
+
+  // Handle rejection with reason
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      setResultModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Alasan Diperlukan',
+        message: 'Silakan berikan alasan mengapa Anda menolak penugasan asesor ini.'
+      });
+      return;
+    }
+    await handleResponse(rejectModal.submissionId, 'rejected', rejectReason.trim());
+  };
+
   const filteredAssignments = assignments.filter(assignment => {
     if (filter === 'all') return true;
-    if (filter === 'pending') return assignment.status === 'pending_approval';
+    if (filter === 'pending') return assignment.status === 'pending_approval' || assignment.status === 'waiting_assessors';
     if (filter === 'approved') return assignment.status === 'approved' || assignment.status === 'accepted';
     if (filter === 'rejected') return assignment.status === 'rejected';
     return true;
@@ -127,6 +164,7 @@ export default function UPPSAssignmentsPage({ user }) {
 
   const getStatusBadge = (status) => {
     const styles = {
+      'waiting_assessors': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Menunggu Asesor' },
       'pending_approval': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Menunggu Persetujuan' },
       'approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Disetujui' },
       'accepted': { bg: 'bg-green-100', text: 'text-green-800', label: 'Disetujui' },
@@ -225,15 +263,51 @@ export default function UPPSAssignmentsPage({ user }) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <p className="text-sm text-gray-500 mb-1">Asesor 1</p>
+                    <div className={`p-4 rounded-xl border ${
+                      assignment.assessor1Status === 'accepted' ? 'bg-green-50 border-green-200' : 
+                      assignment.assessor1Status === 'rejected' ? 'bg-red-50 border-red-200' : 
+                      'bg-gray-50 border-gray-100'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-gray-500">Asesor 1</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          assignment.assessor1Status === 'accepted' ? 'bg-green-100 text-green-700' : 
+                          assignment.assessor1Status === 'rejected' ? 'bg-red-100 text-red-700' : 
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {assignment.assessor1Status === 'accepted' ? '✓ ACC' : 
+                           assignment.assessor1Status === 'rejected' ? '✗ Tolak' : '⏳ Pending'}
+                        </span>
+                      </div>
                       <p className="font-semibold text-gray-900">{assignment.assessor1}</p>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <p className="text-sm text-gray-500 mb-1">Asesor 2</p>
+                    <div className={`p-4 rounded-xl border ${
+                      assignment.assessor2Status === 'accepted' ? 'bg-green-50 border-green-200' : 
+                      assignment.assessor2Status === 'rejected' ? 'bg-red-50 border-red-200' : 
+                      'bg-gray-50 border-gray-100'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-gray-500">Asesor 2</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          assignment.assessor2Status === 'accepted' ? 'bg-green-100 text-green-700' : 
+                          assignment.assessor2Status === 'rejected' ? 'bg-red-100 text-red-700' : 
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {assignment.assessor2Status === 'accepted' ? '✓ ACC' : 
+                           assignment.assessor2Status === 'rejected' ? '✗ Tolak' : '⏳ Pending'}
+                        </span>
+                      </div>
                       <p className="font-semibold text-gray-900">{assignment.assessor2}</p>
                     </div>
                   </div>
+
+                  {assignment.status === 'waiting_assessors' && (
+                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-700">
+                        ⏳ Menunggu kedua asesor menerima penugasan. Anda dapat menyetujui/menolak setelah kedua asesor ACC.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500">
@@ -250,7 +324,7 @@ export default function UPPSAssignmentsPage({ user }) {
                           Setujui
                         </button>
                         <button
-                          onClick={() => handleResponse(assignment.submissionId, 'rejected')}
+                          onClick={() => openRejectModal(assignment.submissionId, assignment.programStudi)}
                           className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                         >
                           <XCircle className="w-4 h-4" />
@@ -274,6 +348,55 @@ export default function UPPSAssignmentsPage({ user }) {
         title={resultModal.title}
         message={resultModal.message}
       />
+
+      {/* Rejection Reason Modal */}
+      {rejectModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Tolak Penugasan Asesor</h3>
+                <p className="text-sm text-gray-500">{rejectModal.programStudi}</p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alasan Penolakan <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Jelaskan alasan mengapa Anda menolak penugasan asesor ini..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                rows={4}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Alasan ini akan dikirim ke KEA untuk ditinjau. KEA dapat menerima atau menolak alasan Anda.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleReject}
+                disabled={submitting || !rejectReason.trim()}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 font-medium"
+              >
+                {submitting ? 'Mengirim...' : 'Kirim Penolakan'}
+              </button>
+              <button
+                onClick={() => setRejectModal({ isOpen: false, submissionId: null, programStudi: '' })}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

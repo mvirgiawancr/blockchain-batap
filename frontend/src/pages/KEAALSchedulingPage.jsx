@@ -110,29 +110,17 @@ export default function KEAALSchedulingPage({ user }) {
     const token = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
 
-    // Fetch submissions ready for scheduling (AK consistent)
-    try {
-      const submissionsRes = await fetch(`${API_BASE_URL}/submissions`, { headers });
-      if (submissionsRes.ok) {
-        const submissionsData = await submissionsRes.json();
-        const dataArray = Array.isArray(submissionsData) ? submissionsData : 
-                         (submissionsData?.data && Array.isArray(submissionsData.data) ? submissionsData.data : []);
-        // Filter submissions that have AK consistent but no AL schedule yet
-        const readySubmissions = dataArray.filter(s => 
-          s.akConsistent === true && !s.alSchedule
-        );
-        setSubmissions(readySubmissions);
-      }
-    } catch (error) {
-      console.error('Error fetching submissions:', error);
-    }
+    // First, fetch all schedules to know which submissions already have one
+    let pendingData = [];
+    let approvedData = [];
+    let readyData = [];
 
     // Fetch pending schedules
     try {
       const pendingRes = await fetch(`${API_BASE_URL}/al-schedule/list/pending`, { headers });
       if (pendingRes.ok) {
-        const pendingData = await pendingRes.json();
-        setPendingSchedules(Array.isArray(pendingData) ? pendingData : []);
+        const data = await pendingRes.json();
+        pendingData = Array.isArray(data) ? data : [];
       }
     } catch (error) {
       console.error('Error fetching pending schedules:', error);
@@ -142,8 +130,8 @@ export default function KEAALSchedulingPage({ user }) {
     try {
       const approvedRes = await fetch(`${API_BASE_URL}/al-schedule/list/approved`, { headers });
       if (approvedRes.ok) {
-        const approvedData = await approvedRes.json();
-        setApprovedSchedules(Array.isArray(approvedData) ? approvedData : []);
+        const data = await approvedRes.json();
+        approvedData = Array.isArray(data) ? data : [];
       }
     } catch (error) {
       console.error('Error fetching approved schedules:', error);
@@ -153,11 +141,39 @@ export default function KEAALSchedulingPage({ user }) {
     try {
       const readyRes = await fetch(`${API_BASE_URL}/al-schedule/list/ready-for-al`, { headers });
       if (readyRes.ok) {
-        const readyData = await readyRes.json();
-        setReadyForAL(Array.isArray(readyData) ? readyData : []);
+        const data = await readyRes.json();
+        readyData = Array.isArray(data) ? data : [];
       }
     } catch (error) {
       console.error('Error fetching ready for AL:', error);
+    }
+
+    setPendingSchedules(pendingData);
+    setApprovedSchedules(approvedData);
+    setReadyForAL(readyData);
+
+    // Collect all submission IDs that already have a schedule (pending, approved, or ready)
+    const scheduledIds = new Set([
+      ...pendingData.map(s => s.submission_id),
+      ...approvedData.map(s => s.submission_id),
+      ...readyData.map(s => s.submission_id)
+    ]);
+
+    // Fetch submissions and filter out those that already have a schedule
+    try {
+      const submissionsRes = await fetch(`${API_BASE_URL}/submissions`, { headers });
+      if (submissionsRes.ok) {
+        const submissionsData = await submissionsRes.json();
+        const dataArray = Array.isArray(submissionsData) ? submissionsData : 
+                         (submissionsData?.data && Array.isArray(submissionsData.data) ? submissionsData.data : []);
+        // Filter: AK consistent AND not already scheduled
+        const readySubmissions = dataArray.filter(s => 
+          s.akConsistent === true && !scheduledIds.has(s.submissionId)
+        );
+        setSubmissions(readySubmissions);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
     }
 
     setLoading(false);
@@ -274,7 +290,6 @@ export default function KEAALSchedulingPage({ user }) {
                 <Award className="w-8 h-8 text-purple-600" />
                 Penjadwalan Asesmen Lapangan
               </h1>
-              <p className="text-gray-600 mt-1">Step 18-21: Kelola jadwal AL dan sinkronisasi alur</p>
             </div>
             <button
               onClick={fetchData}

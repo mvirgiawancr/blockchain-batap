@@ -443,7 +443,7 @@ export default function KEADashboard({ user }) {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          {!sub.currentOffer && !sub.assignedAssessors && (
+                          {(!sub.currentOffer || sub.currentOffer.status === 'rejected') && !sub.assignedAssessors && (
                             <button
                               onClick={() => openOfferModal(sub)}
                               className="inline-flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors"

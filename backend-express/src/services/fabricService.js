@@ -18,10 +18,8 @@ class FabricService {
     this.ordererEndpoint = 'orderer0.group1.orderer.akreditasi.local:7030';
     this.cliContainers = {
       UPPSMSP: 'cli.upps.akreditasi.local',
-      SekadminMSP: 'cli.sekadmin.akreditasi.local',
-      SekretariatMSP: 'cli.sekadmin.akreditasi.local', // Alias for user tokens
-      SekretariatAdminMSP: 'cli.sekadmin.akreditasi.local', // Alias for chaincode compatibility
-      SekkeuMSP: 'cli.sekkeu.akreditasi.local',
+      SekretariatMSP: 'cli.sekretariat.akreditasi.local',
+      SekretariatAdminMSP: 'cli.sekretariat.akreditasi.local', // Alias for backward compatibility
       KEAMSP: 'cli.kea.akreditasi.local',
       AsesorMSP: 'cli.asesor.akreditasi.local',
       MajelisMSP: 'cli.majelis.akreditasi.local'
@@ -30,13 +28,11 @@ class FabricService {
     // Map user roles to MSP organizations
     this.roleToMSP = {
       upps: 'UPPSMSP',
-      sekretariat: 'SekadminMSP',
-      sekadmin: 'SekadminMSP',
-      sekkeu: 'SekkeuMSP',
+      sekretariat: 'SekretariatMSP',
       kea: 'KEAMSP',
       asesor: 'AsesorMSP',
       majelis: 'MajelisMSP',
-      admin: 'SekadminMSP' // Admin uses Sekadmin CLI
+      admin: 'SekretariatMSP' // Admin uses Sekretariat CLI
     };
     
     this.isConnected = false;
@@ -127,11 +123,10 @@ class FabricService {
         `-c '${escapedPayload}'`,
         `-o ${this.ordererEndpoint}`,
         '--peerAddresses peer0.upps.akreditasi.local:7041',
-        '--peerAddresses peer0.sekadmin.akreditasi.local:7061',
-        '--peerAddresses peer0.sekkeu.akreditasi.local:7081',
-        '--peerAddresses peer0.kea.akreditasi.local:7101',
-        '--peerAddresses peer0.asesor.akreditasi.local:7121',
-        '--peerAddresses peer0.majelis.akreditasi.local:7141',
+        '--peerAddresses peer0.sekretariat.akreditasi.local:7061',
+        '--peerAddresses peer0.kea.akreditasi.local:7081',
+        '--peerAddresses peer0.asesor.akreditasi.local:7101',
+        '--peerAddresses peer0.majelis.akreditasi.local:7121',
         '--waitForEvent'
       ].join(' ');
       
@@ -501,6 +496,101 @@ class FabricService {
       return result;
     } catch (error) {
       logger.error('[Fabric] Failed to check AK consistency:', error.message);
+      throw error;
+    }
+  }
+
+  async keaReviewRejection(submissionId, decision, notes, reviewedBy, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      logger.info(`[Fabric] KEA reviewing UPPS rejection for ${submissionId}: ${decision}`);
+      
+      const result = await this.invokeChaincode('KEAReviewRejection', [
+        submissionId,
+        decision,
+        notes || '',
+        reviewedBy
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ KEA reviewed rejection: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to review rejection (KEA):', error.message);
+      throw error;
+    }
+  }
+  async submitALExecution(submissionId, executionData, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      const executionJson = JSON.stringify(executionData);
+      logger.info(`[Fabric] Submitting AL Execution for ${submissionId}`);
+      
+      const result = await this.invokeChaincode('SubmitALExecution', [
+        submissionId,
+        executionJson
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ AL Execution submitted: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to submit AL Execution:', error.message);
+      throw error;
+    }
+  }
+
+  async submitUPPSResponse(submissionId, responseData, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      const responseJson = JSON.stringify(responseData);
+      logger.info(`[Fabric] Submitting UPPS Response for ${submissionId}`);
+      
+      const result = await this.invokeChaincode('SubmitUPPSResponse', [
+        submissionId,
+        responseJson
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ UPPS Response submitted: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to submit UPPS Response:', error.message);
+      throw error;
+    }
+  }
+
+  async verifyALResult(submissionId, verificationData, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      const verificationJson = JSON.stringify(verificationData);
+      logger.info(`[Fabric] Verifying AL Result for ${submissionId}`);
+      
+      const result = await this.invokeChaincode('VerifyALResult', [
+        submissionId,
+        verificationJson
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ AL Result verified: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to verify AL Result:', error.message);
+      throw error;
+    }
+  }
+
+  async finalizeAccreditation(submissionId, decisionData, options = {}) {
+    try {
+      const mspOrg = options.mspOrg;
+      const decisionJson = JSON.stringify(decisionData);
+      logger.info(`[Fabric] Finalizing Accreditation for ${submissionId}`);
+      
+      const result = await this.invokeChaincode('FinalizeAccreditation', [
+        submissionId,
+        decisionJson
+      ], { mspOrg });
+      
+      logger.info(`[Fabric] ✅ Accreditation finalized: ${submissionId}`);
+      return result;
+    } catch (error) {
+      logger.error('[Fabric] Failed to finalize accreditation:', error.message);
       throw error;
     }
   }

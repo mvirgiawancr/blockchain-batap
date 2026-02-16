@@ -372,3 +372,103 @@ COMMENT ON TABLE al_schedules IS 'AL (Asesmen Lapangan) scheduling for Phase 3B'
 -- Cleanup expired sessions (run this periodically)
 -- DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP;
 
+-- Phase 4: AL Execution (Berita Acara)
+CREATE TABLE IF NOT EXISTS al_executions (
+    id SERIAL PRIMARY KEY,
+    execution_id VARCHAR(255) UNIQUE NOT NULL,
+    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    berita_acara_cid TEXT,
+    berita_acara_hash TEXT,
+    attendance_values JSONB, -- {asesor1: true, asesor2: true, ...}
+    findings JSONB, -- Array of strings
+    scores JSONB, -- {criteria1: 4, ...}
+    total_score NUMERIC(5,2),
+    submitted_by UUID REFERENCES users(id),
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_al_executions_submission_id ON al_executions(submission_id);
+
+-- Phase 4: UPPS Responses
+CREATE TABLE IF NOT EXISTS al_responses (
+    id SERIAL PRIMARY KEY,
+    response_id VARCHAR(255) UNIQUE NOT NULL,
+    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    execution_id VARCHAR(255) REFERENCES al_executions(execution_id),
+    response_hash TEXT,
+    response_cid TEXT,
+    notes TEXT,
+    responded_by UUID REFERENCES users(id),
+    responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'submitted',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_al_responses_submission_id ON al_responses(submission_id);
+
+-- Phase 5: Verification & Decision
+CREATE TABLE IF NOT EXISTS verification_results (
+    id SERIAL PRIMARY KEY,
+    verification_id VARCHAR(255) UNIQUE NOT NULL,
+    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    verified_by UUID REFERENCES users(id),
+    verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    score_adjustments JSONB, -- Array of adjustments
+    final_score NUMERIC(5,2),
+    recommended_rank VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_verification_results_submission_id ON verification_results(submission_id);
+
+CREATE TABLE IF NOT EXISTS accreditation_decisions (
+    id SERIAL PRIMARY KEY,
+    decision_id VARCHAR(255) UNIQUE NOT NULL,
+    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    final_rank VARCHAR(50) NOT NULL,
+    final_score NUMERIC(5,2),
+    sk_number VARCHAR(100) UNIQUE,
+    sk_date DATE,
+    valid_until DATE,
+    decided_by UUID REFERENCES users(id),
+    decided_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    certificate_cid TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_accreditation_decisions_submission_id ON accreditation_decisions(submission_id);
+CREATE INDEX IF NOT EXISTS idx_accreditation_decisions_sk_number ON accreditation_decisions(sk_number);
+
+-- Phase 6: Certificates & Sync Logs
+CREATE TABLE IF NOT EXISTS certificates (
+    id SERIAL PRIMARY KEY,
+    certificate_id VARCHAR(255) UNIQUE NOT NULL,
+    submission_id VARCHAR(255) UNIQUE REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    decision_id VARCHAR(255) REFERENCES accreditation_decisions(decision_id),
+    file_cid TEXT NOT NULL,
+    file_hash TEXT NOT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    issued_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS external_sync_logs (
+    id SERIAL PRIMARY KEY,
+    submission_id VARCHAR(255) NOT NULL,
+    target_system VARCHAR(50) NOT NULL, -- BAN-PT, PDDIKTI
+    action VARCHAR(50) NOT NULL, -- PUSH_RESULT, GET_STATUS
+    payload JSONB,
+    response JSONB,
+    status VARCHAR(20) DEFAULT 'PENDING', 
+    attempt_count INTEGER DEFAULT 1,
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_external_sync_logs_submission_id ON external_sync_logs(submission_id);
+
+-- Trigger updates
+CREATE TRIGGER update_al_executions_updated_at BEFORE UPDATE ON al_executions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+

@@ -21,7 +21,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 router.get(
   '/',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   validateQuery(schemas.querySubmissions),
   asyncHandler(submissionController.getAllSubmissions)
 );
@@ -34,7 +34,7 @@ router.get(
 router.get(
   '/stats',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   asyncHandler(submissionController.getSubmissionStats)
 );
 
@@ -46,7 +46,7 @@ router.get(
 router.get(
   '/program-studi/:programStudi',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   asyncHandler(submissionController.getSubmissionsByProgramStudi)
 );
 
@@ -72,7 +72,7 @@ router.post(
 router.get(
   '/:id/assign',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   validateParams(schemas.submissionId),
   asyncHandler(submissionController.getAssignment)
 );
@@ -124,7 +124,7 @@ router.post(
 router.get(
   '/:id/history',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   validateParams(schemas.submissionId),
   asyncHandler(submissionController.getSubmissionHistory)
 );
@@ -137,7 +137,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin'),
+  authorize('upps', 'sekretariat', 'assessor', 'asesor', 'kea', 'admin', 'majelis'),
   validateParams(schemas.submissionId),
   asyncHandler(submissionController.getSubmissionById)
 );

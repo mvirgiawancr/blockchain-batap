@@ -47,7 +47,8 @@ export default function Login({ onLogin }) {
           sekretariat: '/sekretariat',
           assessor: '/assessor',
           kea: '/kea',
-          asesor: '/asesor'
+          asesor: '/asesor',
+          majelis: '/majelis'
         };
         navigate(redirectMap[user.role] || '/', { replace: true });
       } else {

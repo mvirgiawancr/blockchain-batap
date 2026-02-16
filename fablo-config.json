@@ -57,9 +57,9 @@
     },
     {
       "organization": {
-        "name": "Sekadmin",
-        "domain": "sekadmin.akreditasi.local",
-        "mspName": "SekadminMSP"
+        "name": "Sekretariat",
+        "domain": "sekretariat.akreditasi.local",
+        "mspName": "SekretariatMSP"
       },
       "ca": {
         "prefix": "ca",
@@ -74,29 +74,6 @@
         "couchDb": {
           "prefix": "couch",
           "port": 5120
-        }
-      },
-      "tools": {}
-    },
-    {
-      "organization": {
-        "name": "Sekkeu",
-        "domain": "sekkeu.akreditasi.local",
-        "mspName": "SekkeuMSP"
-      },
-      "ca": {
-        "prefix": "ca",
-        "db": "sqlite"
-      },
-      "orderers": [],
-      "peer": {
-        "instances": 1,
-        "db": "CouchDb",
-        "prefix": "peer",
-        "port": 7081,
-        "couchDb": {
-          "prefix": "couch",
-          "port": 5140
         }
       },
       "tools": {}
@@ -182,13 +159,7 @@
           ]
         },
         {
-          "name": "Sekadmin",
-          "peers": [
-            "peer0"
-          ]
-        },
-        {
-          "name": "Sekkeu",
+          "name": "Sekretariat",
           "peers": [
             "peer0"
           ]
@@ -223,7 +194,7 @@
       "directory": "chaincode/submission-contract",
       "sequence": 1,
       "initRequired": false,
-      "policy": "OR('UPPSMSP.member','SekadminMSP.member','SekkeuMSP.member','KEAMSP.member','AsesorMSP.member','MajelisMSP.member')",
+      "policy": "OR('UPPSMSP.member','SekretariatMSP.member','KEAMSP.member','AsesorMSP.member','MajelisMSP.member')",
       "collections": [],
       "orgs": [
         {
@@ -233,13 +204,7 @@
           ]
         },
         {
-          "name": "Sekadmin",
-          "peers": [
-            "peer0"
-          ]
-        },
-        {
-          "name": "Sekkeu",
+          "name": "Sekretariat",
           "peers": [
             "peer0"
           ]

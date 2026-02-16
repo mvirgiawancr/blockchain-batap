@@ -27,6 +27,10 @@ const sekretariatRoutes = require('./routes/sekretariat');
 const keaRoutes = require('./routes/kea');
 const asesorRoutes = require('./routes/asesor');
 const alScheduleRoutes = require('./routes/alSchedule');
+const alExecutionRoutes = require('./routes/alExecution'); // Phase 4
+const verificationRoutes = require('./routes/verification'); // Phase 5
+const releaseRoutes = require('./routes/release'); // Phase 6
+
 
 // Import WebSocket
 const websocketModule = require('./routes/websocket');
@@ -88,6 +92,7 @@ app.get(config.server.apiPrefix, (req, res) => {
   });
 });
 
+
 // Register routes
 app.use(`${config.server.apiPrefix}/auth`, authRoutes);
 app.use(`${config.server.apiPrefix}/upload`, uploadRoutes);
@@ -102,6 +107,9 @@ app.use(`${config.server.apiPrefix}/kea`, keaRoutes);
 app.use(`${config.server.apiPrefix}/asesor`, asesorRoutes);
 app.use(`${config.server.apiPrefix}/assessor`, asesorRoutes); // Alias for asesor
 app.use(`${config.server.apiPrefix}/al-schedule`, alScheduleRoutes); // Phase 3B: AL Scheduling
+app.use(`${config.server.apiPrefix}/al-execution`, alExecutionRoutes); // Phase 4: AL Execution
+app.use(`${config.server.apiPrefix}/verification`, verificationRoutes); // Phase 5: Verification & Decision
+app.use(`${config.server.apiPrefix}/release`, releaseRoutes); // Phase 6: Certificate Release
 
 // Error handling middleware
 app.use(notFound);

@@ -1,0 +1,122 @@
+test:
+  name: AkreChain Comprehensive TPS Benchmark
+  description: Benchmark TPS untuk jaringan AkreChain dengan multiple rounds (1k-5k transaksi)
+  workers:
+    number: 5
+  rounds:
+    # Write Operations - CreateSubmission dengan berbagai jumlah transaksi
+    - label: createSubmission-1k
+      description: Benchmark CreateSubmission dengan 1000 transaksi
+      txNumber: 1000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: createSubmission-2k
+      description: Benchmark CreateSubmission dengan 2000 transaksi
+      txNumber: 2000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: createSubmission-3k
+      description: Benchmark CreateSubmission dengan 3000 transaksi
+      txNumber: 3000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: createSubmission-4k
+      description: Benchmark CreateSubmission dengan 4000 transaksi
+      txNumber: 4000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: createSubmission-5k
+      description: Benchmark CreateSubmission dengan 5000 transaksi
+      txNumber: 5000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/createSubmission.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    # Read Operations - QueryAllSubmissions
+    - label: queryAllSubmissions-1k
+      description: Benchmark QueryAllSubmissions dengan 1000 transaksi
+      txNumber: 1000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/queryAllSubmissions.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+    - label: queryAllSubmissions-2k
+      description: Benchmark QueryAllSubmissions dengan 2000 transaksi
+      txNumber: 2000
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 100
+      workload:
+        module: benchmarks/workload/queryAllSubmissions.js
+        arguments:
+          contractId: submission-contract
+          channel: akreditasi
+
+monitors:
+  resource:
+    - module: docker
+      options:
+        interval: 5
+        containers:
+          - peer0.upps.akreditasi.local
+          - peer0.sekretariat.akreditasi.local
+          - peer0.kea.akreditasi.local
+          - peer0.asesor.akreditasi.local
+          - peer0.majelis.akreditasi.local
+          - orderer0.group1.orderer.akreditasi.local
+
+observer:
+  type: local
+  interval: 5

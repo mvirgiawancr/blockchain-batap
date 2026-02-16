@@ -6,11 +6,11 @@ test:
   rounds:
     - label: create-submission
       description: Benchmark CreateSubmission (Write Operation)
-      txNumber: 100
+      txNumber: 2000
       rateControl:
         type: fixed-rate
         opts:
-          tps: 10
+          tps: 50
       workload:
         module: benchmarks/workload/createSubmission.js
         arguments:
@@ -18,8 +18,8 @@ test:
           channel: akreditasi
 
     - label: query-submission
-      description: Benchmark QuerySubmission (Read Operation)
-      txNumber: 200
+      description: Benchmark QuerySubmission (Read Single)
+      txNumber: 2000
       rateControl:
         type: fixed-rate
         opts:
@@ -31,12 +31,12 @@ test:
           channel: akreditasi
 
     - label: query-all-submissions
-      description: Benchmark QueryAllSubmissions (Read All Operation)
+      description: Benchmark QueryAllSubmissions (Read All)
       txNumber: 100
       rateControl:
         type: fixed-rate
         opts:
-          tps: 20
+          tps: 2
       workload:
         module: benchmarks/workload/queryAllSubmissions.js
         arguments:

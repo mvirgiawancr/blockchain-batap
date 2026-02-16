@@ -193,10 +193,28 @@ const KEAAssignmentsPage = ({ user }) => {
                         ✓ Asesor sudah ditugaskan
                       </p>
                     </div>
+                  ) : submission.currentOffer && submission.currentOffer.status === 'force_assigned' ? (
+                    <div className="p-3 bg-purple-50 rounded-lg mb-4">
+                      <p className="text-xs text-purple-800 font-semibold">
+                        ⤴ Force Assigned
+                      </p>
+                      <p className="text-[10px] text-purple-600 mt-1">
+                        {submission.currentOffer.assessor1Name} & {submission.currentOffer.assessor2Name}
+                      </p>
+                    </div>
+                  ) : submission.currentOffer && submission.currentOffer.status === 'pending_kea_review' ? (
+                    <div className="p-3 bg-amber-50 rounded-lg mb-4">
+                      <p className="text-xs text-amber-800 font-semibold">
+                        ⚠️ UPPS Menolak - Perlu Review
+                      </p>
+                      <p className="text-[10px] text-amber-600 mt-1">
+                        Lihat menu "Review Penolakan"
+                      </p>
+                    </div>
                   ) : submission.currentOffer && submission.currentOffer.status !== 'rejected' ? (
                     <div className="p-3 bg-yellow-50 rounded-lg mb-4">
                       <p className="text-xs text-yellow-800 font-semibold">
-                        ⏳ Menunggu respon asesor
+                        ⏳ Menunggu respon asesor/UPPS
                       </p>
                       <p className="text-[10px] text-yellow-600 mt-1">
                         {submission.currentOffer.assessor1Name} & {submission.currentOffer.assessor2Name}

@@ -3,6 +3,8 @@ version: '2.0.0'
 
 caliper:
   blockchain: fabric
+  sutOptions:
+    mutualTls: false
 
 channels:
   - channelName: akreditasi
@@ -19,5 +21,5 @@ organizations:
           clientSignedCert:
             path: '../fablo-target/fabric-config/crypto-config/peerOrganizations/upps.akreditasi.local/users/User1@upps.akreditasi.local/msp/signcerts/User1@upps.akreditasi.local-cert.pem'
     connectionProfile:
-      path: './connection-profile.yaml'
+      path: 'networks/connection-profile.yaml'
       discover: true

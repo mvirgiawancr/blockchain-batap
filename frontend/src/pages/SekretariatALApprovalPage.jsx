@@ -322,6 +322,44 @@ export default function SekretariatALApprovalPage({ user }) {
                                   <strong>Catatan:</strong> {schedule.approval_notes}
                                 </div>
                               )}
+
+                              {schedule.status === 'approved' && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem('token');
+                                      const res = await fetch(`${API_BASE_URL}/al-schedule/generate-letter/${schedule.submission_id}`, {
+                                        method: 'POST',
+                                        headers: { 
+                                          Authorization: `Bearer ${token}`,
+                                          'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ letterNumber: `ST/${schedule.submission_id.substring(0,8).toUpperCase()}` })
+                                      });
+                                      
+                                      if (res.ok) {
+                                        const blob = await res.blob();
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `Surat_Tugas_${schedule.submission_id}.pdf`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                      } else {
+                                        alert('Gagal mendownload Surat Tugas');
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                      alert('Error downloading file');
+                                    }
+                                  }}
+                                  className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Download Surat Tugas
+                                </button>
+                              )}
                             </div>
 
                             <div className="text-right text-sm text-gray-500">

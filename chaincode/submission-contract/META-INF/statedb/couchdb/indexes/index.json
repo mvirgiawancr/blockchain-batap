@@ -1,0 +1,14 @@
+{
+    "index": {
+        "fields": [
+            "docType",
+            "status",
+            "submissionId",
+            "programStudi",
+            "institusi"
+        ]
+    },
+    "ddoc": "submission-index",
+    "name": "submission-index",
+    "type": "json"
+}

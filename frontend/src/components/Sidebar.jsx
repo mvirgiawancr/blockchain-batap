@@ -15,7 +15,9 @@ import {
   UserCircle,
   Bell,
   FileCheck,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle,
+  MapPin
 } from 'lucide-react';
 
 const Sidebar = ({ user, onLogout, menuItems }) => {
@@ -177,6 +179,7 @@ export const getMenuForRole = (role) => {
       { icon: FileText, label: 'Submission Saya', path: '/submissions' },
       { icon: ClipboardCheck, label: 'Status Akreditasi', path: '/status' },
       { icon: Users, label: 'Persetujuan Asesor', path: '/upps/assignments' },
+      { icon: MapPin, label: 'Jadwal AL', path: '/upps/al-response' },
       { icon: Users, label: 'Info Asesor', path: '/assessors-info' },
       { icon: Bell, label: 'Notifikasi', path: '/notifications', badge: 0 },
     ],
@@ -191,6 +194,7 @@ export const getMenuForRole = (role) => {
     kea: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/kea' },
       { icon: Users, label: 'Penugasan Asesor', path: '/kea/assignments' },
+      { icon: AlertTriangle, label: 'Review Penolakan', path: '/kea/rejection-review' },
       { icon: ClipboardCheck, label: 'Monitoring AK', path: '/kea/monitoring' },
       { icon: TrendingUp, label: 'Analisis Konsistensi', path: '/kea/consistency' },
       { icon: Award, label: 'Penjadwalan AL', path: '/kea/al-scheduling' },
@@ -214,7 +218,33 @@ export const getMenuForRole = (role) => {
       { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics' },
       { icon: Settings, label: 'Sistem', path: '/admin/system' },
     ],
+    majelis: [
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/majelis' },
+      { icon: Award, label: 'Keputusan Akreditasi', path: '/majelis' },
+    ],
   };
+
+  // Update KEA menu to include Verification
+  if (menus.kea) {
+     const hasVerification = menus.kea.find(m => m.path === '/verification');
+     if (!hasVerification) {
+        // Insert after AL Scheduling
+        const alIndex = menus.kea.findIndex(m => m.path === '/kea/al-scheduling');
+        if (alIndex !== -1) {
+            menus.kea.splice(alIndex + 1, 0, { icon: FileCheck, label: 'Verifikasi Hasil AL', path: '/verification' });
+        } else {
+            menus.kea.push({ icon: FileCheck, label: 'Verifikasi Hasil AL', path: '/verification' });
+        }
+     }
+  }
+
+  // Update Sekretariat menu to include Release
+  if (menus.sekretariat) {
+      const hasRelease = menus.sekretariat.find(m => m.path === '/release');
+      if (!hasRelease) {
+          menus.sekretariat.push({ icon: Award, label: 'Rilis Sertifikat', path: '/release' });
+      }
+  }
 
   return menus[role] || menus.upps;
 };

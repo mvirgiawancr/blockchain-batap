@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { ClipboardCheck, FileText, Clock, CheckCircle, XCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, FileText, Clock, CheckCircle, XCircle, TrendingUp, RefreshCw, MapPin } from 'lucide-react';
 
 export default function StatusPage({ user }) {
   const navigate = useNavigate();
@@ -231,6 +231,22 @@ export default function StatusPage({ user }) {
                           <p className="text-sm text-gray-700">
                             {selectedSubmission.assignedAssessors}
                           </p>
+                        </div>
+                      )}
+
+                      {/* AL Response Button */}
+                      {(selectedSubmission.status === 'ak_submitted' || 
+                        selectedSubmission.status === 'al_ready' || 
+                        selectedSubmission.status === 'al_in_progress' ||
+                        selectedSubmission.akConsistent === true) && (
+                        <div className="mt-6">
+                          <button
+                            onClick={() => navigate(`/al-response/${selectedSubmission.submissionId}`)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors font-semibold"
+                          >
+                            <MapPin className="w-5 h-5" />
+                            Respon Asesmen Lapangan
+                          </button>
                         </div>
                       )}
                     </div>

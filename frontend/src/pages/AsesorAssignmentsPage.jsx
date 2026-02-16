@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import ResultModal from '../components/ResultModal';
-import { ClipboardCheck, CheckCircle, XCircle, Clock, FileText, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, CheckCircle, XCircle, Clock, FileText, RefreshCw, MapPin, Calendar } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -12,6 +12,8 @@ export default function AsesorAssignmentsPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [resultModal, setResultModal] = useState({ isOpen: false, type: 'success', title: '', message: '' });
+
+  const [executedSubmissions, setExecutedSubmissions] = useState(new Set());
 
   useEffect(() => {
     loadAssignments();
@@ -29,7 +31,29 @@ export default function AsesorAssignmentsPage({ user }) {
       
       if (response.ok) {
         const data = await response.json();
-        setAssignments(Array.isArray(data) ? data : []);
+        const assignmentList = Array.isArray(data) ? data : [];
+        setAssignments(assignmentList);
+
+        // Check which submissions already have AL execution (Berita Acara submitted)
+        const executed = new Set();
+        await Promise.all(
+          assignmentList
+            .filter(a => a.status === 'ak_submitted' || a.status === 'al_ready' || a.status === 'al_in_progress')
+            .map(async (a) => {
+              try {
+                const execRes = await fetch(`${API_BASE_URL}/al-execution/${a.submissionId}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (execRes.ok) {
+                  const execData = await execRes.json();
+                  if (execData.data?.alExecution) {
+                    executed.add(a.submissionId);
+                  }
+                }
+              } catch (e) { /* ignore */ }
+            })
+        );
+        setExecutedSubmissions(executed);
       } else {
         setAssignments([]);
       }
@@ -98,7 +122,9 @@ export default function AsesorAssignmentsPage({ user }) {
       'assigned': { bg: 'bg-green-100', text: 'text-green-800', label: 'Diterima' },
       'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Ditolak' },
       'completed': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Selesai' },
-      'ak_submitted': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'AK Disubmit' }
+      'ak_submitted': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'AK Disubmit' },
+      'al_ready': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Siap AL' },
+      'al_in_progress': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'AL Berlangsung' }
     };
     const style = styles[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
     return (
@@ -244,6 +270,22 @@ export default function AsesorAssignmentsPage({ user }) {
                         <CheckCircle className="w-4 h-4" />
                         Mulai Penilaian
                       </button>
+                    )}
+                    {(assignment.status === 'ak_submitted' || assignment.status === 'al_ready' || assignment.status === 'al_in_progress') && (
+                      executedSubmissions.has(assignment.submissionId) ? (
+                        <span className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          Berita Acara Terkirim
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/al-execution/${assignment.submissionId}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          Laksanakan AL
+                        </button>
+                      )
                     )}
                     <button
                       onClick={() => navigate(`/asesor/detail/${assignment.submissionId}`)}

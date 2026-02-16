@@ -6,6 +6,7 @@
 const logger = require('../utils/logger');
 const fabricService = require('../services/fabricService');
 const notificationController = require('./notificationController');
+const certificateService = require('../services/certificateService');
 const { pool } = require('../config/database');
 
 /**
@@ -267,7 +268,7 @@ exports.getApprovedSchedules = async (req, res) => {
         FROM al_schedules als
         LEFT JOIN users u1 ON als.proposed_by = u1.id
         LEFT JOIN users u2 ON als.approved_by = u2.id
-        WHERE als.status = 'approved'
+        WHERE als.status IN ('approved', 'completed')
         ORDER BY als.proposed_date ASC
       `);
 
@@ -406,5 +407,77 @@ exports.updateFlowAStatus = async (submissionId, completed) => {
   } catch (error) {
     logger.error('Error updating Flow A status:', error);
     throw error;
+  }
+};
+/**
+ * Generate Assignment Letter (Surat Tugas) PDF
+ * POST /api/v1/al-schedule/generate-letter/:submissionId
+ */
+exports.generateAssignmentLetter = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const { letterNumber } = req.body; // Surat Tugas Number from input
+
+    // Get schedule and submission info from PostgreSQL
+    const client = await pool.connect();
+    let schedule = null;
+    let submissionInfo = null;
+    try {
+        const resSchedule = await client.query('SELECT * FROM al_schedules WHERE submission_id = $1', [submissionId]);
+        schedule = resSchedule.rows[0];
+        
+        // Try to get submission info from submissions table if exists
+        try {
+          const resSub = await client.query('SELECT * FROM submissions WHERE submission_id = $1', [submissionId]);
+          submissionInfo = resSub.rows[0];
+        } catch (e) {
+          // submissions table might not exist, that's ok
+        }
+    } finally {
+        client.release();
+    }
+
+    if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    if (schedule.status !== 'approved') {
+        return res.status(400).json({ error: 'Schedule must be approved to generate letter' });
+    }
+
+    // Try to get submission details from blockchain, with fallback
+    let submission = null;
+    try {
+      submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+    } catch (error) {
+      logger.warn(`Could not fetch submission from blockchain for letter generation: ${error.message}. Using fallback data.`);
+    }
+
+    // Build data with fallbacks
+    const programName = submission?.programStudi || submissionInfo?.program_name || 'Program Studi';
+    const institutionName = submission?.institusi || submissionInfo?.institution_name || schedule.proposed_venue || 'Institusi';
+    const assessor1Name = submission?.assignedAssessors?.assessor1Name || 'Asesor 1';
+    const assessor2Name = submission?.assignedAssessors?.assessor2Name || 'Asesor 2';
+
+    const pdfBuffer = await certificateService.generateAssignmentLetterPDF({
+        submissionId,
+        programName,
+        institutionName,
+        letterNumber: letterNumber || `ST/${submissionId.substring(0,8).toUpperCase()}/${new Date().getFullYear()}`,
+        letterDate: new Date().toISOString(),
+        assessor1Name,
+        assessor2Name,
+        visitDateStart: new Date(schedule.proposed_date).toLocaleDateString('id-ID'),
+        visitDateEnd: schedule.proposed_end_date ? new Date(schedule.proposed_end_date).toLocaleDateString('id-ID') : '-',
+        venue: schedule.proposed_venue
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Surat_Tugas_${submissionId}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    logger.error('Error generating assignment letter:', error);
+    res.status(500).json({ error: 'Failed to generate assignment letter', message: error.message });
   }
 };

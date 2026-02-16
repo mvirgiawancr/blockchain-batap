@@ -4,6 +4,7 @@
  */
 
 const fabricService = require('../services/fabricService');
+const { pool } = require('../config/database');
 const logger = require('../utils/logger');
 const { isValidUUID, createPaginationMeta } = require('../utils/helpers');
 const assignmentService = require('../services/assignmentService');
@@ -94,6 +95,45 @@ const getSubmissionById = async (req, res, next) => {
       submission.assignmentAssignedBy = assignment.assigned_by_username || assignment.assigned_by;
       submission.assignmentAssignedAt = assignment.created_at;
       submission.assignmentStatus = assignment.status || 'pending';
+    }
+
+    // Inject Verification Result from PostgreSQL
+    try {
+        const verRes = await pool.query('SELECT * FROM verification_results WHERE submission_id = $1', [id]);
+        if (verRes.rows.length > 0) {
+            const vr = verRes.rows[0];
+            submission.verificationResult = {
+                finalScore: vr.final_score,
+                recommendedRank: vr.recommended_rank,
+                notes: vr.notes,
+                verifiedAt: vr.verified_at,
+                verifiedBy: vr.verified_by
+            };
+        }
+    } catch (pgError) {
+        logger.error('Error fetching verification result:', pgError);
+        // Don't fail the whole request if this part fails
+    }
+
+    // Inject Accreditation Decision from PostgreSQL
+    try {
+        const decRes = await pool.query('SELECT * FROM accreditation_decisions WHERE submission_id = $1', [id]);
+        if (decRes.rows.length > 0) {
+            const dr = decRes.rows[0];
+            submission.accreditationDecision = {
+                decisionId: dr.decision_id,
+                finalRank: dr.final_rank,
+                finalScore: dr.final_score,
+                skNumber: dr.sk_number,
+                skDate: dr.sk_date,
+                validUntil: dr.valid_until,
+                decidedBy: dr.decided_by,
+                decidedAt: dr.decided_at,
+                certificateCid: dr.certificate_cid
+            };
+        }
+    } catch (pgError) {
+        logger.error('Error fetching accreditation decision:', pgError);
     }
 
     if (!submission) {

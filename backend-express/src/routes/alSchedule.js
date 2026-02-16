@@ -21,7 +21,7 @@ router.get('/list/pending',
 // Get all approved schedules
 router.get('/list/approved',
   authenticateToken,
-  authorizeRoles(['kea', 'sekretariat', 'asesor', 'admin']),
+  authorizeRoles(['kea', 'sekretariat', 'asesor', 'upps', 'admin']),
   alScheduleController.getApprovedSchedules
 );
 
@@ -44,6 +44,13 @@ router.post('/approve/:submissionId',
   authenticateToken,
   authorizeRoles(['sekretariat', 'admin']),
   alScheduleController.approveSchedule
+);
+
+// Generate Surat Tugas
+router.post('/generate-letter/:submissionId',
+  authenticateToken,
+  authorizeRoles(['sekretariat', 'admin']),
+  alScheduleController.generateAssignmentLetter
 );
 
 // Step 21: Check sync status

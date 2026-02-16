@@ -22,10 +22,21 @@ import KEAMonitoringPage from './pages/KEAMonitoringPage';
 import KEAConsistencyPage from './pages/KEAConsistencyPage';
 import KEAConsistencyDetailPage from './pages/KEAConsistencyDetailPage';
 import KEAALSchedulingPage from './pages/KEAALSchedulingPage';
+import KEARejectionReviewPage from './pages/KEARejectionReviewPage';
 import AsesorAssessmentPage from './pages/AsesorAssessmentPage';
 import ComingSoonPage from './pages/ComingSoonPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ALExecutionPage from './pages/ALExecutionPage';
+import DashboardLayout from './components/DashboardLayout';
+import ALResponsePage from './pages/ALResponsePage';
+import VerificationPage from './pages/VerificationPage';
+import MajelisPage from './pages/MajelisPage';
+import ReleasePage from './pages/ReleasePage';
+import UPPSALResponsePage from './pages/UPPSALResponsePage';
+import VerificationListPage from './pages/VerificationListPage';
+import MajelisDashboard from './pages/MajelisDashboard';
+import ReleaseListPage from './pages/ReleaseListPage';
 
 
 function ProtectedRoute({ children, roles }) {
@@ -141,6 +152,14 @@ function App() {
             }
           />
           <Route
+            path="/upps/al-response"
+            element={
+              <ProtectedRoute roles={['upps', 'admin']}>
+                <UPPSALResponsePage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/assessors-info"
             element={
               <ProtectedRoute roles={['upps', 'admin']}>
@@ -248,6 +267,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/kea/rejection-review"
+            element={
+              <ProtectedRoute roles={['kea', 'admin']}>
+                <KEARejectionReviewPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Asesor Pages */}
           <Route
@@ -283,6 +310,78 @@ function App() {
             }
           />
           
+          {/* New Workflow Phases */}
+          <Route
+            path="/al-execution/:submissionId"
+            element={
+              <ProtectedRoute roles={['asesor', 'assessor', 'admin']}>
+                <ALExecutionPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/al-response/:submissionId"
+            element={
+              <ProtectedRoute roles={['upps', 'admin']}>
+                <ALResponsePage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/verification"
+            element={
+              <ProtectedRoute roles={['kea', 'sekretariat', 'admin']}>
+                <DashboardLayout user={currentUser}>
+                  <VerificationListPage user={currentUser} />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/verification/:submissionId"
+            element={
+              <ProtectedRoute roles={['kea', 'sekretariat', 'admin']}>
+                <DashboardLayout user={currentUser}>
+                  <VerificationPage user={currentUser} />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/majelis"
+            element={
+              <ProtectedRoute roles={['majelis', 'sekretariat', 'admin']}>
+                <MajelisDashboard user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/majelis-decision/:submissionId"
+            element={
+              <ProtectedRoute roles={['majelis', 'sekretariat', 'admin']}>
+                <DashboardLayout user={currentUser}>
+                  <MajelisPage user={currentUser} />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/release"
+            element={
+              <ProtectedRoute roles={['sekretariat', 'admin']}>
+                <ReleaseListPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/release/:submissionId"
+            element={
+              <ProtectedRoute>
+                <ReleasePage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
           <Route path="*" element={<Navigate to="/" replace />} />

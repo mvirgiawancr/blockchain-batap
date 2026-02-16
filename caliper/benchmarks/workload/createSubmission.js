@@ -1,41 +1,35 @@
 'use strict';
 
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
+const fs = require('fs');
+const path = require('path');
 
 /**
- * Workload module for creating submissions
+ * Workload module for creating submissions.
+ * Saves created IDs to a shared file for the query workload to use.
  */
 class CreateSubmissionWorkload extends WorkloadModuleBase {
     constructor() {
         super();
         this.txIndex = 0;
+        this.createdIds = [];
     }
 
-    /**
-     * Initialize the workload module
-     * @param {number} workerIndex - Worker index
-     * @param {number} totalWorkers - Total number of workers
-     * @param {number} roundIndex - Round index
-     * @param {object} roundArguments - Round arguments from config
-     * @param {object} sutAdapter - SUT adapter
-     * @param {object} sutContext - SUT context
-     */
     async initializeWorkloadModule(workerIndex, totalWorkers, roundIndex, roundArguments, sutAdapter, sutContext) {
         await super.initializeWorkloadModule(workerIndex, totalWorkers, roundIndex, roundArguments, sutAdapter, sutContext);
         this.workerIndex = workerIndex;
+        this.totalWorkers = totalWorkers;
         this.contractId = roundArguments.contractId;
         this.channel = roundArguments.channel;
+        this.runId = Date.now().toString(36);
+        console.log(`Worker ${workerIndex}: Using RUN_ID=${this.runId}`);
     }
 
-    /**
-     * Submit a transaction
-     */
     async submitTransaction() {
         this.txIndex++;
-        const timestamp = Date.now();
-        const submissionId = `BENCH-${this.workerIndex}-${this.txIndex}-${timestamp}`;
+        const submissionId = `B-${this.runId}-W${this.workerIndex}-T${this.txIndex}`;
+        this.createdIds.push(submissionId);
         
-        // Create submission data that matches the chaincode requirements
         const submissionData = {
             programStudi: `Program Studi Benchmark ${this.txIndex}`,
             institusi: `Institusi Benchmark ${this.workerIndex}`,
@@ -70,11 +64,25 @@ class CreateSubmissionWorkload extends WorkloadModuleBase {
 
         await this.sutAdapter.sendRequests(args);
     }
+
+    async cleanupWorkloadModule() {
+        // Save created IDs to shared file for query workload
+        const idFile = path.join(__dirname, '..', '.submission-ids.json');
+        try {
+            let existingIds = [];
+            if (fs.existsSync(idFile)) {
+                const data = JSON.parse(fs.readFileSync(idFile, 'utf8'));
+                existingIds = data.ids || [];
+            }
+            const allIds = [...existingIds, ...this.createdIds];
+            fs.writeFileSync(idFile, JSON.stringify({ ids: allIds, timestamp: Date.now() }));
+            console.log(`Worker ${this.workerIndex}: Saved ${this.createdIds.length} IDs to file (total: ${allIds.length})`);
+        } catch (error) {
+            console.log(`Worker ${this.workerIndex}: Could not save IDs: ${error.message}`);
+        }
+    }
 }
 
-/**
- * Create workload module
- */
 function createWorkloadModule() {
     return new CreateSubmissionWorkload();
 }

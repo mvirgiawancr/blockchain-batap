@@ -6,13 +6,23 @@ client:
     timeout:
       peer:
         endorser: '300'
+        eventHub: '60'
+        eventReg: '30'
       orderer: '300'
+  # Enable discovery as localhost for host-to-Docker connectivity
+  discovery:
+    enabled: true
+    asLocalhost: true
 
 organizations:
   UPPS:
     mspid: UPPSMSP
     peers:
       - peer0.upps.akreditasi.local
+      - peer0.sekretariat.akreditasi.local
+      - peer0.kea.akreditasi.local
+      - peer0.asesor.akreditasi.local
+      - peer0.majelis.akreditasi.local
     certificateAuthorities:
       - ca.upps.akreditasi.local
 
@@ -22,6 +32,40 @@ peers:
     grpcOptions:
       ssl-target-name-override: peer0.upps.akreditasi.local
       grpc.keepalive_time_ms: 600000
+      grpc-max-send-message-length: 15000000
+      grpc-max-receive-message-length: 15000000
+
+  peer0.sekretariat.akreditasi.local:
+    url: grpc://localhost:7061
+    grpcOptions:
+      ssl-target-name-override: peer0.sekretariat.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+      grpc-max-send-message-length: 15000000
+      grpc-max-receive-message-length: 15000000
+
+  peer0.kea.akreditasi.local:
+    url: grpc://localhost:7081
+    grpcOptions:
+      ssl-target-name-override: peer0.kea.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+      grpc-max-send-message-length: 15000000
+      grpc-max-receive-message-length: 15000000
+
+  peer0.asesor.akreditasi.local:
+    url: grpc://localhost:7101
+    grpcOptions:
+      ssl-target-name-override: peer0.asesor.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+      grpc-max-send-message-length: 15000000
+      grpc-max-receive-message-length: 15000000
+
+  peer0.majelis.akreditasi.local:
+    url: grpc://localhost:7121
+    grpcOptions:
+      ssl-target-name-override: peer0.majelis.akreditasi.local
+      grpc.keepalive_time_ms: 600000
+      grpc-max-send-message-length: 15000000
+      grpc-max-receive-message-length: 15000000
 
 orderers:
   orderer0.group1.orderer.akreditasi.local:
@@ -47,3 +91,23 @@ channels:
         chaincodeQuery: true
         ledgerQuery: true
         eventSource: true
+      peer0.sekretariat.akreditasi.local:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: false
+      peer0.kea.akreditasi.local:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: false
+      peer0.asesor.akreditasi.local:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: false
+      peer0.majelis.akreditasi.local:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: false

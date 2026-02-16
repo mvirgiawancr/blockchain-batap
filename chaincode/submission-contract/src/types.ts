@@ -66,8 +66,13 @@ export interface AssessorOffer {
     uppsResponse?: 'pending' | 'accepted' | 'rejected';
     uppsResponseAt?: string;
     uppsNotes?: string;
-    status: 'pending' | 'completed' | 'rejected';
+    status: 'pending' | 'completed' | 'rejected' | 'pending_kea_review' | 'force_assigned';
     rejectionReason?: string;
+    // KEA review fields for UPPS rejection
+    keaReviewStatus?: 'pending' | 'reason_accepted' | 'reason_rejected';
+    keaReviewedAt?: string;
+    keaReviewedBy?: string;
+    keaReviewNotes?: string;
 }
 
 export interface AKAssessment {
@@ -79,16 +84,78 @@ export interface AKAssessment {
     submittedAt: string;
 }
 
+
+// Phase 4: AL Execution & Response
+export interface ALExecution {
+    executionId: string;
+    submissionId: string;
+    beritaAcaraCid: string; // IPFS CID for Berita Acara PDF
+    beritaAcaraHash: string;
+    attendanceValues: {
+        asesor1: boolean;
+        asesor2: boolean;
+        uppsRepresentative: boolean;
+    };
+    findings: string[]; // List of major findings
+    scores: { [key: string]: number }; // Final AL scores per criteria
+    totalScore: number;
+    submittedBy: string;
+    submittedAt: string;
+}
+
+export interface ALResponse {
+    responseId: string;
+    submissionId: string;
+    executionId: string;
+    responseHash: string; // Hash of the response document/text
+    responseCid?: string; // Optional PDF
+    notes: string;
+    respondedBy: string;
+    respondedAt: string;
+    status: 'submitted' | 'accepted' | 'rejected'; // KEA/Assessor might review this
+}
+
+// Phase 5: Verification & Decision
+export interface VerificationResult {
+    verificationId: string;
+    submissionId: string;
+    verifiedBy: string;
+    verifiedAt: string;
+    notes: string;
+    scoreAdjustments?: {
+        criteria: string;
+        originalScore: number;
+        adjustedScore: number;
+        reason: string;
+    }[];
+    finalScore: number;
+    recommendedRank: 'Unggul' | 'Baik Sekali' | 'Baik' | 'Tidak Terakreditasi';
+}
+
+export interface AccreditationDecision {
+    decisionId: string;
+    submissionId: string;
+    finalRank: 'Unggul' | 'Baik Sekali' | 'Baik' | 'Tidak Terakreditasi';
+    finalScore: number;
+    skNumber: string; // Nomor SK
+    skDate: string;
+    validUntil: string;
+    decidedBy: string; // Majelis Chair
+    decidedAt: string;
+    certificateCid?: string; // Phase 6: Certificate
+}
+
 export interface Submission {
     submissionId: string;
     programStudi: string;
     institusi: string;
     programType?: string;  // S, M, D, D1, D2, D3, STr, MTr, DTr, PPI
     documents: Document[];
-    status: 'draft' | 'uploaded' | 'processing' | 'under_review' | 'approved' | 'rejected';
+    status: 'draft' | 'uploaded' | 'processing' | 'under_review' | 'approved' | 'rejected' |
+    'al_scheduled' | 'al_conducted' | 'al_responded' | 'verified' | 'accredited';
     version: number;
     ai?: AIRecommendation;
-    decision?: Decision;
+    decision?: Decision; // Deprecated or used for intermediate decisions
     previousDecisions?: Decision[];
     scoringResult?: any;
     submittedBy?: string;
@@ -115,6 +182,14 @@ export interface Submission {
     alSchedule?: ALSchedule;
     alScheduleHistory?: ALSchedule[];
     flowSyncStatus?: FlowSyncStatus;
+
+    // Phase 4: AL Execution
+    alExecution?: ALExecution;
+    alResponse?: ALResponse;
+
+    // Phase 5: Verification & Decision
+    verificationResult?: VerificationResult;
+    accreditationDecision?: AccreditationDecision;
 
     // Deprecated fields (kept for backward compatibility)
     assignedAssessorId?: string;
@@ -201,6 +276,14 @@ export interface AKConsistencyCheckedEvent {
     at: string;
 }
 
+export interface KEARejectionReviewedEvent {
+    submissionId: string;
+    offerId: string;
+    decision: 'reason_accepted' | 'reason_rejected';
+    reviewedBy: string;
+    at: string;
+}
+
 // Phase 3B: AL (Asesmen Lapangan) Scheduling
 export interface ALSchedule {
     scheduleId: string;
@@ -249,4 +332,34 @@ export interface FlowsSynchronizedEvent {
     flowACompletedAt: string;
     flowBCompletedAt: string;
     syncCompletedAt: string;
+}
+
+export interface ALExecutionSubmittedEvent {
+    submissionId: string;
+    executionId: string;
+    submittedBy: string;
+    at: string;
+}
+
+export interface ALResponseSubmittedEvent {
+    submissionId: string;
+    responseId: string;
+    respondedBy: string;
+    at: string;
+}
+
+export interface VerificationCompletedEvent {
+    submissionId: string;
+    verificationId: string;
+    verifiedBy: string;
+    finalScore: number;
+    at: string;
+}
+
+export interface AccreditationFinalizedEvent {
+    submissionId: string;
+    decisionId: string;
+    finalRank: string;
+    skNumber: string;
+    at: string;
 }
