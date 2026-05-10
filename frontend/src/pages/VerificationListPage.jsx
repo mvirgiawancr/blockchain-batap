@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import { 
-    CheckCircle, Clock, AlertTriangle, Search, Filter, 
-    RefreshCw, FileText, ArrowRight, Calendar, Building 
+    CheckCircle, Clock, AlertTriangle, RefreshCw, 
+    FileText, ArrowRight, Calendar, Building2, Award, ShieldCheck, BarChart3
 } from 'lucide-react';
-import api from '../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -45,88 +45,157 @@ export default function VerificationListPage({ user }) {
     });
   };
 
+  const getScoreColor = (score) => {
+    const s = parseFloat(score);
+    if (s >= 3.5) return 'text-green-700 bg-green-50 border-green-200';
+    if (s >= 2.5) return 'text-blue-700 bg-blue-50 border-blue-200';
+    if (s >= 1.5) return 'text-amber-700 bg-amber-50 border-amber-200';
+    return 'text-red-700 bg-red-50 border-red-200';
+  };
+
   return (
-    <div className="p-8 font-sans min-h-screen">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <CheckCircle className="w-8 h-8 text-indigo-600" />
-            Verifikasi Hasil AL
-          </h1>
-          <p className="text-gray-500 mt-2 text-lg">
-            Daftar program studi yang telah menyelesaikan Asesmen Lapangan dan menunggu verifikasi.
-          </p>
-        </div>
-        <button
-          onClick={fetchSubmissions}
-          className="p-3 rounded-xl bg-white shadow-sm border border-gray-200 hover:shadow-md hover:bg-gray-50 transition-all text-gray-600 self-start md:self-auto"
-          title="Refresh Data"
-        >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </header>
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 overflow-hidden">
+      <Sidebar 
+        user={user} 
+        onLogout={() => navigate('/login')}
+        menuItems={getMenuForRole('kea')}
+      />
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-          <p className="text-gray-500 font-medium text-lg">Memuat data submission...</p>
-        </div>
-      ) : submissions.length === 0 ? (
-        <div className="bg-white rounded-3xl shadow-sm p-16 text-center border border-gray-100 max-w-2xl mx-auto">
-          <div className="bg-green-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">Semua Beres!</h3>
-          <p className="text-gray-500 text-lg">Tidak ada submission yang perlu diverifikasi saat ini.</p>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          {submissions.map((sub) => (
-            <div 
-                key={sub.submission_id} 
-                className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-indigo-100 transition-all relative overflow-hidden"
+      <div className="flex-1 ml-64 overflow-auto">
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <header className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <ShieldCheck className="w-8 h-8 text-indigo-600" />
+                Verifikasi Hasil AL
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Review dan verifikasi hasil Asesmen Lapangan sebelum diajukan ke Majelis
+              </p>
+            </div>
+            <button
+              onClick={fetchSubmissions}
+              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              title="Refresh"
             >
-                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                             <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider">
-                                Menunggu Verifikasi
-                             </span>
-                             <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatDate(sub.al_submitted_at)}
-                             </span>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-indigo-700 transition-colors">
-                            {sub.program_studi}
-                        </h3>
-                        <div className="flex items-center text-gray-500 font-medium">
-                            <Building className="w-4 h-4 mr-2" />
-                            {sub.institution || sub.institusi}
-                        </div>
-                    </div>
+              <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </header>
 
-                    <div className="flex items-center gap-6">
-                        <div className="text-right hidden md:block">
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Skor AL</p>
-                            <p className="text-2xl font-bold text-gray-800">{sub.al_score || '0.00'}</p>
+          {/* Stats Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{submissions.length}</p>
+                <p className="text-sm text-gray-500">Menunggu Verifikasi</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {submissions.length > 0 
+                    ? (submissions.reduce((sum, s) => sum + parseFloat(s.al_score || 0), 0) / submissions.length).toFixed(2) 
+                    : '-'}
+                </p>
+                <p className="text-sm text-gray-500">Rata-rata Skor AL</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                <Award className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {submissions.filter(s => parseFloat(s.al_score || 0) >= 3.5).length}
+                </p>
+                <p className="text-sm text-gray-500">Skor ≥ 3.50</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          {loading ? (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600">Memuat data...</p>
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Semua Beres!</h3>
+              <p className="text-gray-500">Tidak ada submission yang perlu diverifikasi saat ini.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+              <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  Submission Menunggu Verifikasi
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Klik verifikasi untuk review detail dan memberikan rekomendasi peringkat
+                </p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {submissions.map((sub) => (
+                  <div 
+                    key={sub.submission_id} 
+                    className="p-5 hover:bg-indigo-50/50 transition-colors group"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Menunggu Verifikasi
+                          </span>
+                          <span className="text-gray-400 text-xs flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(sub.al_submitted_at)}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                          {sub.program_studi}
+                        </h3>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {sub.institution || sub.institusi}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        {/* Score Badge */}
+                        <div className={`px-4 py-2 rounded-xl border-2 text-center min-w-[80px] ${getScoreColor(sub.al_score)}`}>
+                          <p className="text-xs font-medium opacity-75">Skor AL</p>
+                          <p className="text-xl font-bold">{sub.al_score || '0.00'}</p>
                         </div>
                         
                         <button
-                            onClick={() => navigate(`/verification/${sub.submission_id}`)}
-                            className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-md hover:shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95"
+                          onClick={() => navigate(`/verification/${sub.submission_id}`)}
+                          className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95"
                         >
-                            Verifikasi
-                            <ArrowRight className="w-4 h-4" />
+                          <ShieldCheck className="w-4 h-4" />
+                          Verifikasi
+                          <ArrowRight className="w-4 h-4" />
                         </button>
+                      </div>
                     </div>
-                </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

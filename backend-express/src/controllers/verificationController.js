@@ -1,12 +1,13 @@
 /**
  * Verification Controller
  * Handles Phase 5: final Verification and Accreditation Decision
- * Re-implemented to use PostgreSQL only (Bypassing Fabric for now to ensure demo stability)
+ * Writes to both PostgreSQL and Blockchain (Fabric)
  */
 
 const logger = require('../utils/logger');
 const { pool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const fabricService = require('../services/fabricService');
 
 /**
  * Get submissions pending verification (Status: completed)
@@ -115,6 +116,21 @@ const verifyALResult = async (req, res, next) => {
 
         await client.query('COMMIT');
 
+        // === Write to Blockchain (graceful: if fails, PostgreSQL data is already committed) ===
+        try {
+            const mspOrg = actor.msp_org || 'SekretariatMSP';
+            await fabricService.verifyALResult(submissionId, {
+                verifiedBy: actor.username,
+                notes: notes || '',
+                scoreAdjustments: scoreAdjustments || [],
+                finalScore,
+                recommendedRank
+            }, { mspOrg });
+            logger.info(`[Blockchain] ✅ VerifyALResult recorded on-chain for ${submissionId}`);
+        } catch (fabricError) {
+            logger.warn(`[Blockchain] ⚠️ Failed to write VerifyALResult to blockchain (PostgreSQL OK): ${fabricError.message}`);
+        }
+
         res.json({
             success: true,
             message: 'AL Result verified successfully',
@@ -137,15 +153,38 @@ const finalizeAccreditation = async (req, res, next) => {
         const { 
             finalRank,
             finalScore,
-            skNumber,
-            skDate,
-            validUntil
+            skNumber: manualSkNumber,
+            skDate: manualSkDate,
+            validUntil: manualValidUntil
         } = req.body;
         const actor = req.user;
 
         logger.info(`Finalizing Accreditation for ${submissionId} by ${actor.username}`);
 
         await client.query('BEGIN');
+
+        // === Auto-generate SK Number if not provided ===
+        let skNumber = manualSkNumber;
+        if (!skNumber) {
+            const year = new Date().getFullYear();
+            const countResult = await client.query(
+                `SELECT COUNT(*) as cnt FROM accreditation_decisions 
+                 WHERE EXTRACT(YEAR FROM decided_at) = $1`,
+                [year]
+            );
+            const seqNum = parseInt(countResult.rows[0].cnt) + 1;
+            skNumber = `SK/LAM-TEK/${year}/${String(seqNum).padStart(3, '0')}`;
+            logger.info(`[SK] Auto-generated SK Number: ${skNumber}`);
+        }
+
+        // Auto-set SK date to today if not provided
+        const skDate = manualSkDate || new Date().toISOString().split('T')[0];
+
+        // Auto-set valid until to 5 years from SK date if not provided
+        const skDateObj = new Date(skDate);
+        const defaultValidUntil = new Date(skDateObj);
+        defaultValidUntil.setFullYear(defaultValidUntil.getFullYear() + 5);
+        const validUntil = manualValidUntil || defaultValidUntil.toISOString().split('T')[0];
 
         const decisionId = uuidv4();
         await client.query(`
@@ -179,6 +218,22 @@ const finalizeAccreditation = async (req, res, next) => {
 
         await client.query('COMMIT');
 
+        // === Write to Blockchain (graceful) ===
+        try {
+            const mspOrg = actor.msp_org || 'MajelisMSP';
+            await fabricService.finalizeAccreditation(submissionId, {
+                finalRank,
+                finalScore,
+                skNumber,
+                skDate,
+                validUntil,
+                decidedBy: actor.username
+            }, { mspOrg });
+            logger.info(`[Blockchain] ✅ FinalizeAccreditation recorded on-chain for ${submissionId}`);
+        } catch (fabricError) {
+            logger.warn(`[Blockchain] ⚠️ Failed to write FinalizeAccreditation to blockchain (PostgreSQL OK): ${fabricError.message}`);
+        }
+
         res.json({
             success: true,
             message: 'Accreditation decision finalized successfully',
@@ -194,9 +249,60 @@ const finalizeAccreditation = async (req, res, next) => {
     }
 };
 
+/**
+ * Get already decided submissions (for Majelis dashboard)
+ */
+const getDecidedSubmissions = async (req, res, next) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT 
+                    ad.submission_id,
+                    ad.final_rank,
+                    ad.final_score,
+                    ad.sk_number,
+                    ad.sk_date,
+                    ad.valid_until,
+                    ad.decided_at,
+                    ad.certificate_cid,
+                    c.file_cid as certificate_file_cid,
+                    u.program_studi,
+                    u.institution as institusi
+                FROM accreditation_decisions ad
+                LEFT JOIN certificates c ON ad.submission_id = c.submission_id
+                LEFT JOIN al_schedules als ON ad.submission_id = als.submission_id
+                LEFT JOIN users u ON als.proposed_by = u.id
+                ORDER BY ad.decided_at DESC
+            `);
+
+            const data = result.rows.map(row => ({
+                submission_id: row.submission_id,
+                final_rank: row.final_rank,
+                final_score: row.final_score,
+                sk_number: row.sk_number,
+                sk_date: row.sk_date,
+                valid_until: row.valid_until,
+                decided_at: row.decided_at,
+                certificate_cid: row.certificate_cid || row.certificate_file_cid,
+                program_studi: row.program_studi || 'N/A',
+                institusi: row.institusi || 'N/A'
+            }));
+
+            res.json({ success: true, data });
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        logger.error('Get Decided Submissions error:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     getPendingVerifications,
     getPendingDecisions,
+    getDecidedSubmissions,
     verifyALResult,
     finalizeAccreditation
 };

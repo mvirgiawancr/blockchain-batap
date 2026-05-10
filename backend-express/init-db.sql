@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('upps', 'sekretariat', 'assessor', 'kea', 'asesor', 'admin')),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('upps', 'sekretariat', 'assessor', 'kea', 'asesor', 'admin', 'majelis')),
     name VARCHAR(255) NOT NULL,
     institution VARCHAR(255),
     program_studi VARCHAR(255),
@@ -278,7 +278,39 @@ VALUES
     )
 ON CONFLICT (username) DO NOTHING;
 
--- 5. Asesor users from TIN Faculty (Real data from profiling)
+-- 5a. Majelis Akreditasi users
+INSERT INTO users (username, password_hash, role, name, institution, msp_org, is_active)
+VALUES 
+    (
+        'majelis_ketua',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'majelis',
+        'Ketua Majelis Akreditasi',
+        'LAM-TEK',
+        'MajelisMSP',
+        TRUE
+    ),
+    (
+        'majelis_anggota1',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'majelis',
+        'Anggota Majelis 1',
+        'LAM-TEK',
+        'MajelisMSP',
+        TRUE
+    ),
+    (
+        'majelis_anggota2',
+        '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm',
+        'majelis',
+        'Anggota Majelis 2',
+        'LAM-TEK',
+        'MajelisMSP',
+        TRUE
+    )
+ON CONFLICT (username) DO NOTHING;
+
+-- 5b. Asesor users from TIN Faculty (Real data from profiling)
 INSERT INTO users (username, password_hash, role, name, institution, program_studi, phone, msp_org, is_active)
 VALUES 
     ('asesor_001', '$2b$10$ey3io1twhYpoFUsiXo9hlO9IP7E.3cDiaMKbWlAnsVVYUFu9DbPMm', 'asesor', 'Prof.Dr.Ir. Marimin, M.Sc', 'Institut Pertanian Bogor', 'Teknologi Industri Pertanian', '081234567801', 'AsesorMSP', TRUE),
@@ -323,7 +355,7 @@ ON CONFLICT (username) DO UPDATE SET
 -- 6. Assessor Profiles (Scholar/Scopus links)
 CREATE TABLE IF NOT EXISTS assessor_profiles (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     google_scholar_url TEXT,
     scopus_url TEXT,
     department VARCHAR(50),
@@ -335,6 +367,144 @@ CREATE TABLE IF NOT EXISTS assessor_profiles (
 
 CREATE INDEX IF NOT EXISTS idx_assessor_profiles_user_id ON assessor_profiles(user_id);
 
+-- Insert assessor profiles with Scholar/Scopus links
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=dDtbqMwAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=7409682197', 'TIN'
+FROM users WHERE username = 'asesor_001'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=PcWqLxkAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=22234206800', 'TIN'
+FROM users WHERE username = 'asesor_002'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=Rt2PiqwAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=6507451876', 'TIN'
+FROM users WHERE username = 'asesor_003'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=YPYaUJgAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=56085767200', 'TIN'
+FROM users WHERE username = 'asesor_004'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=eZ_TRJ0AAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=35503184700', 'TIN'
+FROM users WHERE username = 'asesor_005'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=2DYsY9sAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55977772800', 'TIN'
+FROM users WHERE username = 'asesor_006'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=rpHkx4sAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55574122275', 'TIN'
+FROM users WHERE username = 'asesor_007'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=C-SWorgAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55951561800', 'TIN'
+FROM users WHERE username = 'asesor_008'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=IWKZrZ4AAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=8957558300', 'TIN'
+FROM users WHERE username = 'asesor_009'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=LDf7YzkAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55946558300', 'TIN'
+FROM users WHERE username = 'asesor_010'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=8jBjsUsAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57207302968', 'TIN'
+FROM users WHERE username = 'asesor_011'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=3ipxV_kAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57188582609', 'TIN'
+FROM users WHERE username = 'asesor_012'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=jJcdHGIAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57190938204', 'TIN'
+FROM users WHERE username = 'asesor_013'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=99E94dsAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57211267581', 'TIN'
+FROM users WHERE username = 'asesor_014'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=jUH0gdkAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55014499000', 'TIN'
+FROM users WHERE username = 'asesor_015'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=ozwwVywAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=8636326000', 'TIN'
+FROM users WHERE username = 'asesor_016'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=UtbK-ugAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=55322289600', 'TIN'
+FROM users WHERE username = 'asesor_017'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=wDmm5HUAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=6603321602', 'TIN'
+FROM users WHERE username = 'asesor_018'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=fq1iDw0AAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=15049768000', 'TIN'
+FROM users WHERE username = 'asesor_019'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=FN1erhEAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=34971533400', 'TIN'
+FROM users WHERE username = 'asesor_020'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=ukUaIpEAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=6508356816', 'TIN'
+FROM users WHERE username = 'asesor_021'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=-_vHVywAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=36536701900', 'TIN'
+FROM users WHERE username = 'asesor_022'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=80SKJQYAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57204938013', 'TIN'
+FROM users WHERE username = 'asesor_023'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=Quoqo3EAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57193761907', 'TIN'
+FROM users WHERE username = 'asesor_024'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=8Z1PPZUAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57195592356', 'TIN'
+FROM users WHERE username = 'asesor_025'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=LylBITYAAAAJ', NULL, 'TIN'
+FROM users WHERE username = 'asesor_026'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=Znm63xwAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=34971614400', 'TIN'
+FROM users WHERE username = 'asesor_027'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=nJFAefAAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57200723971', 'TIN'
+FROM users WHERE username = 'asesor_028'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=8rEa3g4AAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=54879446100', 'TIN'
+FROM users WHERE username = 'asesor_029'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=HFQMq7QAAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57204219216', 'TIN'
+FROM users WHERE username = 'asesor_030'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=FSxvtbAAAAAJ', NULL, 'TIN'
+FROM users WHERE username = 'asesor_031'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=Rg4EaxYAAAAJ', NULL, 'TIN'
+FROM users WHERE username = 'asesor_032'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, NULL, 'https://www.scopus.com/authid/detail.uri?authorId=57193923546', 'TIN'
+FROM users WHERE username = 'asesor_033'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO assessor_profiles (user_id, google_scholar_url, scopus_url, department)
+SELECT id, 'https://scholar.google.com/citations?hl=id&user=OjoTm88AAAAJ', 'https://www.scopus.com/authid/detail.uri?authorId=57224196281', 'TIN'
+FROM users WHERE username = 'asesor_034'
+ON CONFLICT (user_id) DO NOTHING;
+
 -- 7. AL Schedules (Asesmen Lapangan - Phase 3B)
 CREATE TABLE IF NOT EXISTS al_schedules (
     id SERIAL PRIMARY KEY,
@@ -344,7 +514,7 @@ CREATE TABLE IF NOT EXISTS al_schedules (
     proposed_venue TEXT NOT NULL,
     proposed_by UUID REFERENCES users(id),
     proposed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'proposed' CHECK (status IN ('proposed', 'approved', 'rejected')),
+    status VARCHAR(30) DEFAULT 'proposed' CHECK (status IN ('proposed', 'approved', 'rejected', 'completed', 'verified', 'accredited', 'released')),
     approved_by UUID REFERENCES users(id),
     approved_at TIMESTAMP,
     approval_notes TEXT,
@@ -376,7 +546,7 @@ COMMENT ON TABLE al_schedules IS 'AL (Asesmen Lapangan) scheduling for Phase 3B'
 CREATE TABLE IF NOT EXISTS al_executions (
     id SERIAL PRIMARY KEY,
     execution_id VARCHAR(255) UNIQUE NOT NULL,
-    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    submission_id VARCHAR(255) UNIQUE REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
     berita_acara_cid TEXT,
     berita_acara_hash TEXT,
     attendance_values JSONB, -- {asesor1: true, asesor2: true, ...}
@@ -395,7 +565,7 @@ CREATE INDEX IF NOT EXISTS idx_al_executions_submission_id ON al_executions(subm
 CREATE TABLE IF NOT EXISTS al_responses (
     id SERIAL PRIMARY KEY,
     response_id VARCHAR(255) UNIQUE NOT NULL,
-    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    submission_id VARCHAR(255) UNIQUE REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
     execution_id VARCHAR(255) REFERENCES al_executions(execution_id),
     response_hash TEXT,
     response_cid TEXT,
@@ -403,7 +573,8 @@ CREATE TABLE IF NOT EXISTS al_responses (
     responded_by UUID REFERENCES users(id),
     responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(20) DEFAULT 'submitted',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_al_responses_submission_id ON al_responses(submission_id);
@@ -412,7 +583,7 @@ CREATE INDEX IF NOT EXISTS idx_al_responses_submission_id ON al_responses(submis
 CREATE TABLE IF NOT EXISTS verification_results (
     id SERIAL PRIMARY KEY,
     verification_id VARCHAR(255) UNIQUE NOT NULL,
-    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    submission_id VARCHAR(255) UNIQUE REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
     verified_by UUID REFERENCES users(id),
     verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes TEXT,
@@ -427,7 +598,7 @@ CREATE INDEX IF NOT EXISTS idx_verification_results_submission_id ON verificatio
 CREATE TABLE IF NOT EXISTS accreditation_decisions (
     id SERIAL PRIMARY KEY,
     decision_id VARCHAR(255) UNIQUE NOT NULL,
-    submission_id VARCHAR(255) REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
+    submission_id VARCHAR(255) UNIQUE REFERENCES al_schedules(submission_id) ON DELETE CASCADE,
     final_rank VARCHAR(50) NOT NULL,
     final_score NUMERIC(5,2),
     sk_number VARCHAR(100) UNIQUE,
@@ -471,4 +642,111 @@ CREATE INDEX IF NOT EXISTS idx_external_sync_logs_submission_id ON external_sync
 -- Trigger updates
 CREATE TRIGGER update_al_executions_updated_at BEFORE UPDATE ON al_executions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- =============================================================
+-- RESEARCH AREAS POPULATION (from populate_research_areas.sql)
+-- =============================================================
 
+-- Ensure all assessors have profiles
+INSERT INTO assessor_profiles (user_id)
+SELECT id FROM users WHERE role IN ('asesor', 'assessor') AND is_active = true
+ON CONFLICT (user_id) DO NOTHING;
+
+-- Group 1: Pengolahan Pangan & Teknologi Pangan
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Food Processing', 'Food Technology', 'Post-Harvest Technology', 'Food Safety'],
+  h_index = 12,
+  publication_count = 45
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Farah Fahma%' OR name LIKE '%Endang Warsiki%'
+);
+
+-- Group 2: Bioproses & Bioenergi
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Bioprocess Engineering', 'Bioenergy', 'Fermentation Technology', 'Enzyme Technology'],
+  h_index = 15,
+  publication_count = 52
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Khaswar Syamsu%' OR name LIKE '%Prayoga Suryadarma%' OR name LIKE '%Andes Ismayana%'
+);
+
+-- Group 3: Manajemen Agroindustri & Supply Chain
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Agroindustry Management', 'Supply Chain Management', 'Production Planning', 'Quality Management'],
+  h_index = 18,
+  publication_count = 65
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Marimin%' OR name LIKE '%Hartrisari%' OR name LIKE '%Illah Sailah%'
+);
+
+-- Group 4: Teknologi Lingkungan & Pengolahan Limbah
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Environmental Technology', 'Waste Treatment', 'Cleaner Production', 'Life Cycle Assessment'],
+  h_index = 14,
+  publication_count = 48
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Suprihatin%' OR name LIKE '%Muhammad Romli%' OR name LIKE '%Nastiti%'
+);
+
+-- Group 5: Teknologi Kemasan & Material
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Packaging Technology', 'Biopolymer', 'Biodegradable Materials', 'Nanotechnology'],
+  h_index = 16,
+  publication_count = 55
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Titi Candra%' OR name LIKE '%Indah Yuliasih%'
+);
+
+-- Group 6: Sistem Informasi & Kecerdasan Buatan
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Decision Support System', 'Artificial Intelligence', 'Fuzzy Logic', 'Expert System'],
+  h_index = 20,
+  publication_count = 78
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Ono Suparno%' OR name LIKE '%Elisa Anggraeni%'
+);
+
+-- Group 7: Teknik Proses & Perancangan Pabrik
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Process Engineering', 'Plant Design', 'Unit Operations', 'Process Optimization'],
+  h_index = 11,
+  publication_count = 38
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Sapta Raharja%' OR name LIKE '%Muslich%'
+);
+
+-- Group 8: Ekonomi & Analisis Kelayakan
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Techno-Economic Analysis', 'Feasibility Study', 'Agribusiness', 'Rural Development'],
+  h_index = 13,
+  publication_count = 42
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Tajuddin Bantacut%' OR name LIKE '%Anas Miftah%'
+);
+
+-- Group 9: Ergonomi & Keselamatan Kerja
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Ergonomics', 'Occupational Safety', 'Human Factors', 'Work System Design'],
+  h_index = 9,
+  publication_count = 28
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Moh. Yani%' OR name LIKE '%Sugiarto%'
+);
+
+-- Group 10: Teknologi Hasil Pertanian
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Agricultural Product Technology', 'Drying Technology', 'Storage Technology', 'Grain Processing'],
+  h_index = 10,
+  publication_count = 35
+WHERE user_id IN (
+  SELECT id FROM users WHERE name LIKE '%Erliza%' OR name LIKE '%Yandra%'
+);
+
+-- Default untuk yang belum ter-cover (junior lecturers)
+UPDATE assessor_profiles SET 
+  research_areas = ARRAY['Agricultural Engineering', 'Food Science', 'Industrial Technology'],
+  h_index = 5,
+  publication_count = 15
+WHERE research_areas IS NULL OR array_length(research_areas, 1) IS NULL;
+
+-- Update last_synced_at
+UPDATE assessor_profiles SET last_synced_at = CURRENT_TIMESTAMP;

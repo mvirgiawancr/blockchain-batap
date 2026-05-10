@@ -23,6 +23,13 @@ router.get('/list/decisions',
     verificationController.getPendingDecisions
 );
 
+// Get already decided submissions (Majelis)
+router.get('/list/decided',
+    authenticateToken,
+    authorizeRoles(['majelis', 'sekretariat', 'admin']),
+    verificationController.getDecidedSubmissions
+);
+
 // Verify AL Result (KEA/Sekretariat)
 router.post('/:submissionId/verify',
     authenticateToken,

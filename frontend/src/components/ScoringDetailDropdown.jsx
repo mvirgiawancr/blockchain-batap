@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Award, TrendingUp, AlertCircle, Info, AlertTriangle, Database, ShieldAlert } from 'lucide-react';
 
 /**
  * Component to display detailed scoring breakdown with nested dropdowns
  * Level 1: Show 7 criteria
  * Level 2: Show butir scores for each criteria
+ * Now includes score reason indicators for zero/low/default scores
  */
 export default function ScoringDetailDropdown({ scoring }) {
   const [expandedCriteria, setExpandedCriteria] = useState(new Set());
@@ -41,6 +42,45 @@ export default function ScoringDetailDropdown({ scoring }) {
     if (score >= 3.0) return 'bg-blue-600';
     if (score >= 2.0) return 'bg-yellow-600';
     return 'bg-red-600';
+  };
+
+  /**
+   * Get reason label and styling for a butir score
+   * Possible reasons: "calculated", "low_confidence", "not_available", "not_detected", "default"
+   */
+  const getReasonInfo = (reason, score) => {
+    switch (reason) {
+      case 'low_confidence':
+        return {
+          label: 'Data tipis/tidak ditemukan – skor minimum 2.0 (konfidensi rendah)',
+          icon: ShieldAlert,
+          color: 'text-amber-700 bg-amber-50 border-amber-200',
+          show: true
+        };
+      case 'not_available':
+        return {
+          label: 'Data tidak tersedia di LED/LKPS',
+          icon: Database,
+          color: 'text-orange-600 bg-orange-50 border-orange-200',
+          show: true
+        };
+      case 'not_detected':
+        return {
+          label: 'Data tidak terdeteksi oleh AI',
+          icon: AlertTriangle,
+          color: 'text-red-600 bg-red-50 border-red-200',
+          show: true
+        };
+      case 'default':
+      case 'calculated':
+      default:
+        return {
+          label: 'Dihitung dari data LED/LKPS',
+          icon: TrendingUp,
+          color: 'text-green-600 bg-green-50 border-green-200',
+          show: false
+        };
+    }
   };
 
   // Get butir details with full names (LAM-TEK 2025 - 56 Butir)
@@ -148,6 +188,25 @@ export default function ScoringDetailDropdown({ scoring }) {
       {/* Criteria List */}
       {showAllCriteria && (
         <div className="space-y-3 animate-fade-in">
+          {/* Legend */}
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <p className="text-sm font-semibold text-gray-700 mb-2">Keterangan Sumber Skor:</p>
+            <div className="flex flex-wrap gap-3 text-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-200">
+                <TrendingUp className="w-3 h-3" /> Dihitung dari data LED/LKPS
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                <ShieldAlert className="w-3 h-3" /> Konfidensi rendah – skor minimum 2.0
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full border border-orange-200">
+                <Database className="w-3 h-3" /> Data tidak tersedia di LED/LKPS
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-full border border-red-200">
+                <AlertTriangle className="w-3 h-3" /> Tidak terdeteksi oleh AI
+              </span>
+            </div>
+          </div>
+
           {criteriaArray.map((criteria) => (
             <div
               key={criteria.criteriaNumber}
@@ -213,6 +272,15 @@ export default function ScoringDetailDropdown({ scoring }) {
                     {Object.entries(criteria.butirScores).map(([butirKey, butirScore]) => {
                       const butirNumber = butirKey.split('.')[1];
                       const butirName = getButirDetails(criteria.criteriaNumber, butirNumber);
+                      const reason = criteria.butirReasons ? criteria.butirReasons[butirKey] : null;
+                      const reasonInfo = reason ? getReasonInfo(reason, butirScore) : null;
+                      // Always show reason for low_confidence/not_available/not_detected, show default only for low scores
+                      const showReason = reasonInfo && (
+                        reason === 'low_confidence' ||
+                        reason === 'not_available' ||
+                        reason === 'not_detected' ||
+                        butirScore === 0
+                      );
                       
                       return (
                         <div
@@ -239,6 +307,20 @@ export default function ScoringDetailDropdown({ scoring }) {
                                     style={{ width: `${(butirScore / 4) * 100}%` }}
                                   />
                                 </div>
+                                {/* Score Reason Indicator */}
+                                {showReason && reasonInfo && (
+                                  <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${reasonInfo.color}`}>
+                                    <reasonInfo.icon className="w-3 h-3" />
+                                    {reasonInfo.label}
+                                  </div>
+                                )}
+                                {/* Special indicator for zero score without explicit reason */}
+                                {butirScore === 0 && !showReason && (
+                                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Data tidak terdeteksi oleh AI dari dokumen LED/LKPS
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="text-right ml-4">

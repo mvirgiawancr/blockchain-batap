@@ -1,12 +1,13 @@
 /**
  * AL Execution Controller
  * Handles Phase 4: Field Assessment (Asesmen Lapangan) and Responses
- * Uses PostgreSQL only (chaincode call disabled until upgrade)
+ * Writes to both PostgreSQL and Blockchain (Fabric)
  */
 
 const logger = require('../utils/logger');
 const { pool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const fabricService = require('../services/fabricService');
 
 /**
  * Submit Berita Acara (AL Execution)
@@ -66,6 +67,23 @@ const submitALExecution = async (req, res, next) => {
                 UPDATE al_schedules SET status = 'completed', updated_at = CURRENT_TIMESTAMP
                 WHERE submission_id = $1 AND status = 'approved'
             `, [submissionId]);
+
+            // === Write to Blockchain (graceful) ===
+            try {
+                const mspOrg = actor.msp_org || 'AsesorMSP';
+                await fabricService.submitALExecution(submissionId, {
+                    beritaAcaraCid,
+                    beritaAcaraHash: beritaAcaraHash || null,
+                    attendanceValues: attendanceValues || {},
+                    findings: findings || [],
+                    scores: scores || {},
+                    totalScore: totalScore || 0,
+                    submittedBy: actor.username
+                }, { mspOrg });
+                logger.info(`[Blockchain] ✅ SubmitALExecution recorded on-chain for ${submissionId}`);
+            } catch (fabricError) {
+                logger.warn(`[Blockchain] ⚠️ Failed to write SubmitALExecution to blockchain (PostgreSQL OK): ${fabricError.message}`);
+            }
 
             logger.info(`AL Execution submitted for ${submissionId}`);
             res.json({
@@ -131,6 +149,20 @@ const submitUPPSResponse = async (req, res, next) => {
                 actor.id
             ]);
 
+            // === Write to Blockchain (graceful) ===
+            try {
+                const mspOrg = actor.msp_org || 'UPPSMSP';
+                await fabricService.submitUPPSResponse(submissionId, {
+                    responseHash: responseHash || null,
+                    responseCid: responseCid || null,
+                    notes: notes || '',
+                    respondedBy: actor.username
+                }, { mspOrg });
+                logger.info(`[Blockchain] ✅ SubmitUPPSResponse recorded on-chain for ${submissionId}`);
+            } catch (fabricError) {
+                logger.warn(`[Blockchain] ⚠️ Failed to write SubmitUPPSResponse to blockchain (PostgreSQL OK): ${fabricError.message}`);
+            }
+
             logger.info(`UPPS Response submitted for ${submissionId}`);
             res.json({
                 success: true,
@@ -181,7 +213,6 @@ const getALDetails = async (req, res, next) => {
             // Try to get submission details from blockchain
             let submission = null;
             try {
-                const fabricService = require('../services/fabricService');
                 submission = await fabricService.getSubmission(submissionId);
             } catch (e) {
                 logger.warn(`Could not fetch submission from blockchain: ${e.message}`);

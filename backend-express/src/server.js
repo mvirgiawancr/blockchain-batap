@@ -30,6 +30,7 @@ const alScheduleRoutes = require('./routes/alSchedule');
 const alExecutionRoutes = require('./routes/alExecution'); // Phase 4
 const verificationRoutes = require('./routes/verification'); // Phase 5
 const releaseRoutes = require('./routes/release'); // Phase 6
+const traceabilityRoutes = require('./routes/traceability'); // Traceability
 
 
 // Import WebSocket
@@ -110,6 +111,7 @@ app.use(`${config.server.apiPrefix}/al-schedule`, alScheduleRoutes); // Phase 3B
 app.use(`${config.server.apiPrefix}/al-execution`, alExecutionRoutes); // Phase 4: AL Execution
 app.use(`${config.server.apiPrefix}/verification`, verificationRoutes); // Phase 5: Verification & Decision
 app.use(`${config.server.apiPrefix}/release`, releaseRoutes); // Phase 6: Certificate Release
+app.use(`${config.server.apiPrefix}/traceability`, traceabilityRoutes); // Traceability & Certificate Search
 
 // Error handling middleware
 app.use(notFound);

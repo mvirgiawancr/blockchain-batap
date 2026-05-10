@@ -37,6 +37,7 @@ import UPPSALResponsePage from './pages/UPPSALResponsePage';
 import VerificationListPage from './pages/VerificationListPage';
 import MajelisDashboard from './pages/MajelisDashboard';
 import ReleaseListPage from './pages/ReleaseListPage';
+import TraceabilityPage from './pages/TraceabilityPage';
 
 
 function ProtectedRoute({ children, roles }) {
@@ -356,6 +357,14 @@ function App() {
             }
           />
            <Route
+            path="/majelis/decisions"
+            element={
+              <ProtectedRoute roles={['majelis', 'sekretariat', 'admin']}>
+                <MajelisDashboard user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+           <Route
             path="/majelis-decision/:submissionId"
             element={
               <ProtectedRoute roles={['majelis', 'sekretariat', 'admin']}>
@@ -384,6 +393,7 @@ function App() {
 
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
+          <Route path="/traceability" element={<TraceabilityPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

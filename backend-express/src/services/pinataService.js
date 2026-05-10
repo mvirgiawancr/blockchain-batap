@@ -209,15 +209,27 @@ class PinataService {
 
     try {
       const formData = new FormData();
-      formData.append('file', fileBuffer, filename);
+      
+      // Handle both raw Buffer and multer file objects
+      if (Buffer.isBuffer(fileBuffer)) {
+        formData.append('file', fileBuffer, {
+          filename: filename,
+          contentType: filename.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'
+        });
+      } else {
+        formData.append('file', fileBuffer, filename);
+      }
 
-      // Add metadata
-      const pinataMetadata = {
-        name: filename,
-        keyvalues: {
-          ...metadata,
-          uploadedAt: new Date().toISOString()
+      // Add metadata — sanitize keyvalues (Pinata requires string values, max 255 chars)
+      const sanitizedKeyvalues = {};
+      for (const [key, value] of Object.entries({ ...metadata, uploadedAt: new Date().toISOString() })) {
+        if (value !== null && value !== undefined) {
+          sanitizedKeyvalues[key] = String(value).substring(0, 255);
         }
+      }
+      const pinataMetadata = {
+        name: filename.substring(0, 255),
+        keyvalues: sanitizedKeyvalues
       };
       formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
 
@@ -253,8 +265,8 @@ class PinataService {
         pinata_url: `https://gateway.pinata.cloud/ipfs/${cid}`
       };
     } catch (error) {
-      console.error('[Pinata] Upload failed:', error.message);
-      throw new Error(`IPFS upload failed: ${error.message}`);
+      console.error('[Pinata] Upload failed:', error.response?.data || error.response?.status || error.message);
+      throw new Error(`IPFS upload failed: ${error.response?.data?.error || error.message}`);
     }
   }
 

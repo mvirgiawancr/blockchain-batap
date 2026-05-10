@@ -166,9 +166,12 @@ export default function KEAALSchedulingPage({ user }) {
         const submissionsData = await submissionsRes.json();
         const dataArray = Array.isArray(submissionsData) ? submissionsData : 
                          (submissionsData?.data && Array.isArray(submissionsData.data) ? submissionsData.data : []);
-        // Filter: AK consistent AND not already scheduled
+        // Filter: AK consistent AND not already scheduled AND not already completed
+        const completedStatuses = ['accredited', 'released', 'verified', 'completed'];
         const readySubmissions = dataArray.filter(s => 
-          s.akConsistent === true && !scheduledIds.has(s.submissionId)
+          s.akConsistent === true && 
+          !scheduledIds.has(s.submissionId) &&
+          !completedStatuses.includes(s.status)
         );
         setSubmissions(readySubmissions);
       }

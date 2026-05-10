@@ -26,7 +26,7 @@ router.get('/:submissionId/preview-certificate',
 // Publish Certificate
 router.post('/:submissionId/publish',
     authenticateToken,
-    authorizeRoles(['sekretariat', 'admin']),
+    authorizeRoles(['sekretariat', 'admin', 'majelis']),
     releaseController.publishCertificate
 );
 

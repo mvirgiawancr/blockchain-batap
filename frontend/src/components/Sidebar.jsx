@@ -17,7 +17,8 @@ import {
   FileCheck,
   TrendingUp,
   AlertTriangle,
-  MapPin
+  MapPin,
+  Search
 } from 'lucide-react';
 
 const Sidebar = ({ user, onLogout, menuItems }) => {
@@ -182,6 +183,7 @@ export const getMenuForRole = (role) => {
       { icon: MapPin, label: 'Jadwal AL', path: '/upps/al-response' },
       { icon: Users, label: 'Info Asesor', path: '/assessors-info' },
       { icon: Bell, label: 'Notifikasi', path: '/notifications', badge: 0 },
+      { icon: Search, label: 'Traceability Sertifikat', path: '/traceability' },
     ],
     sekretariat: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/sekretariat' },
@@ -220,7 +222,7 @@ export const getMenuForRole = (role) => {
     ],
     majelis: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/majelis' },
-      { icon: Award, label: 'Keputusan Akreditasi', path: '/majelis' },
+      { icon: Award, label: 'Keputusan Akreditasi', path: '/majelis/decisions' },
     ],
   };
 

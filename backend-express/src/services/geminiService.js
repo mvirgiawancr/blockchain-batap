@@ -183,8 +183,11 @@ class GeminiService {
       let text = '';
 
       workbook.eachSheet((worksheet, sheetId) => {
-        text += `\n--- Sheet: ${worksheet.name} ---\n`;
-        
+        // Normalize sheet name: strip decoration characters like ✓ and trim whitespace
+        // so prompt patterns like "Sheet 3b" match LAM-TEK 2025 sheets named "3b✓" or "3b ✓".
+        const normalizedName = String(worksheet.name).replace(/[✓✔✅☑]/g, '').trim();
+        text += `\n--- Sheet: ${normalizedName} ---\n`;
+
         worksheet.eachRow((row, rowNumber) => {
           const rowData = [];
           row.eachCell((cell, colNumber) => {
@@ -325,117 +328,52 @@ Return ONLY the JSON, no markdown, no explanation.`;
     const prompts = {
       2: {
         fields: {
-          bop_value: '(number) BOP = Biaya Operasional Pendidikan/Mahasiswa. SEARCH LOCATIONS: (1) Sheet "4a" or "4.a" or "Tabel 4.a", (2) Look for row/cell with text "BOP =" or "Biaya Operasional", (3) Extract number in Rupiah (usually 20-40 million). FORMAT: Remove dots/commas, return plain number',
-          dpd_total: '(number) DP = Dana Penelitian DTPS. SEARCH LOCATIONS: (1) Sheet "4a" or "4.a", (2) Look for "DP =" or "Dana Penelitian", (3) Extract LARGE number in Rupiah (usually billions). FORMAT: Remove separators, return plain number',
-          jumlah_dtps: '(number) NDTPS = Jumlah Dosen Tetap. SEARCH PRIORITY: (1) Info block at top of LKPS with "NDTPS" label, (2) Sheet "3b1" or "3.b.1" - count table rows, (3) Sheet "3a1" - count dosen rows. Expected: 15-35 for most programs',
-          kerjasama_pendidikan: '(number) Count KERJASAMA type PENDIDIKAN. SEARCH: (1) Sheet "6" or "Tabel 6" or "Tabel 6a", (2) Find column "Jenis Kerjasama" or "Jenis", (3) COUNT rows where value = "Pendidikan" or "Pembelajaran". FALLBACK: Total kerjasama × 0.35. Expected: 5-20',
-          kerjasama_penelitian: '(number) Count KERJASAMA type PENELITIAN. SEARCH: Same Sheet 6, COUNT "Penelitian" or "Research". FALLBACK: Total × 0.35. Expected: 5-20',
-          kerjasama_pkm: '(number) Count KERJASAMA type PKM/PENGABDIAN. SEARCH: Same Sheet 6, COUNT "PkM" or "Pengabdian" or "Pengabdian kepada Masyarakat". FALLBACK: Total × 0.30. Expected: 3-15',
-          kerjasama_internasional: '(number) Count KERJASAMA level INTERNASIONAL. SEARCH: Sheet 6, find column "Tingkat" or "Level", COUNT "Internasional" or "International". FALLBACK: Total × 0.20. Expected: 2-10',
-          kerjasama_nasional: '(number) Count KERJASAMA level NASIONAL. SEARCH: Same sheet, COUNT "Nasional" or "National". FALLBACK: Total × 0.50. Expected: 5-20',
-          kerjasama_wilayah: '(number) Count KERJASAMA level WILAYAH/LOKAL. SEARCH: Same sheet, COUNT "Wilayah" or "Lokal" or "Regional". FALLBACK: Total × 0.30. Expected: 3-12'
+          bop_value: '(number) BOP = Biaya Operasional Pendidikan per Mahasiswa. SEARCH (LAM-TEK 2025): (1) Sheet "2b" / Tabel 2.b "Penggunaan Dana", row "Biaya Operasional Pendidikan" (sub a-e) total Program Studi rata-rata, divide by jumlah mahasiswa OR find precomputed "BOP =" line. LEGACY (pre-2025): Sheet "4a" / Tabel 4.a, "BOP =" row. FORMAT: Remove dots/commas/spaces. Expected 15M-50M Rupiah',
+          dpd_total: '(number) DPD/DP = Dana Penelitian DTPS (total over 3 tahun). SEARCH (LAM-TEK 2025): Sheet "2b" / Tabel 2.b, row "Biaya Penelitian", take Program Studi total or Rata-rata × 3. LEGACY: Sheet "4a", "DP =" row. FORMAT: plain integer. Expected 1B-50B Rupiah',
+          dpkm_total: '(number) DPkM = Dana PkM DTPS (total over 3 tahun). SEARCH (LAM-TEK 2025): Sheet "2b" / Tabel 2.b, row "Biaya PkM" or "Biaya Pengabdian", take Program Studi total or Rata-rata × 3. Expected 100M-5B Rupiah. If row missing, leave 0 only if row is genuinely absent',
+          jumlah_dtps: '(number) NDTPS = Jumlah Dosen Tetap. SEARCH PRIORITY: (1) Info block at top of LKPS with "NDTPS" label, (2) LAM-TEK 2025: Sheet "4a" / Tabel 4.a Profil Dosen — count data rows. LEGACY: Sheet "3a1" / Tabel 3.a.1. Expected 12-35',
+          kerjasama_pendidikan: '(number) Count KERJASAMA type PENDIDIKAN. SEARCH (LAM-TEK 2025): Sheet "2a1" / Tabel 2 Bagian-1 "Kerjasama Pendidikan" — count data rows (skip header). LEGACY: Sheet "6", row Jenis = Pendidikan. Expected 5-30',
+          kerjasama_penelitian: '(number) Count KERJASAMA type PENELITIAN. SEARCH (LAM-TEK 2025): Sheet "2a2" / Tabel 2 Bagian-2 "Kerjasama Penelitian" — count data rows. LEGACY: Sheet "6", Jenis = Penelitian. Expected 5-30',
+          kerjasama_pkm: '(number) Count KERJASAMA type PkM/Pengabdian. SEARCH (LAM-TEK 2025): Sheet "2a3" / Tabel 2 Bagian-3 "Kerjasama PkM" — count data rows. LEGACY: Sheet "6", Jenis = PkM. Expected 3-25',
+          kerjasama_internasional: '(number) TOTAL kerjasama level INTERNASIONAL across 2a1+2a2+2a3 (LAM-TEK 2025) — column "Tingkat: Internasional" marked V or value. LEGACY: Sheet 6 Tingkat = Internasional. Expected 1-15',
+          kerjasama_nasional: '(number) TOTAL kerjasama level NASIONAL across 2a1+2a2+2a3 (LAM-TEK 2025) — column "Tingkat: Nasional" marked V. LEGACY: Sheet 6 Tingkat = Nasional. Expected 5-40',
+          kerjasama_wilayah: '(number) TOTAL kerjasama level LOKAL/WILAYAH across 2a1+2a2+2a3 (LAM-TEK 2025) — column "Lokal/Wilayah" marked V. LEGACY: Sheet 6 Tingkat = Wilayah. Expected 0-25'
         },
-        example: { bop_value: 25925746.63, dpd_total: 11397400360, jumlah_dtps: 26, kerjasama_pendidikan: 12, kerjasama_penelitian: 15, kerjasama_pkm: 8, kerjasama_internasional: 6, kerjasama_nasional: 10, kerjasama_wilayah: 5 },
-        hint: `🔍 COMPREHENSIVE EXTRACTION STRATEGY FOR KRITERIA 2
+        example: { bop_value: 25925746.63, dpd_total: 11397400360, dpkm_total: 800000000, jumlah_dtps: 26, kerjasama_pendidikan: 12, kerjasama_penelitian: 15, kerjasama_pkm: 8, kerjasama_internasional: 6, kerjasama_nasional: 10, kerjasama_wilayah: 5 },
+        hint: `EXTRACTION STRATEGY — KRITERIA 2 (LAM-TEK 2025)
 
-📋 **DOCUMENT STRUCTURE UNDERSTANDING:**
-LKPS files contain markers like:
-  --- Sheet: 4a ---
-  --- Sheet: 6 ---
-  Tabel 4.a: Keuangan
-  Tabel 6: Kerjasama
+KEY SHEETS:
+  --- Sheet: 2a1 ---  Tabel 2 Bagian-1 Kerjasama Pendidikan (one row per kerjasama, kolom Tingkat: Internasional/Nasional/Lokal-Wilayah marked with V)
+  --- Sheet: 2a2 ---  Tabel 2 Bagian-2 Kerjasama Penelitian
+  --- Sheet: 2a3 ---  Tabel 2 Bagian-3 Kerjasama PkM
+  --- Sheet: 2b ---   Tabel 2.b Penggunaan Dana (BOP, Biaya Penelitian, Biaya PkM, all Rupiah)
+  --- Sheet: 4a ---   Tabel 4.a Profil Dosen (count for NDTPS)
 
-Your job: Find these markers, then extract data from the table that follows.
+LEGACY (older S1 LKPS): Sheet 4a for keuangan, Sheet 6 for kerjasama. Try LAM-TEK 2025 first.
 
-💰 **1. BOP VALUE (Biaya Operasional Pendidikan)**
-   STEP 1: Find Sheet 4a
-     - Search for "--- Sheet: 4a ---" OR "Tabel 4.a"
-   STEP 2: In that section, find the row
-     - Look for "BOP = " or "Biaya Operasional Pendidikan/Mahasiswa"
-   STEP 3: Extract the number
-     - Format: "25.925.746,63" or "25925746.63"
-     - REMOVE dots/commas → return 25925746.63
-     - Expected range: 15,000,000 - 50,000,000 (15-50 million Rupiah)
-   FALLBACK: If not found, return 25000000 (25 million baseline)
+KERJASAMA EXTRACTION:
+- Each row in 2a1/2a2/2a3 has columns "Internasional | Nasional | Lokal/Wilayah". The non-empty column (V/✓/X) marks the tingkat.
+- kerjasama_pendidikan = data row count in 2a1
+- kerjasama_penelitian = data row count in 2a2
+- kerjasama_pkm = data row count in 2a3
+- kerjasama_internasional = total rows across 2a1+2a2+2a3 with Internasional marked
+- kerjasama_nasional = total rows with Nasional marked
+- kerjasama_wilayah = total rows with Lokal/Wilayah marked
+- pendidikan+penelitian+pkm should ≈ internasional+nasional+wilayah (total kerjasama).
 
-💵 **2. DPD TOTAL (Dana Penelitian Dosen)**
-   STEP 1: Same Sheet 4a
-   STEP 2: Find row "DP = " or "Dana Penelitian yang diperoleh dosen"
-   STEP 3: Extract LARGE number
-     - Format: "11.397.400.360" or "11397400360"
-     - Expected range: 1,000,000,000 - 50,000,000,000 (1-50 billion Rupiah)
-   FALLBACK: If not found, return 5000000000 (5 billion baseline)
+DANA EXTRACTION (Sheet 2b):
+- Table has columns "TS-2 | TS-1 | TS | Rata-rata" for both UPPS and Program Studi blocks.
+- bop_value: row "Biaya Operasional Pendidikan" (sub-totals a–e), use Program Studi Rata-rata divided by jumlah mahasiswa aktif (or use precomputed BOP if listed).
+- dpd_total: row "Biaya Penelitian", Program Studi total or Rata-rata × 3 (3 tahun).
+- dpkm_total: row "Biaya PkM" / "Biaya Pengabdian", same approach.
+- Numbers may have separator dots ("11.397.400.360"); strip them.
 
-👨‍🏫 **3. JUMLAH DTPS (Dosen Tetap Program Studi)**
-   PRIORITY 1: Info block at document start
-     - Look for line like "NDTPS: 26" or "Jumlah DTPS: 26"
-   PRIORITY 2: Count rows in Sheet 3b1 or 3.b.1
-     - Find "--- Sheet: 3b1 ---"
-     - Count data rows (excluding header)
-   PRIORITY 3: Count rows in Sheet 3a1
-     - Table of dosen names
-   FALLBACK: Return 25 (typical for Magister)
-
-🤝 **4-9. KERJASAMA DATA (6 fields)**
-   **Table Location:** Sheet 6 or Tabel 6 or Tabel 6.a
-   
-   **Table Structure Usually:**
-   | No | Nama Lembaga | Jenis Kerjasama | Tingkat | Tahun |
-   |----|--------------|-----------------|---------|-------|
-   | 1  | Universitas X| Pendidikan      | Nasional| 2023  |
-   | 2  | Company Y    | Penelitian      | Internasional | 2022 |
-   
-   **EXTRACTION METHOD:**
-   
-   A. **By JENIS (Type):**
-      - kerjasama_pendidikan: COUNT where Jenis = "Pendidikan" or "Pembelajaran"
-      - kerjasama_penelitian: COUNT where Jenis = "Penelitian" or "Research"
-      - kerjasama_pkm: COUNT where Jenis = "PkM" or "Pengabdian"
-   
-   B. **By TINGKAT (Level):**
-      - kerjasama_internasional: COUNT where Tingkat = "Internasional"
-      - kerjasama_nasional: COUNT where Tingkat = "Nasional"
-      - kerjasama_wilayah: COUNT where Tingkat = "Wilayah" or "Lokal"
-   
-   **IF TABLE UNCLEAR (Missing columns):**
-   
-   METHOD A: Total count approach
-     1. COUNT total rows in Tabel 6 = N
-     2. kerjasama_pendidikan ≈ N × 0.35 (35%)
-     3. kerjasama_penelitian ≈ N × 0.35 (35%)
-     4. kerjasama_pkm ≈ N × 0.30 (30%)
-     5. kerjasama_internasional ≈ N × 0.20 (20%)
-     6. kerjasama_nasional ≈ N × 0.50 (50%)
-     7. kerjasama_wilayah ≈ N × 0.30 (30%)
-   
-   METHOD B: Pattern recognition
-     - If you see institution names with "University", "Institut" → likely Pendidikan
-     - If you see company names, NGO → likely Penelitian/PkM
-     - If institution name has "International", "Singapore", "Malaysia" → Internasional
-   
-   METHOD C: Reasonable defaults (LAST RESORT)
-     - kerjasama_pendidikan: 12
-     - kerjasama_penelitian: 15
-     - kerjasama_pkm: 8
-     - kerjasama_internasional: 6
-     - kerjasama_nasional: 10
-     - kerjasama_wilayah: 5
-
-⚠️ **CRITICAL RULES:**
-1. **DO NOT return 0** unless table is completely empty (0 rows)
-2. **Use estimation** if columns are unclear - reasonable guess > 0
-3. **Numbers must add up logically**:
-   - pendidikan + penelitian + pkm should ≈ total kerjasama
-   - internasional + nasional + wilayah should ≈ total kerjasama
-4. **Format cleaning**: Remove ".", ",", " " from numbers → plain integer
-5. **Sheet markers**: Trust "--- Sheet: X ---" as definitive section boundaries
-
-📊 **QUALITY CHECK YOUR OUTPUT:**
-- BOP: 15M - 50M ✓
-- DPD: 1B - 50B ✓
-- NDTPS: 15 - 35 ✓
-- Each kerjasama: 3 - 25 ✓
-- If ANY field is 0 → RECHECK or use fallback!`
+QUALITY CHECK:
+- BOP: 15M-50M Rupiah
+- DPD: 100M-50B Rupiah
+- DPkM: 50M-5B Rupiah
+- NDTPS: 12-35
+- Kerjasama: pendidikan+penelitian+pkm ≈ internasional+nasional+wilayah`
       },
       3: {
         fields: {
@@ -449,363 +387,108 @@ Your job: Find these markers, then extract data from the table that follows.
       },
       4: {
         fields: {
-          ndtps: '(number) Jumlah DTPS. PRIORITY: (1) Info block "NDTPS" value, (2) COUNT rows in Sheet 3a1/Tabel 3.a.1, (3) COUNT rows in Sheet 3b1. Expected: 15-35',
-          pdtt: '(number) Persentase dosen tidak tetap (0-100). SEARCH: Sheet 3a2 or calculate (DTT / Total Dosen) × 100. FALLBACK: 5-10% for quality programs',
-          pds3: '(number) CRITICAL - Persentase dosen S3 (0-100). SEARCH: (1) Sheet 3a1/Tabel 3.a.1, (2) Find column "Pendidikan Terakhir" or "Pendidikan" or "Gelar", (3) COUNT rows with "S3" or "Doktor" or "Dr." or "Ph.D", (4) FORMULA: (Count S3 / NDTPS) × 100. Expected: 70-100% for Magister/Doktor. MUST CALCULATE percentage, not just count!',
-          pgblkl: '(number) CRITICAL - Persentase Guru Besar + Lektor Kepala (0-100). SEARCH: (1) Sheet 3a1, (2) Find column "Jabatan Akademik" or "Jabatan" or "Jab", (3) COUNT "Guru Besar" OR "Prof" (GB count), (4) COUNT "Lektor Kepala" OR "LK" (LK count), (5) FORMULA: ((GB + LK) / NDTPS) × 100. Expected: 50-90%. RETURN PERCENTAGE not count!',
-          rbk_dtps: '(number) Rata-rata beban kerja DTPS (SKS). SEARCH: (1) Sheet 3a3/Tabel 3.a.3, (2) Find row "Rata-rata" or calculate average from "Jumlah SKS" column, (3) Expected: 10-16 SKS. FALLBACK: 12 SKS',
-          kinerja_penelitian_dtps_ri: '(number) Total penelitian DTPS Internasional. SEARCH: Sheet 3b1/Tabel 3.b.1 or 3b2, SUM across years (TS + TS-1 + TS-2). Look for "Penelitian" + "Internasional". Expected: 5-30',
-          kinerja_penelitian_dtps_rn: '(number) Total penelitian DTPS Nasional. Same sheet, SUM Nasional. Expected: 10-50',
-          kinerja_pkm_dtps_ri: '(number) Total PkM DTPS Internasional. SEARCH: Sheet 3b3 or 3b4, look for "PkM" or "Pengabdian" + "Internasional". Expected: 2-15',
-          publikasi_ilmiah_dtps_ri: '(number) CRITICAL - Publikasi Internasional bereputasi. SEARCH: (1) Sheet 3b4 or 3b5 or Tabel 3.b.4, (2) Find row "Jurnal penelitian internasional bereputasi" or "Jurnal Internasional" or "International Journal", (3) Look for TOTAL column OR SUM (TS + TS-1 + TS-2), (4) Expected: 50-300 for research university. EXACT NUMBER, not estimate!',
-          publikasi_ilmiah_dtps_rn: '(number) CRITICAL - Publikasi Nasional terakreditasi. Same sheet, find row "Jurnal penelitian nasional terakreditasi" or "Jurnal Nasional" or "National Journal", extract TOTAL. Expected: 50-300',
-          rlp_dtps: '(number) Rasio luaran penelitian per DTPS. FORMULA: (publikasi_ilmiah_dtps_ri + publikasi_ilmiah_dtps_rn) / NDTPS. Expected: 8-25',
-          kinerja_pkm_dtps_rn: '(number) Total PkM DTPS Nasional. Sheet 3b3 or 3b4, "PkM" + "Nasional". Expected: 5-30'
+          ndtps: '(number) NDTPS = Jumlah Dosen Tetap. PRIORITY: (1) Info block "NDTPS" value, (2) LAM-TEK 2025 Sheet "4a" / Tabel 4.a "Profil Dosen" — count data rows. LEGACY: Sheet "3a1". Expected 12-35',
+          pdtt: '(number) Persentase dosen tidak tetap (0-100). SEARCH (LAM-TEK 2025): Sheet "4a" — count where Status ≠ "Dosen Tetap". LEGACY: Sheet "3a2". FALLBACK 5-10% for accredited programs',
+          pds3: '(number) Persentase dosen S3/Doktor (0-100). SEARCH (LAM-TEK 2025): Sheet "4a" / Tabel 4.a — find column "Pendidikan" / "Gelar Akademik", COUNT rows with "S3" or "Doktor" or "Dr." or "Ph.D", FORMULA (Count S3 / NDTPS) × 100. LEGACY: Sheet 3a1. Expected 70-100% for Magister/Doktor',
+          pgblkl: '(number) Persentase Guru Besar + Lektor Kepala (0-100). SEARCH (LAM-TEK 2025): Sheet "4a" / Tabel 4.a — column "Jabatan Akademik", COUNT "Guru Besar/Profesor" + "Lektor Kepala", FORMULA ((GB + LK) / NDTPS) × 100. LEGACY: Sheet 3a1. Expected 50-90%',
+          rbk_dtps: '(number) Rata-rata beban kerja DTPS (SKS). SEARCH (LAM-TEK 2025): Sheet "4c" / Tabel 4.c "Beban Kerja Dosen" — average "Jumlah SKS" column. LEGACY: Sheet 3a3. Expected 10-16 SKS',
+          kinerja_penelitian_dtps: '(number) TOTAL penelitian DTPS across 3 tahun & all sumber. SEARCH (LAM-TEK 2025): Sheet "3b" / Tabel 3.b "Penelitian DTPS" — take "Jumlah" total cell (sum of all sumber × all years), often labeled NPD. LEGACY: Sheet 3b1. Expected 50-400. NEVER 0 if table has any rows.',
+          kinerja_pkm_dtps: '(number) TOTAL PkM DTPS across 3 tahun & all sumber. SEARCH (LAM-TEK 2025): Sheet "3c" / Tabel 3.c "Pengabdian kepada Masyarakat DTPS" — total "Jumlah" cell (NPKD). LEGACY: Sheet 3b3. Expected 30-300. NEVER 0 if table has any rows.',
+          publikasi_ilmiah_dtps_ri: '(number) Publikasi Internasional bereputasi (raw COUNT). SEARCH (LAM-TEK 2025): Sheet "4d" / Tabel 4.d "Publikasi Ilmiah DTPS" — row "Jurnal internasional bereputasi" (NA4), Jumlah column. LEGACY: Sheet 3b4 row "internasional bereputasi". Expected 30-300. Use raw count, NOT the precomputed RI ratio',
+          publikasi_ilmiah_dtps_rn: '(number) Publikasi Nasional terakreditasi (raw COUNT). SEARCH (LAM-TEK 2025): Sheet "4d" — row "Jurnal nasional terakreditasi" (NA2), Jumlah column. Expected 30-300. Raw count, not ratio',
+          rlp_dtps: '(number) Luaran Penelitian DTPS per dosen (rasio HKI/Paten + Buku ber-ISBN dll). SEARCH (LAM-TEK 2025): Sheets "4f-1", "4f-2", "4f-3", "4f-4" / Tabel 4.f bagian 1-4 — count valid Paten/HKI/Buku rows, divide by NDTPS. Also check Tabel 4.h ("Kinerja DTPS"). LEGACY: was simple ratio of publikasi/NDTPS. Expected 0.3-3.0',
+          pkib_dtps: '(number) PKIB = Persentase Karya Ilmiah DTPS yang Disitasi (0-100, value in percent). SEARCH (LAM-TEK 2025): Sheet "4i" / Tabel 4.i "Karya Ilmiah DTPS yang Disitasi" — find precomputed percentage label (e.g. "5.17%") OR FORMULA (count cited rows / total publikasi) × 100. Expected 1-30%. The formula in scoring expects a NUMBER 0-100 (will be normalized)'
         },
-        example: { ndtps: 26, pdtt: 7.5, pds3: 100.0, pgblkl: 76.9, rbk_dtps: 13.2, publikasi_ilmiah_dtps_ri: 272, publikasi_ilmiah_dtps_rn: 211, rlp_dtps: 18.6 },
-        hint: `🔍 COMPREHENSIVE SDM EXTRACTION (KRITERIA 4)
+        example: { ndtps: 26, pdtt: 7.5, pds3: 100.0, pgblkl: 76.9, rbk_dtps: 13.2, kinerja_penelitian_dtps: 311, kinerja_pkm_dtps: 300, publikasi_ilmiah_dtps_ri: 137, publikasi_ilmiah_dtps_rn: 87, rlp_dtps: 0.7, pkib_dtps: 5.17 },
+        hint: `EXTRACTION STRATEGY — KRITERIA 4 SDM (LAM-TEK 2025)
 
-📚 **MAIN DATA SOURCES:**
-- Sheet 3a1 / Tabel 3.a.1: Daftar DTPS (nama, jabatan, pendidikan)
-- Sheet 3a3 / Tabel 3.a.3: Beban kerja dosen (SKS)
-- Sheet 3b1 / Tabel 3.b.1: Penelitian DTPS
-- Sheet 3b4 / Tabel 3.b.4 atau 3b5: Publikasi Ilmiah DTPS
+KEY SHEETS:
+  --- Sheet: 4a ---   Tabel 4.a Profil Dosen (NDTPS, Jabatan, Pendidikan, Status Dosen)
+  --- Sheet: 4c ---   Tabel 4.c Beban Kerja Dosen (SKS per dosen)
+  --- Sheet: 3b ---   Tabel 3.b Penelitian DTPS (Jumlah Judul per Sumber × TS-2/TS-1/TS, sometimes summary cells like NPD/NN/NI/NL)
+  --- Sheet: 3c ---   Tabel 3.c Pengabdian kepada Masyarakat DTPS (NPKD/NN/NI/NL)
+  --- Sheet: 4d ---   Tabel 4.d Publikasi Ilmiah DTPS (NA1=jurnal nas. tidak terakreditasi, NA2=nas. terakreditasi, NA3=internasional, NA4=internasional bereputasi, NB1-NB3=prosiding)
+  --- Sheet: 4f-1 ---, 4f-2, 4f-3, 4f-4   Tabel 4.f Luaran Penelitian/PkM (Paten, HKI, Buku ber-ISBN, Karya seni, dll)
+  --- Sheet: 4i ---   Tabel 4.i Karya Ilmiah DTPS yang Disitasi (column Jumlah Sitasi; some sheets contain a precomputed % seperti "5.17%")
 
-👨‍🏫 **1. NDTPS (Jumlah Dosen Tetap)**
-   METHOD 1: Direct value
-     - Search "NDTPS: 26" or "Jumlah DTPS: 26" in info block
-   METHOD 2: Count rows
-     - Go to Sheet 3a1
-     - COUNT rows (exclude header row)
-   Expected: 15-35
-   FALLBACK: 25
+LEGACY (older S1 LKPS): Sheets 3a1, 3a3, 3b1, 3b4. Try LAM-TEK 2025 first.
 
-📐 **2. PDTT (% Dosen Tidak Tetap)**
-   - Usually low for accredited programs: 5-15%
-   - If found in Sheet 3a2, use that
-   - Otherwise: return 7.5%
+CALCULATIONS:
+- ndtps = COUNT data rows in Sheet 4a (skip header rows). Or use NDTPS info block.
+- pds3 = (count rows in 4a where Pendidikan = S3/Doktor/Dr./Ph.D) / ndtps × 100. RETURN PERCENT.
+- pgblkl = (count "Guru Besar"/"Profesor" + "Lektor Kepala") / ndtps × 100. RETURN PERCENT.
+- pdtt = (count rows where Status ≠ "Dosen Tetap") / ndtps × 100. Default 5-10%.
+- rbk_dtps = average SKS in Sheet 4c "Jumlah SKS" column. Expected 10-16.
+- kinerja_penelitian_dtps = TOTAL all penelitian DTPS over 3 tahun & all sumber (use the "Jumlah" total cell or NPD summary). Take TOTAL of Tabel 3.b — for example if columns sum to 311, return 311. NOT split by RI/RN.
+- kinerja_pkm_dtps = TOTAL all PkM DTPS (NPKD or "Jumlah" total in Tabel 3.c). NOT split.
+- publikasi_ilmiah_dtps_ri = NA4 row total (jurnal internasional bereputasi). Raw count.
+- publikasi_ilmiah_dtps_rn = NA2 row total (jurnal nasional terakreditasi). Raw count.
+- rlp_dtps = total Paten/HKI/Buku/Karya across 4f-1..4f-4 rows, divide by NDTPS. Or read "Rasio Luaran" if present. Expected 0.3-3.0.
+- pkib_dtps = % karya disitasi in Tabel 4.i. If sheet has a precomputed percentage like "5.17%", return 5.17. Otherwise (cited rows / total publikasi) × 100.
 
-🎓 **3. PDS3 (% Dosen dengan S3/Doktor)** ⚠️ CRITICAL
-   STEP 1: Go to Sheet 3a1 (Tabel 3.a.1)
-   STEP 2: Find column labeled:
-     - "Pendidikan Terakhir" OR
-     - "Pendidikan" OR
-     - "Jenjang" OR
-     - "Gelar"
-   STEP 3: COUNT rows where value contains:
-     - "S3" OR "Doktor" OR "Dr." OR "Ph.D" OR "Doctor"
-   STEP 4: CALCULATE percentage:
-     Formula: (Count S3 / NDTPS) × 100
-     Example: 26 S3 out of 26 NDTPS = (26/26)×100 = 100%
-   
-   Expected: 70-100% for Magister/Doktor programs
-   FALLBACK: 85% (reasonable for accredited program)
-   
-   ⚠️ RETURN PERCENTAGE (0-100), NOT RAW COUNT!
-
-🏆 **4. PGBLKL (% Guru Besar + Lektor Kepala)** ⚠️ CRITICAL
-   STEP 1: Go to Sheet 3a1 (same table)
-   STEP 2: Find column labeled:
-     - "Jabatan Akademik" OR
-     - "Jabatan" OR
-     - "Jab"
-   STEP 3: COUNT Guru Besar:
-     - Look for "Guru Besar" OR "Prof" OR "Professor" OR "GB"
-   STEP 4: COUNT Lektor Kepala:
-     - Look for "Lektor Kepala" OR "LK" OR "L.K"
-   STEP 5: ADD them:
-     GB_count + LK_count = Total
-   STEP 6: CALCULATE percentage:
-     Formula: ((GB + LK) / NDTPS) × 100
-     Example: (4 GB + 16 LK) / 26 NDTPS = (20/26)×100 = 76.9%
-   
-   Expected: 50-90% for quality programs
-   FALLBACK: 65%
-   
-   ⚠️ RETURN PERCENTAGE (0-100), NOT RAW COUNT!
-
-📚 **5. RBK (Rata-rata Beban Kerja DTPS in SKS)**
-   STEP 1: Find Sheet 3a3 / Tabel 3.a.3
-   STEP 2: Look for:
-     - Row labeled "Rata-rata" OR "Average" OR "Mean"
-     - OR column "Jumlah SKS" and calculate average
-   STEP 3: Extract number (usually 10-16)
-   
-   Expected: 10-16 SKS
-   FALLBACK: 12 SKS
-
-📊 **6-7. PUBLIKASI ILMIAH** ⚠️ CRITICAL
-   **Location: Sheet 3b4 or 3b5 or Tabel 3.b.4**
-   
-   Table structure usually:
-   | Jenis Publikasi | TS | TS-1 | TS-2 | TOTAL |
-   |----------------|----|-|------|-------|-------|
-   | Jurnal penelitian internasional bereputasi | 98 | 87 | 87 | 272 |
-   | Jurnal penelitian nasional terakreditasi | 78 | 65 | 68 | 211 |
-   
-   **publikasi_ilmiah_dtps_ri (Internasional):**
-   STEP 1: Find row containing:
-     - "Jurnal penelitian internasional bereputasi" OR
-     - "Jurnal Internasional" OR
-     - "International Journal" OR
-     - "Bereputasi"
-   STEP 2: Extract TOTAL column
-     - If TOTAL column exists, use that value
-     - If not, SUM: TS + TS-1 + TS-2
-   STEP 3: Return EXACT number
-     Example: 272 → return 272
-   
-   **publikasi_ilmiah_dtps_rn (Nasional):**
-   Same process for "Jurnal penelitian nasional terakreditasi"
-   
-   Expected:
-   - Internasional: 50-300
-   - Nasional: 50-300
-   - Research university: higher numbers
-   
-   FALLBACK:
-   - If truly not found: internasional=100, nasional=120
-
-📈 **8. RLP (Rasio Luaran Penelitian per DTPS)**
-   FORMULA: (publikasi_ri + publikasi_rn) / NDTPS
-   Example: (272 + 211) / 26 = 18.6
-   
-   Expected: 8-25
-   FALLBACK: Calculate from other fields or return 12
-
-🔬 **9-11. KINERJA PENELITIAN & PKM**
-   Sheet 3b1: Penelitian DTPS (count or sum)
-   Sheet 3b3: PkM DTPS (count or sum)
-   
-   SUM across 3 years: TS + TS-1 + TS-2
-   
-   Expected ranges:
-   - kinerja_penelitian_dtps_ri: 5-30
-   - kinerja_penelitian_dtps_rn: 10-50
-   - kinerja_pkm_dtps_ri: 2-15
-   - kinerja_pkm_dtps_rn: 5-30
-   
-   FALLBACK: Use moderate values if not found
-
-⚠️ **CRITICAL CALCULATION RULES:**
-1. **PERCENTAGES:** Always calculate and return 0-100, NOT raw counts
-2. **PDS3 & PGBLKL:** These are THE MOST IMPORTANT fields - take time to find correct columns
-3. **PUBLIKASI:** Use EXACT TOTAL from table if available
-4. **Sheet names:** Trust markers like "--- Sheet: 3b4 ---"
-5. **Column matching:** Be flexible - "Pendidikan Terakhir" = "Pendidikan" = "Gelar"
-
-📊 **QUALITY CHECK OUTPUT:**
-- NDTPS: 15-35 ✓
-- PDTT: 5-15% ✓
-- PDS3: 70-100% ✓ (HIGH for Magister/Doktor)
-- PGBLKL: 50-90% ✓
-- RBK: 10-16 SKS ✓
-- Publikasi RI: 50-300 ✓
-- Publikasi RN: 50-300 ✓
-- If PDS3 or PGBLKL = 0 → WRONG, must recalculate!`
+QUALITY CHECK:
+- ndtps 12-35, pdtt 5-15, pds3 70-100, pgblkl 50-90, rbk_dtps 10-16
+- kinerja_penelitian_dtps 50-400, kinerja_pkm_dtps 30-300
+- publikasi_ilmiah_dtps_ri/rn 30-300 each (raw count, not ratio)
+- pkib_dtps 1-30 (percent)`
       },
       6: {
         fields: {
-          rmd: '(number) RMD = Rasio Mahasiswa/DTPS. SEARCH: (1) Sheet 5a/Tabel 5.a, (2) Find row "Mahasiswa Reguler" OR "Mahasiswa Aktif", (3) FORMULA: (Jumlah Mahasiswa Reguler / NDTPS). Expected: 15-30 for Magister',
-          pma: '(number) CRITICAL - PMA = % Mahasiswa Asing (0-100). SEARCH: (1) Sheet 2b/Tabel 2.b OR Sheet 5a, (2) Find row "Mahasiswa Asing Penuh Waktu" OR "Foreign Students", (3) Find "Total Mahasiswa Aktif", (4) FORMULA: (Mahasiswa Asing / Total Mahasiswa) × 100. Expected: 0-5%. FALLBACK: 0 if not found (many programs have 0)',
-          ripk: '(number) RIPK = Rata-rata IPK Lulusan (0.0-4.0). SEARCH: (1) Sheet 5b1/Tabel 5.b.1, (2) Find column "IPK Rata-rata" OR "Rata-rata IPK" OR "Average GPA", (3) Extract number (usually 3.0-3.8). Expected: 3.0-3.8. FALLBACK: 3.25',
-          prestasi_akademik_ri: '(number) Total prestasi AKADEMIK Internasional (TS+TS-1+TS-2). SEARCH: (1) Sheet 5b2/Tabel 5.b.2, (2) Find row "Prestasi Akademik" or "Academic Achievement", (3) Find column "Internasional" OR "RI", (4) SUM across 3 years. Expected: 2-10. FALLBACK: 4',
-          prestasi_akademik_rn: '(number) Total prestasi AKADEMIK Nasional (TS+TS-1+TS-2). SEARCH: Same Tabel 5.b.2, column "Nasional" OR "RN". Expected: 5-20. FALLBACK: 10',
-          prestasi_non_akademik_ri: '(number) Total prestasi NON-AKADEMIK Internasional. SEARCH: Tabel 5.b.2, row "Prestasi Non-Akademik" or "Non-Academic Achievement", column "Internasional". SUM across 3 years. Expected: 1-8. FALLBACK: 3',
-          prestasi_non_akademik_rn: '(number) Total prestasi NON-AKADEMIK Nasional. SEARCH: Same Tabel 5.b.2, column "Nasional". Expected: 5-15. FALLBACK: 8',
-          ptw: '(number) CRITICAL - PTW = % Lulusan Tepat Waktu (0-100). SEARCH: (1) Sheet 5c/Tabel 5.c, (2) Find row "Lulusan Tepat Waktu" OR "Tepat Waktu" OR "On-Time Graduates", (3) Find "Total Lulusan" OR "Jumlah Lulusan", (4) FORMULA: (Tepat Waktu / Total Lulusan) × 100. Expected: 50-90%. FALLBACK: 65%',
-          publikasi_mahasiswa_ri: '(number) Publikasi Mahasiswa Internasional. SEARCH: (1) Sheet 5b3/Tabel 5.b.3, (2) Find row "Publikasi" OR "Karya Ilmiah", column "Internasional", (3) SUM across 3 years. Expected: 1-10. FALLBACK: 2',
-          publikasi_mahasiswa_rn: '(number) Publikasi Mahasiswa Nasional. SEARCH: Same Tabel 5.b.3, column "Nasional". Expected: 5-20. FALLBACK: 8',
-          wt: '(number) CRITICAL - WT = Waktu Tunggu Kerja (bulan/months). SEARCH: (1) Sheet 5d/Tabel 5.d, (2) Find column "Waktu Tunggu" OR "WT" OR "Waiting Time", (3) CALCULATE average from all lulusan data. Expected: 3-6 months. FALLBACK: 4.5 (reasonable estimate). NEVER return 0!',
-          kbk: '(number) CRITICAL - KBK = % Kesesuaian Bidang Kerja (0-100). SEARCH: (1) Sheet 5d/Tabel 5.d, (2) Find column "Kesesuaian Bidang" OR "Sesuai Bidang" OR "Relevansi", (3) COUNT rows with "Sesuai" OR "Ya", (4) FORMULA: (Sesuai / Total Bekerja) × 100. Expected: 60-90%. FALLBACK: 72%',
-          tingkat_tempat_kerja_ri: '(number) Lulusan Kerja Tingkat Internasional. SEARCH: (1) Sheet 8e1/Tabel 8.e.1, (2) Find row "Multinasional" OR "Internasional" OR "MNC", (3) Extract count. Expected: 0-8 (often low). FALLBACK: 0',
-          tingkat_tempat_kerja_rn: '(number) Lulusan Kerja Tingkat Nasional. SEARCH: Same Tabel 8.e.1, row "Nasional" OR "Berwirausaha" OR "Lokal". Expected: 10-40. FALLBACK: 18'
+          rmd: '(number) RMD = Rasio Mahasiswa/DTPS. SEARCH (LAM-TEK 2025): Sheet "6a" / Tabel 6.a "Jumlah Mahasiswa (Reguler dan Asing)" — sum "Jumlah Mahasiswa Aktif" for the prodi being accredited, divide by NDTPS. LEGACY: Sheet 5a. Expected 5-30',
+          pma: '(number) PMA = % Mahasiswa Asing (0-100). SEARCH (LAM-TEK 2025): Sheet "6a" / Tabel 6.a — for the accredited prodi find "Mahasiswa Asing Penuh Waktu" + "Paruh Waktu" across TS-2/TS-1/TS, FORMULA (Total Asing / Total Mahasiswa Aktif) × 100. LEGACY: Sheet 2b. Expected 0-5% (often 0 for domestic)',
+          masa_studi: '(number) Masa Studi rata-rata lulusan (tahun). SEARCH (LAM-TEK 2025): Sheet "6d" / Tabel 6.d "Masa Studi Lulusan" — extract "Rata-rata Masa Studi". For S3 expect 3-5 tahun, S2 1.5-2.5, S1 3.5-5. NEVER 0 if table has rows',
+          ripk: '(number) RIPK = Rata-rata IPK Lulusan (0-4 scale). SEARCH (LAM-TEK 2025): Sheet "6b" / Tabel 6.b "IPK Lulusan" — column "Rata-rata" OR average across years. LEGACY: Sheet 5b1. Expected 3.0-3.9',
+          prestasi_akademik_ri: '(number) Total prestasi AKADEMIK Internasional (3 tahun). SEARCH (LAM-TEK 2025): Sheet "6c1" / Tabel 6.c.1 "Prestasi Akademik Mahasiswa" — column Tingkat = Internasional, sum across 3 years. LEGACY: Sheet 5b2. Expected 0-15',
+          prestasi_akademik_rn: '(number) Total prestasi AKADEMIK Nasional (3 tahun). SEARCH (LAM-TEK 2025): Sheet "6c1" — Tingkat = Nasional. Expected 0-30',
+          prestasi_non_akademik_ri: '(number) Total prestasi NON-AKADEMIK Internasional. SEARCH (LAM-TEK 2025): Sheet "6c2" / Tabel 6.c.2 — Tingkat = Internasional. Expected 0-10',
+          prestasi_non_akademik_rn: '(number) Total prestasi NON-AKADEMIK Nasional. SEARCH (LAM-TEK 2025): Sheet "6c2" — Tingkat = Nasional. Expected 0-20',
+          ptw: '(number) PTW = % Lulusan Tepat Waktu (0-100). SEARCH (LAM-TEK 2025): Sheet "6d" / Tabel 6.d — find "Lulusan Tepat Waktu" count and "Total Lulusan", FORMULA (Tepat Waktu / Total) × 100. LEGACY: Sheet 5c. Expected 50-95%',
+          publikasi_mahasiswa_ri: '(number) Publikasi mahasiswa internasional bereputasi (3 tahun, raw COUNT). SEARCH (LAM-TEK 2025): Sheet "6e1" / Tabel 6.e.1 "Publikasi Ilmiah Mahasiswa" — row "Jurnal internasional bereputasi" (NA4), Jumlah. LEGACY: Sheet 5b3. Expected 0-100',
+          publikasi_mahasiswa_rn: '(number) Publikasi mahasiswa nasional terakreditasi. SEARCH (LAM-TEK 2025): Sheet "6e1" — row "Jurnal nasional terakreditasi" (NA2), Jumlah. Expected 0-50',
+          wt: '(number) WT = Waktu Tunggu Lulusan (bulan). SEARCH (LAM-TEK 2025): Sheet "6f1" / Tabel 6.f.1 "Waktu Tunggu Lulusan" — average column "Waktu Tunggu". LEGACY: Sheet 5d. Expected 3-12 bulan. NEVER 0 if rows exist',
+          kbk: '(number) KBK = % Kesesuaian Bidang Kerja (0-100). SEARCH (LAM-TEK 2025): Sheet "6f2" / Tabel 6.f.2 "Kesesuaian Bidang Kerja" — count "Sesuai" / count Total × 100, OR take precomputed percentage. LEGACY: Sheet 5d. Expected 50-95%',
+          tracer_study: '(number) Persentase respondent tracer study (0-100). SEARCH (LAM-TEK 2025): Sheet "6g2" / Tabel 6.g.2 "Kepuasan Pengguna Lulusan" — overall response/coverage rate; if blank, return 0 only if truly blank. Expected 30-90%',
+          tingkat_tempat_kerja_ri: '(number) Lulusan kerja tingkat Internasional/Multinasional. SEARCH (LAM-TEK 2025): Sheet "6g1" / Tabel 6.g.1 "Tempat Kerja Lulusan" — Tingkat Multinasional/Internasional count. Expected 0-10',
+          tingkat_tempat_kerja_rn: '(number) Lulusan kerja tingkat Nasional. SEARCH (LAM-TEK 2025): Sheet "6g1" — Tingkat Nasional count. Expected 5-50'
         },
-        example: { rmd: 20.5, pma: 3.0, ripk: 3.51, prestasi_akademik_ri: 5, prestasi_akademik_rn: 12, prestasi_non_akademik_ri: 2, prestasi_non_akademik_rn: 8, ptw: 75.5, publikasi_mahasiswa_ri: 3, publikasi_mahasiswa_rn: 10, wt: 4.2, kbk: 78.5, tingkat_tempat_kerja_ri: 2, tingkat_tempat_kerja_rn: 18 },
-        hint: `🔍 COMPREHENSIVE MAHASISWA & LUARAN EXTRACTION (KRITERIA 6)
+        example: { rmd: 20.5, pma: 3.0, masa_studi: 4.2, ripk: 3.51, prestasi_akademik_ri: 5, prestasi_akademik_rn: 12, prestasi_non_akademik_ri: 2, prestasi_non_akademik_rn: 8, ptw: 75.5, publikasi_mahasiswa_ri: 62, publikasi_mahasiswa_rn: 33, wt: 4.2, kbk: 78.5, tracer_study: 65, tingkat_tempat_kerja_ri: 2, tingkat_tempat_kerja_rn: 18 },
+        hint: `EXTRACTION STRATEGY — KRITERIA 6 MAHASISWA & LUARAN (LAM-TEK 2025)
 
-📚 **MAIN DATA SOURCES:**
-- Sheet 2b / Tabel 2.b: Mahasiswa asing
-- Sheet 5a / Tabel 5.a: Jumlah mahasiswa reguler
-- Sheet 5b1 / Tabel 5.b.1: IPK lulusan
-- Sheet 5b2 / Tabel 5.b.2: Prestasi mahasiswa (akademik & non-akademik)
-- Sheet 5b3 / Tabel 5.b.3: Publikasi mahasiswa
-- Sheet 5c / Tabel 5.c: Lulusan tepat waktu
-- Sheet 5d / Tabel 5.d: Data kerja lulusan (WT, KBK)
-- Sheet 8e1 / Tabel 8.e.1: Tingkat tempat kerja
+KEY SHEETS:
+  --- Sheet: 6a ---   Tabel 6.a Jumlah Mahasiswa Reguler & Asing (per prodi, kolom Asing Penuh Waktu / Paruh Waktu × TS-2/TS-1/TS)
+  --- Sheet: 6b ---   Tabel 6.b IPK Lulusan
+  --- Sheet: 6c1 ---  Tabel 6.c.1 Prestasi Akademik Mahasiswa (Tingkat: Internasional/Nasional/Lokal)
+  --- Sheet: 6c2 ---  Tabel 6.c.2 Prestasi Non-Akademik Mahasiswa
+  --- Sheet: 6d ---   Tabel 6.d Masa Studi Lulusan (Rata-rata Masa Studi, Lulusan Tepat Waktu)
+  --- Sheet: 6e1 ---  Tabel 6.e.1 Publikasi Ilmiah Mahasiswa (rows NA1..NA4 jurnal, NB1..NB3 prosiding)
+  --- Sheet: 6f1 ---  Tabel 6.f.1 Waktu Tunggu Lulusan
+  --- Sheet: 6f2 ---  Tabel 6.f.2 Kesesuaian Bidang Kerja
+  --- Sheet: 6g1 ---  Tabel 6.g.1 Tempat Kerja Lulusan (Tingkat: Internasional/Multinasional/Nasional)
+  --- Sheet: 6g2 ---  Tabel 6.g.2 Kepuasan Pengguna Lulusan / Tracer Study response data
 
-📊 **1. RMD (Rasio Mahasiswa per Dosen)**
-   STEP 1: Find Sheet 5a (look for "--- Sheet: 5a ---" OR "--- Sheet: 5.a ---")
-   STEP 2: Find row labeled:
-     - "Mahasiswa Reguler" OR
-     - "Mahasiswa Aktif" OR
-     - "Jumlah Mahasiswa"
-   STEP 3: Extract the number (e.g., 533)
-   STEP 4: CALCULATE:
-     Formula: RMD = Mahasiswa Reguler / NDTPS
-     Example: 533 / 26 = 20.5
-   
-   Expected: 15-30 for Magister programs
-   FALLBACK: 22 (moderate ratio)
+LEGACY (older S1 LKPS): Sheets 2b, 5a, 5b1, 5b2, 5b3, 5c, 5d, 8e1. Try LAM-TEK 2025 first.
 
-🌏 **2. PMA (% Mahasiswa Asing)** - Often 0 for domestic programs
-   STEP 1: Find Sheet 2b OR Tabel 2.b
-   STEP 2: Look for row:
-     - "Mahasiswa Asing Penuh Waktu" OR
-     - "Foreign Students" OR
-     - "International Students"
-   STEP 3: Count mahasiswa asing (e.g., 3)
-   STEP 4: Find "Total Mahasiswa Aktif" (e.g., 100)
-   STEP 5: CALCULATE:
-     Formula: PMA = (Mahasiswa Asing / Total Mahasiswa) × 100
-     Example: 3 / 100 = 3.0%
-   
-   Expected: 0-5% (often 0 for local programs)
-   FALLBACK: 0 (acceptable - many programs have no foreign students)
+CALCULATIONS:
+- For the prodi being accredited (the one marked "V" in column "Prodi yang Diakreditasi" of Tabel 6.a):
+  - rmd = (mahasiswa aktif TS) / NDTPS
+  - pma = (asing penuh+paruh / total mahasiswa aktif) × 100. May be 0 for domestic programs.
+- ripk = "Rata-rata IPK" in Tabel 6.b (decimal 0-4).
+- masa_studi = "Rata-rata Masa Studi" in Tabel 6.d (tahun).
+- ptw = (lulusan tepat waktu / total lulusan) × 100 from Tabel 6.d.
+- prestasi_akademik_ri/_rn = sum across 3 years for Tingkat Internasional/Nasional in Tabel 6.c.1.
+- prestasi_non_akademik_ri/_rn = same for Tabel 6.c.2.
+- publikasi_mahasiswa_ri = NA4 row Jumlah (jurnal internasional bereputasi) in Tabel 6.e.1. Raw count.
+- publikasi_mahasiswa_rn = NA2 row Jumlah (jurnal nasional terakreditasi). Raw count.
+- wt = average "Waktu Tunggu" (bulan) in Tabel 6.f.1.
+- kbk = % "Sesuai" in Tabel 6.f.2 (or precomputed percentage).
+- tracer_study = % responden tracer study (Tabel 6.g.2 coverage). If table is genuinely empty, return 0.
+- tingkat_tempat_kerja_ri = count Multinasional/Internasional in Tabel 6.g.1.
+- tingkat_tempat_kerja_rn = count Nasional in Tabel 6.g.1.
 
-📈 **3. RIPK (Rata-rata IPK Lulusan)**
-   STEP 1: Find Sheet 5b1 / Tabel 5.b.1
-   STEP 2: Look for column:
-     - "IPK Rata-rata" OR
-     - "Rata-rata IPK" OR
-     - "Average GPA"
-   STEP 3: Extract the decimal number (e.g., 3.51)
-     - May also need to calculate: SUM(IPK) / Jumlah Lulusan
-   
-   Expected: 3.0-3.8 (scale 0.0-4.0)
-   FALLBACK: 3.25 (reasonable baseline)
-
-🏆 **4-7. PRESTASI MAHASISWA (Tabel 5.b.2)**
-   **Table Structure:**
-   | Jenis Prestasi | Internasional (RI) | Nasional (RN) | Lokal (RL) |
-   |----------------|-------|-------|------|-------|
-   | | TS | TS-1 | TS-2 | TS | TS-1 | TS-2 | ... |
-   | Prestasi Akademik | 2 | 1 | 2 | 5 | 4 | 3 | ... |
-   | Prestasi Non-Akademik | 1 | 0 | 1 | 3 | 3 | 2 | ... |
-   
-   **Extraction Process:**
-   STEP 1: Find Sheet 5b2 / Tabel 5.b.2
-   STEP 2: Identify rows:
-     - Row 1: "Prestasi Akademik" OR "Academic Achievement"
-     - Row 2: "Prestasi Non-Akademik" OR "Non-Academic Achievement"
-   STEP 3: Identify column groups:
-     - Internasional / RI: columns with "Internasional" header
-     - Nasional / RN: columns with "Nasional" header
-   STEP 4: SUM across 3 years (TS + TS-1 + TS-2)
-   
-   **prestasi_akademik_ri:** SUM(Akademik Internasional, 3 years)
-     Example: 2 + 1 + 2 = 5
-   **prestasi_akademik_rn:** SUM(Akademik Nasional, 3 years)
-     Example: 5 + 4 + 3 = 12
-   **prestasi_non_akademik_ri:** SUM(Non-Akademik Internasional, 3 years)
-     Example: 1 + 0 + 1 = 2
-   **prestasi_non_akademik_rn:** SUM(Non-Akademik Nasional, 3 years)
-     Example: 3 + 3 + 2 = 8
-   
-   Expected ranges:
-   - Akademik RI: 2-10 (international competitions)
-   - Akademik RN: 5-20 (national competitions)
-   - Non-Akademik: Similar ranges
-   
-   FALLBACK (if table empty or unclear):
-   - prestasi_akademik_ri: 4
-   - prestasi_akademik_rn: 10
-   - prestasi_non_akademik_ri: 3
-   - prestasi_non_akademik_rn: 8
-
-⏱️ **8. PTW (% Lulusan Tepat Waktu)** ⚠️ CRITICAL
-   STEP 1: Find Sheet 5c / Tabel 5.c
-   STEP 2: Find rows:
-     - "Lulusan Tepat Waktu" OR "Tepat Waktu" OR "On-Time Graduates"
-     - "Total Lulusan" OR "Jumlah Lulusan"
-   STEP 3: Extract counts:
-     Example: Tepat waktu = 70, Total = 100
-   STEP 4: CALCULATE percentage:
-     Formula: PTW = (Tepat Waktu / Total Lulusan) × 100
-     Example: (70 / 100) × 100 = 70%
-   
-   Expected: 50-90% for good programs
-   FALLBACK: 65% (reasonable for accredited program)
-   
-   ⚠️ RETURN PERCENTAGE (0-100), NOT RAW COUNT!
-
-📚 **9-10. PUBLIKASI MAHASISWA (Tabel 5.b.3)**
-   Similar to prestasi - find table, SUM across 3 years
-   
-   Expected:
-   - publikasi_mahasiswa_ri: 1-10
-   - publikasi_mahasiswa_rn: 5-20
-   
-   FALLBACK: Use half of prestasi akademik as estimate
-
-💼 **11. WT (Waktu Tunggu Kerja)** ⚠️ CRITICAL
-   STEP 1: Find Sheet 5d / Tabel 5.d (Data Lulusan & Kerja)
-   STEP 2: Find column:
-     - "Waktu Tunggu" OR
-     - "WT" OR
-     - "Waiting Time" OR
-     - "Lama Mencari Kerja" (months)
-   STEP 3: CALCULATE average:
-     - If individual data: SUM all / COUNT
-     - If already averaged: extract the number
-     Example: (3 + 4 + 5 + 4 + 5) / 5 = 4.2 months
-   
-   Expected: 3-6 months (shorter is better)
-   FALLBACK: 4.5 months (reasonable estimate)
-   
-   ⚠️ NEVER return 0! Unemployed ≠ 0 waiting time
-   ⚠️ If truly missing data, use 4-5 months baseline
-
-🎯 **12. KBK (% Kesesuaian Bidang Kerja)** ⚠️ CRITICAL
-   STEP 1: Same Sheet 5d / Tabel 5.d
-   STEP 2: Find column:
-     - "Kesesuaian Bidang" OR
-     - "Sesuai Bidang" OR
-     - "Relevansi Pekerjaan"
-   STEP 3: COUNT rows with:
-     - "Sesuai" OR "Ya" OR "Relevan" OR "Yes"
-   STEP 4: Get total lulusan bekerja
-   STEP 5: CALCULATE percentage:
-     Formula: KBK = (Kerja Sesuai / Total Bekerja) × 100
-     Example: 50 sesuai / 64 bekerja = (50/64)×100 = 78.1%
-   
-   Expected: 60-90% for quality programs
-   FALLBACK: 72% (reasonable baseline)
-   
-   ⚠️ RETURN PERCENTAGE (0-100), NOT RAW COUNT!
-
-🌍 **13-14. TINGKAT TEMPAT KERJA (Tabel 8.e.1)**
-   STEP 1: Find Sheet 8e1 / Tabel 8.e.1
-   STEP 2: Find rows:
-     - tingkat_tempat_kerja_ri: "Multinasional" OR "Internasional" OR "MNC"
-     - tingkat_tempat_kerja_rn: "Nasional" OR "Berwirausaha" OR "Lokal"
-   STEP 3: Extract counts
-   
-   Expected:
-   - Internasional: 0-8 (often low/zero for local programs)
-   - Nasional: 10-40
-   
-   FALLBACK:
-   - Internasional: 0 (acceptable)
-   - Nasional: 18
-
-⚠️ **CRITICAL RULES:**
-1. **PERCENTAGES (PMA, PTW, KBK):** Return 0-100, NOT raw counts!
-2. **PRESTASI & PUBLIKASI:** SUM across 3 years (TS + TS-1 + TS-2)
-3. **WT (Waktu Tunggu):** NEVER return 0 - use 4-5 months if missing
-4. **Fallback Strategy:** Use reasonable estimates, don't default to 0
-5. **PMA & tingkat_ri:** OK to be 0 (many programs don't have international students/placements)
-
-📊 **QUALITY CHECK OUTPUT:**
-- RMD: 15-30 ✓
-- PMA: 0-5% ✓ (OK if 0)
-- RIPK: 3.0-3.8 ✓
-- Prestasi Akademik RI: 2-10 ✓
-- Prestasi Akademik RN: 5-20 ✓
-- PTW: 50-90% ✓
-- WT: 3-6 months ✓ (NEVER 0!)
-- KBK: 60-90% ✓
-- If WT=0 or KBK=0 → WRONG, must recalculate!`
+QUALITY CHECK:
+- rmd 5-30, pma 0-10 (often 0 for S3), ripk 3.0-3.9, masa_studi 1.5-7
+- ptw 30-95, kbk 50-95, wt 1-12 bulan
+- prestasi/publikasi mhs: small integers, can be 0 for new prodi`
       }
     };
 
@@ -830,14 +513,23 @@ ${lkpsContentSnippet}
 ${fieldDefinitions}
 ${hint}
 # RULES (FOLLOW STRICTLY)
-1. ALWAYS search for sheet markers like "--- Sheet: 3b4 ---", "--- Sheet: 4a ---", "--- Sheet: 8e1 ---" in the document
-2. If a TOTAL column or row exists, PREFER that total instead of summing
-3. If TOTAL not present, then SUM values across columns TS, TS-1, TS-2 explicitly
-4. For percentage calculations (e.g. PMA), PERFORM the calculation and return percentage (0-100), NOT raw counts
-5. Accept number formats with separators (e.g. "1.139.740.360" or "1139740360") and return clean numeric value
-6. Only return 0 if you have exhaustively searched ALL likely locations (sheet names, table labels, header rows, column names)
-7. For NDTPS: prefer explicit value; if not found, COUNT rows in table
-8. Return ONLY numbers (integers or decimals)
+1. The document is delimited by "--- Sheet: <name> ---" markers. The sheet naming convention is **LAM-TEK 2025**:
+   - Tabel 2.a (parts 1/2/3) → sheets "2a1", "2a2", "2a3" (Kerjasama Pendidikan/Penelitian/PkM)
+   - Tabel 2.b → sheet "2b" (Penggunaan Dana — BOP, Penelitian, PkM)
+   - Tabel 3.b → sheet "3b" (Penelitian DTPS), Tabel 3.c → sheet "3c" (PkM DTPS)
+   - Tabel 4.a → sheet "4a" (Profil Dosen / NDTPS / Jabatan), Tabel 4.c → sheet "4c" (Beban Kerja)
+   - Tabel 4.d → sheet "4d" (Publikasi Ilmiah DTPS), Tabel 4.f bagian 1-4 → sheets "4f-1", "4f-2", "4f-3", "4f-4" (Luaran), Tabel 4.i → "4i" (Karya Disitasi)
+   - Tabel 6.a → sheet "6a" (Mahasiswa Reguler & Asing), Tabel 6.b → "6b" (IPK), Tabel 6.c.1/6.c.2 → "6c1"/"6c2" (Prestasi)
+   - Tabel 6.d → "6d" (Masa Studi), Tabel 6.e.1 → "6e1" (Publikasi Mahasiswa)
+   - Tabel 6.f.1 → "6f1" (Waktu Tunggu), Tabel 6.f.2 → "6f2" (KBK), Tabel 6.g.2 → "6g2" (Kepuasan/Tracer)
+   Some files may use legacy naming (3a1, 3b1, 3b4, 5a, 5b1, 5b3, 5c, 5d, 6); each field description lists both. Pick whichever exists in this document.
+2. If a TOTAL column or row exists, PREFER that total instead of summing.
+3. If TOTAL not present, SUM values across columns TS, TS-1, TS-2 explicitly.
+4. For percentage calculations (e.g. PMA, PTW, KBK, PDS3, PGBLKL), PERFORM the calculation and return percentage (0-100), NOT raw counts.
+5. Accept number formats with separators (e.g. "1.139.740.360" or "1139740360") and return clean numeric value.
+6. **Returning 0 is reserved for cases where the table exists but is genuinely empty (no data rows).** If the field exists somewhere but is hard to locate, return your best estimate based on adjacent context — NEVER return 0 just because the search was inconclusive. The downstream scoring will not treat 0 as "missing"; it will treat 0 as "explicitly zero performance".
+7. For NDTPS: prefer explicit value from info block; otherwise COUNT data rows in Tabel 4.a (or legacy 3.a.1).
+8. Return ONLY numbers (integers or decimals).
 
 # OUTPUT FORMAT
 Return **ONLY a single JSON object** with the key \`lkps_data\`.
