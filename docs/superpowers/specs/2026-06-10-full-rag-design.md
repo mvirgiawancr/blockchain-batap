@@ -56,9 +56,12 @@ Tiga strategi, satu fungsi per jenis dokumen, semua mengembalikan `{ content, ch
 - **Semua kegagalan non-fatal**: log warning → caller jatuh ke jalur lama (`findRelevantSnippet` / `substring`). Sistem tidak pernah lebih buruk dari sekarang.
 
 ### 3.4 `scripts/ingest-pedoman.js`
-- CLI: `node scripts/ingest-pedoman.js <path-pdf>` (default ke PDF di `skoring/`).
-- Ekstrak teks (pdf-parse, sudah ada) → `ragService.indexDocument({ docType: 'PEDOMAN' })`.
+- CLI: `node scripts/ingest-pedoman.js [path]`.
+- **Sumber utama: `skoring/pedoman-penilaian.md`** (markdown hasil konversi PDF — teks jauh lebih bersih daripada `pedoman-penilaian-instrumen-lam-teknik-2025 (1).pdf`, tabel & nomor butir terbaca rapi). Bila argumen `.pdf` diberikan, fallback ekstrak via pdf-parse.
+- Parse → `ragService.indexDocument({ docType: 'PEDOMAN' })`.
 - Idempotent: jalankan ulang mengganti seluruh chunk pedoman lama.
+
+**Catatan sifat pedoman (penting untuk RAG scoring):** Pedoman ini berisi, per butir (53 butir): nama elemen, **indikator/deskripsi dengan daftar aspek** (mis. butir 7 "memenuhi 3 aspek: (1)… (2)… (3)…"), dan **bobot per butir** (Lampiran). Bobot di markdown ini **cocok persis** dengan `criteriaConfig` di `geminiService.js` (terverifikasi untuk program Doktor: butir 1=0.97, 2=0.63, 3=0.22, 4=1.01, dst). Pedoman ini **tidak memuat matriks skor 0–4 eksplisit** maupun rumus kuantitatif (BOP/DPD/interpolasi 3D) — rumus itu hidup di `lamtekScoringService.js`. Karena itu RAG scoring menilai butir kualitatif dengan logika **"berapa banyak aspek indikator yang terbukti di LED"**, bukan mencocokkan deskriptor skor.
 
 ### 3.5 Migration SQL (`backend-express/migrations/` atau ditambahkan ke `init-db.sql`)
 
@@ -117,6 +120,15 @@ Gagal indexing → log warning, analisis tetap jalan (jalur lama). Tambahan wakt
   - Skor 0–1.5 hanya bila ada bukti eksplisit capaian memang rendah.
   - RAG scoring gagal/tidak tersedia → fallback `randomDefaultScore()` (perilaku sekarang).
 - Hasil `justification` per butir disimpan di `ButirResult` (field baru `aiJustification`) agar bisa ditampilkan ke asesor.
+- **Rubrik penilaian = daftar aspek indikator dari pedoman.** Prompt menginstruksikan Gemini: skor 4 jika seluruh aspek terbukti kuat di LED, skor turun proporsional dengan jumlah aspek yang tidak terbukti; bila bukti tidak ditemukan → confidence rendah → floor 2.0 (bukan 0).
+
+### 4.5 Rate limit (mempercepat analisis)
+Masalah: `minRequestIntervalMs = 35000` (35 detik/-request) di `geminiService.js` dikalibrasi untuk asumsi lama **2 RPM** → analisis ~5 menit, dan RAG scoring menambah call sehingga makin lama.
+- Model produksi sebenarnya **`gemini-3-flash-preview`** (bukan default repo `gemini-1.5-flash`), yang RPM-nya jauh lebih tinggi dari 2.
+- **Jadikan interval configurable** via env `GEMINI_MIN_REQUEST_INTERVAL_MS` (default diturunkan, mis. `4000`). Operator set sesuai kuota tier nyata yang terlihat di AI Studio.
+- **Embedding pakai limiter terpisah** (kuota embedding terpisah & longgar) — sudah di §3.1, jangan dibebani interval generation.
+- Dengan interval ~4 dtk, total analisis (ekstraksi + RAG scoring, ±13–15 call) turun ke ±1 menit, bukan bertambah lama.
+- Opsional lanjutan (di luar scope inti): ganti limiter serial "sleep sejak request terakhir" dengan token-bucket + concurrency-limit agar call antar-kriteria bisa paralel dalam budget RPM. Dicatat sebagai peningkatan, tidak wajib di plan ini.
 
 ## 5. Error handling (ringkasan)
 
