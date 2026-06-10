@@ -141,7 +141,7 @@ class LAMTEKScoringResult {
  * Butir Result Model
  */
 class ButirResult {
-  constructor(butirNumber, butirName, subIndicator, score, method, bobotButir, weightedContribution, details = null) {
+  constructor(butirNumber, butirName, subIndicator, score, method, bobotButir, weightedContribution, details = null, aiJustification = null) {
     this.butirNumber = butirNumber;
     this.butirName = butirName;
     this.subIndicator = subIndicator; // I, II, III, atau tunggal
@@ -150,6 +150,7 @@ class ButirResult {
     this.bobotButir = bobotButir;
     this.weightedContribution = weightedContribution;
     this.details = details;
+    this.aiJustification = aiJustification; // justifikasi RAG scoring (null bila random/kuantitatif)
   }
 }
 

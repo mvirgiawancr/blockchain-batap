@@ -20,7 +20,7 @@ class GeminiService {
 
     // Global rate limiting for Free Tier (2 RPM = 1 request per 30 seconds)
     this.lastRequestTime = 0;
-    this.minRequestIntervalMs = 35000; // 35 seconds between requests (safe margin for 2 RPM)
+    this.minRequestIntervalMs = config.gemini.minRequestIntervalMs; // configurable (env GEMINI_MIN_REQUEST_INTERVAL_MS, default 4000)
 
     // LAM-TEK 2025: 7 Kriteria Configuration with 53 Butir (Instrumen 2025)
     // Bobot per program type: S=Sarjana, M=Magister, D=Doktor
