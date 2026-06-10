@@ -210,12 +210,20 @@ const uploadDocuments = async (req, res, next) => {
           message: 'Analyzing documents with AI (this may take 2-3 minutes)...'
         });
 
+        // Index dokumen ke RAG (non-fatal — analisis tetap jalan bila gagal)
+        const RagService = require('../services/ragService');
+        const ragService = new RagService();
+        websocketService.sendAnalysisProgress(userId, { stage: 'indexing', progress: 55, message: 'Mengindeks dokumen untuk RAG...' });
+        await ragService.indexDocument({ submissionId, docType: 'LED', content: ledContent });
+        await ragService.indexDocument({ submissionId, docType: 'LKPS', content: lkpsContent });
+
         const analysisResult = await geminiService.analyzeDocumentsForScoring(
           programStudi,
           institusi,
           ledContent,
           lkpsContent,
-          programType
+          programType,
+          { submissionId, ragService }
         );
 
         logger.info('AI analysis completed successfully');
@@ -253,10 +261,32 @@ const uploadDocuments = async (req, res, next) => {
             details: { submissionId }
           });
 
+          // RAG scoring butir kualitatif (non-fatal)
+          let qualitativeScores = {};
+          try {
+            if (await ragService.isAvailable()) {
+              for (const k of [1, 2, 3, 5, 7]) {
+                const crit = geminiService.criteriaConfig[k];
+                if (!crit || !crit.ledKeys || crit.ledKeys.length === 0) continue;
+                const ledRows = await ragService.search({ query: `${crit.name} ${crit.ledKeys.join(' ')}`, submissionId, docType: 'LED', kriteria: k, topK: 6 });
+                const pedomanRows = await ragService.getPedomanContext({ kriteria: k, query: crit.name, topK: 3 });
+                const scores = await geminiService.scoreQualitativeButir(
+                  k, crit.butir,
+                  ledRows.map(r => r.content).join('\n\n'),
+                  pedomanRows.map(r => r.content).join('\n\n')
+                );
+                Object.assign(qualitativeScores, scores);
+              }
+            }
+          } catch (err) {
+            logger.warn('RAG qualitative scoring gagal (pakai default):', err.message);
+          }
+
           scoringResult = lamtekScoringService.calculateDetailedLAMTEKScores(
             analysisResult.led_data,
             analysisResult.lkps_data,
-            programType
+            programType,
+            qualitativeScores
           );
 
           logger.info(`Scoring complete: Final Score = ${scoringResult.finalScore.toFixed(2)} / ${scoringResult.maxPossibleScore}`);
