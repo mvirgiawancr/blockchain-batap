@@ -402,6 +402,7 @@ class LAMTEKScoringService {
       criteriaName: criteria1Config.name,
       butirScores: criteria1.butirScores,
       butirReasons: criteria1.reasons,
+      butirJustifications: criteria1.justifications,
       averageScore: criteria1.average,
       totalScore: criteria1.total,
       butirCount: criteria1.butirCount,
@@ -422,6 +423,7 @@ class LAMTEKScoringService {
       criteriaName: criteria2Config.name,
       butirScores: criteria2.butirScores,
       butirReasons: criteria2.reasons,
+      butirJustifications: criteria2.justifications,
       averageScore: criteria2.average,
       totalScore: criteria2.total,
       butirCount: criteria2.butirCount,
@@ -442,6 +444,7 @@ class LAMTEKScoringService {
       criteriaName: criteria3Config.name,
       butirScores: criteria3.butirScores,
       butirReasons: criteria3.reasons,
+      butirJustifications: criteria3.justifications,
       averageScore: criteria3.average,
       totalScore: criteria3.total,
       butirCount: criteria3.butirCount,
@@ -482,6 +485,7 @@ class LAMTEKScoringService {
       criteriaName: criteria5Config.name,
       butirScores: criteria5.butirScores,
       butirReasons: criteria5.reasons,
+      butirJustifications: criteria5.justifications,
       averageScore: criteria5.average,
       totalScore: criteria5.total,
       butirCount: criteria5.butirCount,
@@ -522,6 +526,7 @@ class LAMTEKScoringService {
       criteriaName: criteria7Config.name,
       butirScores: criteria7.butirScores,
       butirReasons: criteria7.reasons,
+      butirJustifications: criteria7.justifications,
       averageScore: criteria7.average,
       totalScore: criteria7.total,
       butirCount: criteria7.butirCount,
@@ -602,22 +607,23 @@ class LAMTEKScoringService {
     const criteriaConfig = config[1];
     const butirScores = {};
     const reasons = {};
+    const justifications = {};
 
     // LAM-TEK 2025: Kriteria 1 memiliki 3 butir
     // Butir 1.1: Kekhasan VMTS
-    { const r = this.resolveQualitativeScore('1.1', qualitativeScores); butirScores['1.1'] = r.score; reasons['1.1'] = r.reason; }
+    { const r = this.resolveQualitativeScore('1.1', qualitativeScores); butirScores['1.1'] = r.score; reasons['1.1'] = r.reason; justifications['1.1'] = r.justification; }
 
     // Butir 1.2: Mekanisme Penyusunan VMTS
-    { const r = this.resolveQualitativeScore('1.2', qualitativeScores); butirScores['1.2'] = r.score; reasons['1.2'] = r.reason; }
+    { const r = this.resolveQualitativeScore('1.2', qualitativeScores); butirScores['1.2'] = r.score; reasons['1.2'] = r.reason; justifications['1.2'] = r.justification; }
 
     // Butir 1.3: Tingkat Pemahaman dan Pencapaian VMTS
-    { const r = this.resolveQualitativeScore('1.3', qualitativeScores); butirScores['1.3'] = r.score; reasons['1.3'] = r.reason; }
+    { const r = this.resolveQualitativeScore('1.3', qualitativeScores); butirScores['1.3'] = r.score; reasons['1.3'] = r.reason; justifications['1.3'] = r.justification; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
-    return { butirScores, reasons, total, average, butirCount };
+    return { butirScores, reasons, justifications, total, average, butirCount };
   }
 
   /**
@@ -628,13 +634,14 @@ class LAMTEKScoringService {
     const criteriaConfig = config[2];
     const butirScores = {};
     const reasons = {};
+    const justifications = {};
 
     // Butir 2.1-2.5: Evaluasi kualitatif dari LED
-    { const r = this.resolveQualitativeScore('2.1', qualitativeScores); butirScores['2.1'] = r.score; reasons['2.1'] = r.reason; }
-    { const r = this.resolveQualitativeScore('2.2', qualitativeScores); butirScores['2.2'] = r.score; reasons['2.2'] = r.reason; }
-    { const r = this.resolveQualitativeScore('2.3', qualitativeScores); butirScores['2.3'] = r.score; reasons['2.3'] = r.reason; }
-    { const r = this.resolveQualitativeScore('2.4', qualitativeScores); butirScores['2.4'] = r.score; reasons['2.4'] = r.reason; }
-    { const r = this.resolveQualitativeScore('2.5', qualitativeScores); butirScores['2.5'] = r.score; reasons['2.5'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.1', qualitativeScores); butirScores['2.1'] = r.score; reasons['2.1'] = r.reason; justifications['2.1'] = r.justification; }
+    { const r = this.resolveQualitativeScore('2.2', qualitativeScores); butirScores['2.2'] = r.score; reasons['2.2'] = r.reason; justifications['2.2'] = r.justification; }
+    { const r = this.resolveQualitativeScore('2.3', qualitativeScores); butirScores['2.3'] = r.score; reasons['2.3'] = r.reason; justifications['2.3'] = r.justification; }
+    { const r = this.resolveQualitativeScore('2.4', qualitativeScores); butirScores['2.4'] = r.score; reasons['2.4'] = r.reason; justifications['2.4'] = r.justification; }
+    { const r = this.resolveQualitativeScore('2.5', qualitativeScores); butirScores['2.5'] = r.score; reasons['2.5'] = r.reason; justifications['2.5'] = r.justification; }
     
     // Butir 2.6: Kerja Sama Aktif (3D) - dari LKPS
     const ri = lkpsData.kerjasama_internasional || 0;
@@ -650,8 +657,8 @@ class LAMTEKScoringService {
       reasons['2.6'] = 'calculated';
     }
 
-    { const r = this.resolveQualitativeScore('2.7', qualitativeScores); butirScores['2.7'] = r.score; reasons['2.7'] = r.reason; }
-    { const r = this.resolveQualitativeScore('2.8', qualitativeScores); butirScores['2.8'] = r.score; reasons['2.8'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.7', qualitativeScores); butirScores['2.7'] = r.score; reasons['2.7'] = r.reason; justifications['2.7'] = r.justification; }
+    { const r = this.resolveQualitativeScore('2.8', qualitativeScores); butirScores['2.8'] = r.score; reasons['2.8'] = r.reason; justifications['2.8'] = r.justification; }
 
     // Butir 2.9: BOP - dari LKPS
     const bopValue = lkpsData.bop_value || 0;
@@ -693,7 +700,7 @@ class LAMTEKScoringService {
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
-    return { butirScores, reasons, total, average, butirCount };
+    return { butirScores, reasons, justifications, total, average, butirCount };
   }
 
   /**
@@ -704,26 +711,27 @@ class LAMTEKScoringService {
     const criteriaConfig = config[3];
     const butirScores = {};
     const reasons = {};
+    const justifications = {};
 
     // Semua butir Kriteria 3 menggunakan evaluasi kualitatif dari LED
-    { const r = this.resolveQualitativeScore('3.1', qualitativeScores); butirScores['3.1'] = r.score; reasons['3.1'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.2', qualitativeScores); butirScores['3.2'] = r.score; reasons['3.2'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.3', qualitativeScores); butirScores['3.3'] = r.score; reasons['3.3'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.4', qualitativeScores); butirScores['3.4'] = r.score; reasons['3.4'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.5', qualitativeScores); butirScores['3.5'] = r.score; reasons['3.5'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.7', qualitativeScores); butirScores['3.7'] = r.score; reasons['3.7'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.8', qualitativeScores); butirScores['3.8'] = r.score; reasons['3.8'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.9', qualitativeScores); butirScores['3.9'] = r.score; reasons['3.9'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.10', qualitativeScores); butirScores['3.10'] = r.score; reasons['3.10'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.11', qualitativeScores); butirScores['3.11'] = r.score; reasons['3.11'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.12', qualitativeScores); butirScores['3.12'] = r.score; reasons['3.12'] = r.reason; }
-    { const r = this.resolveQualitativeScore('3.13', qualitativeScores); butirScores['3.13'] = r.score; reasons['3.13'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.1', qualitativeScores); butirScores['3.1'] = r.score; reasons['3.1'] = r.reason; justifications['3.1'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.2', qualitativeScores); butirScores['3.2'] = r.score; reasons['3.2'] = r.reason; justifications['3.2'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.3', qualitativeScores); butirScores['3.3'] = r.score; reasons['3.3'] = r.reason; justifications['3.3'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.4', qualitativeScores); butirScores['3.4'] = r.score; reasons['3.4'] = r.reason; justifications['3.4'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.5', qualitativeScores); butirScores['3.5'] = r.score; reasons['3.5'] = r.reason; justifications['3.5'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.7', qualitativeScores); butirScores['3.7'] = r.score; reasons['3.7'] = r.reason; justifications['3.7'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.8', qualitativeScores); butirScores['3.8'] = r.score; reasons['3.8'] = r.reason; justifications['3.8'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.9', qualitativeScores); butirScores['3.9'] = r.score; reasons['3.9'] = r.reason; justifications['3.9'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.10', qualitativeScores); butirScores['3.10'] = r.score; reasons['3.10'] = r.reason; justifications['3.10'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.11', qualitativeScores); butirScores['3.11'] = r.score; reasons['3.11'] = r.reason; justifications['3.11'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.12', qualitativeScores); butirScores['3.12'] = r.score; reasons['3.12'] = r.reason; justifications['3.12'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.13', qualitativeScores); butirScores['3.13'] = r.score; reasons['3.13'] = r.reason; justifications['3.13'] = r.justification; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
-    return { butirScores, reasons, total, average, butirCount };
+    return { butirScores, reasons, justifications, total, average, butirCount };
   }
 
   /**
@@ -839,16 +847,17 @@ class LAMTEKScoringService {
     const criteriaConfig = config[5];
     const butirScores = {};
     const reasons = {};
+    const justifications = {};
 
-    { const r = this.resolveQualitativeScore('5.1', qualitativeScores); butirScores['5.1'] = r.score; reasons['5.1'] = r.reason; }
-    { const r = this.resolveQualitativeScore('5.2', qualitativeScores); butirScores['5.2'] = r.score; reasons['5.2'] = r.reason; }
-    { const r = this.resolveQualitativeScore('5.3', qualitativeScores); butirScores['5.3'] = r.score; reasons['5.3'] = r.reason; }
+    { const r = this.resolveQualitativeScore('5.1', qualitativeScores); butirScores['5.1'] = r.score; reasons['5.1'] = r.reason; justifications['5.1'] = r.justification; }
+    { const r = this.resolveQualitativeScore('5.2', qualitativeScores); butirScores['5.2'] = r.score; reasons['5.2'] = r.reason; justifications['5.2'] = r.justification; }
+    { const r = this.resolveQualitativeScore('5.3', qualitativeScores); butirScores['5.3'] = r.score; reasons['5.3'] = r.reason; justifications['5.3'] = r.justification; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
-    return { butirScores, reasons, total, average, butirCount };
+    return { butirScores, reasons, justifications, total, average, butirCount };
   }
 
   /**
@@ -966,19 +975,20 @@ class LAMTEKScoringService {
     const criteriaConfig = config[7];
     const butirScores = {};
     const reasons = {};
+    const justifications = {};
 
-    { const r = this.resolveQualitativeScore('7.1', qualitativeScores); butirScores['7.1'] = r.score; reasons['7.1'] = r.reason; }
-    { const r = this.resolveQualitativeScore('7.2', qualitativeScores); butirScores['7.2'] = r.score; reasons['7.2'] = r.reason; }
-    { const r = this.resolveQualitativeScore('7.3', qualitativeScores); butirScores['7.3'] = r.score; reasons['7.3'] = r.reason; }
-    { const r = this.resolveQualitativeScore('7.4', qualitativeScores); butirScores['7.4'] = r.score; reasons['7.4'] = r.reason; }
-    { const r = this.resolveQualitativeScore('7.5', qualitativeScores); butirScores['7.5'] = r.score; reasons['7.5'] = r.reason; }
-    { const r = this.resolveQualitativeScore('7.6', qualitativeScores); butirScores['7.6'] = r.score; reasons['7.6'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.1', qualitativeScores); butirScores['7.1'] = r.score; reasons['7.1'] = r.reason; justifications['7.1'] = r.justification; }
+    { const r = this.resolveQualitativeScore('7.2', qualitativeScores); butirScores['7.2'] = r.score; reasons['7.2'] = r.reason; justifications['7.2'] = r.justification; }
+    { const r = this.resolveQualitativeScore('7.3', qualitativeScores); butirScores['7.3'] = r.score; reasons['7.3'] = r.reason; justifications['7.3'] = r.justification; }
+    { const r = this.resolveQualitativeScore('7.4', qualitativeScores); butirScores['7.4'] = r.score; reasons['7.4'] = r.reason; justifications['7.4'] = r.justification; }
+    { const r = this.resolveQualitativeScore('7.5', qualitativeScores); butirScores['7.5'] = r.score; reasons['7.5'] = r.reason; justifications['7.5'] = r.justification; }
+    { const r = this.resolveQualitativeScore('7.6', qualitativeScores); butirScores['7.6'] = r.score; reasons['7.6'] = r.reason; justifications['7.6'] = r.justification; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
     const average = total / butirCount;
     
-    return { butirScores, reasons, total, average, butirCount };
+    return { butirScores, reasons, justifications, total, average, butirCount };
   }
 }
 

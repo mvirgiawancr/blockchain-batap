@@ -96,6 +96,7 @@ class CriteriaScore {
     this.criteriaName = data.criteriaName || '';
     this.butirScores = data.butirScores || {}; // { butir1: 3.5, butir2: 4.0, ... }
     this.butirReasons = data.butirReasons || {}; // { butir1: 'calculated', butir2: 'not_available', ... }
+    this.butirJustifications = data.butirJustifications || {}; // { '1.1': 'AI reasoning text', ... } (RAG scoring only)
     this.averageScore = data.averageScore || 0; // Rata-rata skor butir
     this.totalScore = data.totalScore || 0; // Average * jumlah butir
     this.butirCount = data.butirCount || 0; // Jumlah butir untuk kriteria ini
