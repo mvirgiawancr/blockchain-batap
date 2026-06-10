@@ -671,6 +671,67 @@ Return ONLY the JSON, no markdown, no explanation.`;
   }
 
   /**
+   * Parse JSON skor butir kualitatif dari respons Gemini. Clamp 0-4.
+   */
+  parseQualitativeScores(responseText) {
+    try {
+      const start = responseText.indexOf('{');
+      const end = responseText.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) return {};
+      const data = JSON.parse(responseText.substring(start, end + 1));
+      const scores = data.butir_scores || data;
+      const out = {};
+      for (const [code, v] of Object.entries(scores)) {
+        if (!v || typeof v !== 'object') continue;
+        let s = Number(v.score);
+        if (Number.isNaN(s)) continue;
+        s = Math.max(0, Math.min(4, s));
+        out[code] = { score: s, justification: v.justification || '', confidence: v.confidence || 'low' };
+      }
+      return out;
+    } catch (err) {
+      console.warn('[Gemini] parseQualitativeScores gagal:', err.message);
+      return {};
+    }
+  }
+
+  /**
+   * Nilai butir kualitatif satu kriteria berdasarkan rubrik pedoman + bukti LED.
+   */
+  async scoreQualitativeButir(criterionNum, butirList, ledEvidence, pedomanRubric) {
+    if (!this.model) return {};
+    const butirLines = butirList.map(b => `- ${b.code}: ${b.name}`).join('\n');
+    const firstCode = butirList[0] ? butirList[0].code : '1.1';
+    const prompt = `# TUGAS
+Nilai setiap butir kualitatif Kriteria ${criterionNum} akreditasi LAM-TEK 2025 dengan SKALA 0-4.
+
+# RUBRIK PEDOMAN (RUJUKAN RESMI — daftar aspek indikator)
+\`\`\`
+${(pedomanRubric || '(tidak tersedia)').slice(0, 4000)}
+\`\`\`
+
+# BUKTI DARI LED (Laporan Evaluasi Diri)
+\`\`\`
+${(ledEvidence || '(tidak tersedia)').slice(0, 12000)}
+\`\`\`
+
+# BUTIR YANG DINILAI
+${butirLines}
+
+# ATURAN PENILAIAN
+1. Skor 4 = SELURUH aspek indikator terbukti kuat di LED.
+2. Skor turun proporsional dengan jumlah aspek yang TIDAK terbukti.
+3. Jika bukti TIDAK ditemukan di LED, set "confidence":"low" dan score sekitar 2.0 — JANGAN beri 0 hanya karena bukti tidak ketemu.
+4. Skor 0-1.5 hanya jika ADA bukti eksplisit capaian memang rendah/tidak ada.
+
+# OUTPUT (JSON saja, tanpa markdown)
+{"butir_scores":{"${firstCode}":{"score":3.5,"justification":"alasan singkat","confidence":"high"}}}`;
+
+    const raw = await this.generateGeminiResponse(prompt);
+    return this.parseQualitativeScores(raw);
+  }
+
+  /**
    * Analyze documents for LAM-TEK 2025 scoring (7 Criteria)
    */
   async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S') {
