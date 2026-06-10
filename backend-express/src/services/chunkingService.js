@@ -47,4 +47,37 @@ function chunkLED(text) {
   return chunks;
 }
 
-module.exports = { chunkLED, MAX_CHARS, OVERLAP_CHARS, _splitWithOverlap: splitWithOverlap };
+function chunkLKPS(text) {
+  const markerRe = /---\s*Sheet:\s*([^\-]+?)\s*---/g;
+  const matches = [...text.matchAll(markerRe)];
+
+  if (matches.length === 0) {
+    return [{ content: text, chunkIndex: 0, metadata: { sheetName: null, tableTitle: null } }];
+  }
+
+  const chunks = [];
+  let idx = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const sheetName = matches[i][1].replace(/[✓✔✅☑]/g, '').trim();
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const body = text.slice(start, end).trim();
+    const header = `--- Sheet: ${sheetName} ---`;
+
+    if (body.length <= MAX_CHARS) {
+      chunks.push({ content: body, chunkIndex: idx++, metadata: { sheetName, tableTitle: null } });
+    } else {
+      let pos = 0;
+      while (pos < body.length) {
+        const piece = body.slice(pos, pos + MAX_CHARS);
+        const content = piece.includes(header) ? piece : `${header}\n${piece}`;
+        chunks.push({ content, chunkIndex: idx++, metadata: { sheetName, tableTitle: null } });
+        if (pos + MAX_CHARS >= body.length) break;
+        pos += MAX_CHARS - OVERLAP_CHARS;
+      }
+    }
+  }
+  return chunks;
+}
+
+module.exports = { chunkLED, chunkLKPS, MAX_CHARS, OVERLAP_CHARS, _splitWithOverlap: splitWithOverlap };
