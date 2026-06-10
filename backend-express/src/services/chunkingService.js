@@ -33,12 +33,16 @@ function chunkLED(text) {
   }
 
   let idx = 0;
+  let currentKriteria = null;
   for (let i = 0; i < matches.length; i++) {
     const start = matches[i].index;
     const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
     const sectionTitle = matches[i][0].trim();
     const kriteriaMatch = sectionTitle.match(/KRITERIA\s+(\d+)/i);
-    const kriteria = kriteriaMatch ? parseInt(kriteriaMatch[1]) : null;
+    if (kriteriaMatch) {
+      currentKriteria = parseInt(kriteriaMatch[1]);
+    }
+    const kriteria = currentKriteria;
     const body = text.slice(start, end).trim();
     const parts = splitWithOverlap(body, { sectionTitle, kriteria }, idx);
     idx += parts.length;

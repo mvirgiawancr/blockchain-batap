@@ -28,6 +28,18 @@ describe('chunkLED', () => {
     expect(chunks.length).toBe(1);
     expect(chunks[0].metadata.kriteria).toBeNull();
   });
+
+  test('kriteria sticky: baris bernomor di dalam body tidak menghapus asosiasi kriteria', () => {
+    const text = [
+      'KRITERIA 1 DIFERENSIASI MISI',
+      'Pengantar kriteria satu. '.repeat(20),
+      '1. Visi Misi Tujuan dan Sasaran',          // false-positive heading inside body
+      'Penjelasan visi yang masih milik kriteria 1. '.repeat(20)
+    ].join('\n');
+    const chunks = chunking.chunkLED(text);
+    // Tidak boleh ada chunk SETELAH "KRITERIA 1" yang kriteria-nya null
+    expect(chunks.every(c => c.metadata.kriteria === 1)).toBe(true);
+  });
 });
 
 describe('chunkLKPS', () => {
