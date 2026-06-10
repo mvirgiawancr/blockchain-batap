@@ -48,6 +48,22 @@ class LAMTEKScoringService {
   }
 
   /**
+   * Skor butir kualitatif: pakai skor RAG bila ada, jika tidak fallback random.
+   * Hormati floor low_confidence (2.0) — jangan pernah 0 karena data tak ketemu.
+   * @returns {{score:number, reason:string, justification:(string|null)}}
+   */
+  resolveQualitativeScore(code, qualitativeScores) {
+    const q = qualitativeScores && qualitativeScores[code];
+    if (q && typeof q.score === 'number') {
+      if (q.confidence === 'low' && q.score < this.LOW_CONFIDENCE_SCORE) {
+        return { score: this.LOW_CONFIDENCE_SCORE, reason: 'low_confidence', justification: q.justification || null };
+      }
+      return { score: q.score, reason: 'rag', justification: q.justification || null };
+    }
+    return { score: this.randomDefaultScore(), reason: 'default', justification: null };
+  }
+
+  /**
    * Get criteriaConfig from GeminiService (LAM-TEK 2025 Instrumen)
    */
   getCriteriaConfig() {
@@ -364,7 +380,7 @@ class LAMTEKScoringService {
    * NEW: Calculate detailed scores per criteria with LAM-TEK 2025 Instrumen structure
    * This method calculates all 7 criteria scores using dynamic butir from criteriaConfig
    */
-  calculateDetailedLAMTEKScores(ledData, lkpsData, programType = 'S') {
+  calculateDetailedLAMTEKScores(ledData, lkpsData, programType = 'S', qualitativeScores = {}) {
     console.log(`[LAM-TEK] 🎯 Calculating DETAILED 7 Criteria scores for ${programType} using LAM-TEK 2025 Instrumen`);
 
     const config = this.getCriteriaConfig();
@@ -378,7 +394,7 @@ class LAMTEKScoringService {
     // ============================================
     // KRITERIA 1: DIFERENSIASI MISI (Bobot: 2.05)
     // ============================================
-    const criteria1 = this.calculateKriteria1Score(ledData, programType);
+    const criteria1 = this.calculateKriteria1Score(ledData, programType, qualitativeScores);
     const criteria1Config = config[1];
     criteriaScores['1'] = new CriteriaScore({
       criteriaNumber: 1,
@@ -398,7 +414,7 @@ class LAMTEKScoringService {
     // ============================================
     // KRITERIA 2: AKUNTABILITAS (Bobot: 7.06)
     // ============================================
-    const criteria2 = this.calculateKriteria2Score(ledData, lkpsData, programType);
+    const criteria2 = this.calculateKriteria2Score(ledData, lkpsData, programType, qualitativeScores);
     const criteria2Config = config[2];
     criteriaScores['2'] = new CriteriaScore({
       criteriaNumber: 2,
@@ -418,7 +434,7 @@ class LAMTEKScoringService {
     // ============================================
     // KRITERIA 3: RELEVANSI PENDIDIKAN, PENELITIAN, DAN PKM (Bobot: 22.45)
     // ============================================
-    const criteria3 = this.calculateKriteria3Score(ledData, lkpsData, programType);
+    const criteria3 = this.calculateKriteria3Score(ledData, lkpsData, programType, qualitativeScores);
     const criteria3Config = config[3];
     criteriaScores['3'] = new CriteriaScore({
       criteriaNumber: 3,
@@ -458,7 +474,7 @@ class LAMTEKScoringService {
     // ============================================
     // KRITERIA 5: SARANA, PRASARANA, DAN K3L (Bobot: 7.51)
     // ============================================
-    const criteria5 = this.calculateKriteria5Score(ledData, programType);
+    const criteria5 = this.calculateKriteria5Score(ledData, programType, qualitativeScores);
     const criteria5Config = config[5];
     criteriaScores['5'] = new CriteriaScore({
       criteriaNumber: 5,
@@ -498,7 +514,7 @@ class LAMTEKScoringService {
     // ============================================
     // KRITERIA 7: SISTEM PENJAMINAN MUTU (Bobot: 15.35)
     // ============================================
-    const criteria7 = this.calculateKriteria7Score(ledData, programType);
+    const criteria7 = this.calculateKriteria7Score(ledData, programType, qualitativeScores);
     const criteria7Config = config[7];
     criteriaScores['7'] = new CriteriaScore({
       criteriaNumber: 7,
@@ -581,24 +597,21 @@ class LAMTEKScoringService {
   /**
    * Calculate Kriteria 1: Diferensiasi Misi scores (3 butir untuk LAM-TEK 2025)
    */
-  calculateKriteria1Score(ledData, programType) {
+  calculateKriteria1Score(ledData, programType, qualitativeScores = {}) {
     const config = this.getCriteriaConfig();
     const criteriaConfig = config[1];
     const butirScores = {};
     const reasons = {};
-    
+
     // LAM-TEK 2025: Kriteria 1 memiliki 3 butir
     // Butir 1.1: Kekhasan VMTS
-    butirScores['1.1'] = this.randomDefaultScore();
-    reasons['1.1'] = 'default'; // Evaluasi kualitatif dari LED
-    
+    { const r = this.resolveQualitativeScore('1.1', qualitativeScores); butirScores['1.1'] = r.score; reasons['1.1'] = r.reason; }
+
     // Butir 1.2: Mekanisme Penyusunan VMTS
-    butirScores['1.2'] = this.randomDefaultScore();
-    reasons['1.2'] = 'default'; // Evaluasi kualitatif dari LED
-    
+    { const r = this.resolveQualitativeScore('1.2', qualitativeScores); butirScores['1.2'] = r.score; reasons['1.2'] = r.reason; }
+
     // Butir 1.3: Tingkat Pemahaman dan Pencapaian VMTS
-    butirScores['1.3'] = this.randomDefaultScore();
-    reasons['1.3'] = 'default'; // Evaluasi kualitatif dari LED
+    { const r = this.resolveQualitativeScore('1.3', qualitativeScores); butirScores['1.3'] = r.score; reasons['1.3'] = r.reason; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
@@ -610,18 +623,18 @@ class LAMTEKScoringService {
   /**
    * Calculate Kriteria 2: Akuntabilitas scores (11 butir untuk LAM-TEK 2025)
    */
-  calculateKriteria2Score(ledData, lkpsData, programType) {
+  calculateKriteria2Score(ledData, lkpsData, programType, qualitativeScores = {}) {
     const config = this.getCriteriaConfig();
     const criteriaConfig = config[2];
     const butirScores = {};
     const reasons = {};
-    
-    // Butir 2.1-2.4: Evaluasi kualitatif dari LED
-    butirScores['2.1'] = this.randomDefaultScore(); reasons['2.1'] = 'default';
-    butirScores['2.2'] = this.randomDefaultScore(); reasons['2.2'] = 'default';
-    butirScores['2.3'] = this.randomDefaultScore(); reasons['2.3'] = 'default';
-    butirScores['2.4'] = this.randomDefaultScore(); reasons['2.4'] = 'default';
-    butirScores['2.5'] = this.randomDefaultScore(); reasons['2.5'] = 'default';
+
+    // Butir 2.1-2.5: Evaluasi kualitatif dari LED
+    { const r = this.resolveQualitativeScore('2.1', qualitativeScores); butirScores['2.1'] = r.score; reasons['2.1'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.2', qualitativeScores); butirScores['2.2'] = r.score; reasons['2.2'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.3', qualitativeScores); butirScores['2.3'] = r.score; reasons['2.3'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.4', qualitativeScores); butirScores['2.4'] = r.score; reasons['2.4'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.5', qualitativeScores); butirScores['2.5'] = r.score; reasons['2.5'] = r.reason; }
     
     // Butir 2.6: Kerja Sama Aktif (3D) - dari LKPS
     const ri = lkpsData.kerjasama_internasional || 0;
@@ -637,8 +650,8 @@ class LAMTEKScoringService {
       reasons['2.6'] = 'calculated';
     }
 
-    butirScores['2.7'] = this.randomDefaultScore(); reasons['2.7'] = 'default';
-    butirScores['2.8'] = this.randomDefaultScore(); reasons['2.8'] = 'default';
+    { const r = this.resolveQualitativeScore('2.7', qualitativeScores); butirScores['2.7'] = r.score; reasons['2.7'] = r.reason; }
+    { const r = this.resolveQualitativeScore('2.8', qualitativeScores); butirScores['2.8'] = r.score; reasons['2.8'] = r.reason; }
 
     // Butir 2.9: BOP - dari LKPS
     const bopValue = lkpsData.bop_value || 0;
@@ -686,25 +699,25 @@ class LAMTEKScoringService {
   /**
    * Calculate Kriteria 3: Relevansi scores (13 butir untuk LAM-TEK 2025)
    */
-  calculateKriteria3Score(ledData, lkpsData, programType) {
+  calculateKriteria3Score(ledData, lkpsData, programType, qualitativeScores = {}) {
     const config = this.getCriteriaConfig();
     const criteriaConfig = config[3];
     const butirScores = {};
     const reasons = {};
-    
+
     // Semua butir Kriteria 3 menggunakan evaluasi kualitatif dari LED
-    butirScores['3.1'] = this.randomDefaultScore(); reasons['3.1'] = 'default';
-    butirScores['3.2'] = this.randomDefaultScore(); reasons['3.2'] = 'default';
-    butirScores['3.3'] = this.randomDefaultScore(); reasons['3.3'] = 'default';
-    butirScores['3.4'] = this.randomDefaultScore(); reasons['3.4'] = 'default';
-    butirScores['3.5'] = this.randomDefaultScore(); reasons['3.5'] = 'default';
-    butirScores['3.7'] = this.randomDefaultScore(); reasons['3.7'] = 'default';
-    butirScores['3.8'] = this.randomDefaultScore(); reasons['3.8'] = 'default';
-    butirScores['3.9'] = this.randomDefaultScore(); reasons['3.9'] = 'default';
-    butirScores['3.10'] = this.randomDefaultScore(); reasons['3.10'] = 'default';
-    butirScores['3.11'] = this.randomDefaultScore(); reasons['3.11'] = 'default';
-    butirScores['3.12'] = this.randomDefaultScore(); reasons['3.12'] = 'default';
-    butirScores['3.13'] = this.randomDefaultScore(); reasons['3.13'] = 'default';
+    { const r = this.resolveQualitativeScore('3.1', qualitativeScores); butirScores['3.1'] = r.score; reasons['3.1'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.2', qualitativeScores); butirScores['3.2'] = r.score; reasons['3.2'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.3', qualitativeScores); butirScores['3.3'] = r.score; reasons['3.3'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.4', qualitativeScores); butirScores['3.4'] = r.score; reasons['3.4'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.5', qualitativeScores); butirScores['3.5'] = r.score; reasons['3.5'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.7', qualitativeScores); butirScores['3.7'] = r.score; reasons['3.7'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.8', qualitativeScores); butirScores['3.8'] = r.score; reasons['3.8'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.9', qualitativeScores); butirScores['3.9'] = r.score; reasons['3.9'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.10', qualitativeScores); butirScores['3.10'] = r.score; reasons['3.10'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.11', qualitativeScores); butirScores['3.11'] = r.score; reasons['3.11'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.12', qualitativeScores); butirScores['3.12'] = r.score; reasons['3.12'] = r.reason; }
+    { const r = this.resolveQualitativeScore('3.13', qualitativeScores); butirScores['3.13'] = r.score; reasons['3.13'] = r.reason; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
@@ -821,15 +834,15 @@ class LAMTEKScoringService {
   /**
    * Calculate Kriteria 5: Sarana, Prasarana, dan K3L scores (3 butir untuk LAM-TEK 2025)
    */
-  calculateKriteria5Score(ledData, programType) {
+  calculateKriteria5Score(ledData, programType, qualitativeScores = {}) {
     const config = this.getCriteriaConfig();
     const criteriaConfig = config[5];
     const butirScores = {};
     const reasons = {};
-    
-    butirScores['5.1'] = this.randomDefaultScore(); reasons['5.1'] = 'default';
-    butirScores['5.2'] = this.randomDefaultScore(); reasons['5.2'] = 'default';
-    butirScores['5.3'] = this.randomDefaultScore(); reasons['5.3'] = 'default';
+
+    { const r = this.resolveQualitativeScore('5.1', qualitativeScores); butirScores['5.1'] = r.score; reasons['5.1'] = r.reason; }
+    { const r = this.resolveQualitativeScore('5.2', qualitativeScores); butirScores['5.2'] = r.score; reasons['5.2'] = r.reason; }
+    { const r = this.resolveQualitativeScore('5.3', qualitativeScores); butirScores['5.3'] = r.score; reasons['5.3'] = r.reason; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
@@ -948,18 +961,18 @@ class LAMTEKScoringService {
   /**
    * Calculate Kriteria 7: Penjaminan Mutu scores (6 butir untuk LAM-TEK 2025)
    */
-  calculateKriteria7Score(ledData, programType) {
+  calculateKriteria7Score(ledData, programType, qualitativeScores = {}) {
     const config = this.getCriteriaConfig();
     const criteriaConfig = config[7];
     const butirScores = {};
     const reasons = {};
-    
-    butirScores['7.1'] = this.randomDefaultScore(); reasons['7.1'] = 'default';
-    butirScores['7.2'] = this.randomDefaultScore(); reasons['7.2'] = 'default';
-    butirScores['7.3'] = this.randomDefaultScore(); reasons['7.3'] = 'default';
-    butirScores['7.4'] = this.randomDefaultScore(); reasons['7.4'] = 'default';
-    butirScores['7.5'] = this.randomDefaultScore(); reasons['7.5'] = 'default';
-    butirScores['7.6'] = this.randomDefaultScore(); reasons['7.6'] = 'default';
+
+    { const r = this.resolveQualitativeScore('7.1', qualitativeScores); butirScores['7.1'] = r.score; reasons['7.1'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.2', qualitativeScores); butirScores['7.2'] = r.score; reasons['7.2'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.3', qualitativeScores); butirScores['7.3'] = r.score; reasons['7.3'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.4', qualitativeScores); butirScores['7.4'] = r.score; reasons['7.4'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.5', qualitativeScores); butirScores['7.5'] = r.score; reasons['7.5'] = r.reason; }
+    { const r = this.resolveQualitativeScore('7.6', qualitativeScores); butirScores['7.6'] = r.score; reasons['7.6'] = r.reason; }
     
     const butirCount = criteriaConfig.butir.length;
     const total = Object.values(butirScores).reduce((a, b) => a + b, 0);
