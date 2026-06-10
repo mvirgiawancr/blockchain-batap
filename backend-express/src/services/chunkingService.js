@@ -80,4 +80,44 @@ function chunkLKPS(text) {
   return chunks;
 }
 
-module.exports = { chunkLED, chunkLKPS, MAX_CHARS, OVERLAP_CHARS, _splitWithOverlap: splitWithOverlap };
+// Map nomor butir global (1..53) → kode kriteria.butir LAM-TEK 2025.
+// Jumlah butir per kriteria (total 53). Filter `kriteria` adalah jalur utama retrieval; butirCode sekunder.
+const BUTIR_PER_KRITERIA = [3, 8, 13, 11, 2, 8, 8];
+function globalButirToCode(n) {
+  let remaining = n;
+  for (let k = 0; k < BUTIR_PER_KRITERIA.length; k++) {
+    if (remaining <= BUTIR_PER_KRITERIA[k]) { return { kriteria: k + 1, code: `${k + 1}.${remaining}` }; }
+    remaining -= BUTIR_PER_KRITERIA[k];
+  }
+  return { kriteria: null, code: null };
+}
+
+function chunkPedoman(text) {
+  // Butir pedoman diawali nomor 1..53 di awal baris.
+  const butirRe = /^\s*(\d{1,2})\s+[A-Z][^\n]*/gim;
+  const matches = [...text.matchAll(butirRe)].filter(m => {
+    const n = parseInt(m[1]);
+    return n >= 1 && n <= 53;
+  });
+
+  if (matches.length === 0) {
+    return splitWithOverlap(text, { butirCode: null, kriteria: null, sectionTitle: null }, 0);
+  }
+
+  const chunks = [];
+  let idx = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const globalNum = parseInt(matches[i][1]);
+    const { kriteria, code } = globalButirToCode(globalNum);
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const body = text.slice(start, end).trim();
+    const sectionTitle = matches[i][0].trim().slice(0, 80);
+    const parts = splitWithOverlap(body, { butirCode: code, kriteria, sectionTitle }, idx);
+    idx += parts.length;
+    chunks.push(...parts);
+  }
+  return chunks;
+}
+
+module.exports = { chunkLED, chunkLKPS, chunkPedoman, MAX_CHARS, OVERLAP_CHARS, _splitWithOverlap: splitWithOverlap };

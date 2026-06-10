@@ -67,3 +67,28 @@ describe('chunkLKPS', () => {
     expect(chunks[0].metadata.sheetName).toBeNull();
   });
 });
+
+describe('chunkPedoman', () => {
+  const sample = [
+    '1  Kekhasan VMTS  Pernyataan VMTS yang unik dan spesifik. 0.97',
+    '2  Mekanisme penyusunan VMTS  Keterlibatan pemangku kepentingan. 0.63',
+    '7  Pelaksanaan kerja sama  UPPS memiliki bukti yang sahih memenuhi 3 aspek berikut: (1) manfaat; (2) kinerja; (3) kepuasan. 1.39'
+  ].join('\n');
+
+  test('memecah per butir bernomor dan menangkap butirCode untuk kriteria yang benar', () => {
+    const chunks = chunking.chunkPedoman(sample);
+    const kriterias = chunks.map(c => c.metadata.kriteria).filter(k => k != null);
+    // global 1,2 → kriteria 1 ; global 7 → kriteria 2
+    expect(kriterias).toEqual(expect.arrayContaining([1, 2]));
+    expect(chunks.every(c => c.metadata.butirCode === null || /^\d+\.\d+$/.test(c.metadata.butirCode))).toBe(true);
+  });
+
+  test('setiap chunk punya konten non-kosong dan chunkIndex urut', () => {
+    const chunks = chunking.chunkPedoman(sample);
+    expect(chunks.length).toBeGreaterThanOrEqual(3);
+    chunks.forEach((c, i) => {
+      expect(c.chunkIndex).toBe(i);
+      expect(c.content.length).toBeGreaterThan(0);
+    });
+  });
+});
