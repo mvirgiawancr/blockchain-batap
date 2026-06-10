@@ -583,6 +583,46 @@ Return ONLY the JSON, no markdown, no explanation.`;
     return content.substring(skipHeader, skipHeader + windowSize);
   }
 
+  lkpsSheetsForCriterion(i) {
+    const map = {
+      2: ['2a1','2a2','2a3','2b','4a','6'],
+      3: ['3a','3b','3c'],
+      4: ['4a','4c','3b','3c','4d','4f-1','4f-2','4f-3','4f-4','4i','3a1','3a3','3b1','3b4'],
+      6: ['6a','6b','6c1','6c2','6d','6e1','6f1','6f2','6g1','6g2','2b','5a','5b1','5b2','5b3','5c','5d']
+    };
+    return map[i] || [];
+  }
+
+  async retrieveLKPSSnippet(i, lkpsContent, submissionId, ragService, fallbackFn) {
+    if (ragService && submissionId) {
+      try {
+        const sheets = this.lkpsSheetsForCriterion(i);
+        let rows = await ragService.getLKPSSheets(submissionId, sheets);
+        if (!rows.length) {
+          rows = await ragService.search({ query: this.criteriaConfig[i].name, submissionId, docType: 'LKPS', topK: 8 });
+        }
+        if (rows.length) return rows.map(r => r.content).join('\n\n');
+      } catch (err) {
+        console.warn(`[Gemini] RAG LKPS K${i} gagal, fallback:`, err.message);
+      }
+    }
+    return fallbackFn();
+  }
+
+  async retrieveLEDSnippet(i, ledContent, submissionId, ragService) {
+    if (ragService && submissionId) {
+      try {
+        const crit = this.criteriaConfig[i];
+        const query = `${crit.name} ${(crit.ledKeys || []).join(' ')}`;
+        const rows = await ragService.search({ query, submissionId, docType: 'LED', kriteria: i, topK: 6 });
+        if (rows.length) return rows.map(r => r.content).join('\n\n').slice(0, 25000);
+      } catch (err) {
+        console.warn(`[Gemini] RAG LED K${i} gagal, fallback:`, err.message);
+      }
+    }
+    return ledContent.substring(0, 25000);
+  }
+
   /**
    * Generate Gemini response with retry logic
    */
@@ -734,7 +774,7 @@ ${butirLines}
   /**
    * Analyze documents for LAM-TEK 2025 scoring (7 Criteria)
    */
-  async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S') {
+  async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S', options = {}) {
     console.log(`[Gemini] Starting LAM-TEK 2025 analysis (7 Criteria) for ${programStudi} (${programType})`);
 
     // Check if Gemini is configured
@@ -742,6 +782,10 @@ ${butirLines}
       console.error('[Gemini] Analysis error: Gemini API not configured');
       throw new Error('Gemini API not configured. Please set GEMINI_API_KEY in .env file. Get your key from https://makersuite.google.com/app/apikey');
     }
+
+    const { submissionId = null, ragService = null } = options;
+    const ragReady = ragService ? await ragService.isAvailable().catch(() => false) : false;
+    console.log(`[Gemini] RAG retrieval: ${ragReady ? 'ON' : 'OFF (jalur lama)'}`);
 
     const finalLedData = {};
     const finalLkpsData = {};
@@ -822,7 +866,7 @@ ${butirLines}
 
         // Extract LED data if applicable
         if (criterion.ledKeys.length > 0) {
-          const ledSnippet = ledContent.substring(0, 25000);
+          const ledSnippet = await this.retrieveLEDSnippet(i, ledContent, submissionId, ragReady ? ragService : null);
           const ledPrompt = this.getLEDExtractionPrompt(i, ledSnippet);
           
           if (ledPrompt) {
@@ -838,48 +882,52 @@ ${butirLines}
 
         // Extract LKPS data if applicable
         if (criterion.lkpsKeys.length > 0) {
-          let lkpsSnippet;
-          
-          // For Kriteria 6 (Mahasiswa), find sheets 5a, 5b, 5c, 5d
-          if (i === 6) {
-            // Try various sheet name patterns
-            let sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5a ---');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5.a ---');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('Sheet: 5a');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('5a.1');
-            
-            let sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5b ---');
-            if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5.b ---');
-            if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('Sheet: 5b');
-            
-            let sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5c ---');
-            if (sheet5cIdx === -1) sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5.c ---');
-            
-            console.log(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
-            
-            if (sheet5aIdx !== -1) {
-              // Extract from Sheet 5a to end of 5d (or 80KB)
-              const start = sheet5aIdx;
-              const end = Math.min(lkpsContent.length, start + 80000);
-              lkpsSnippet = lkpsContent.substring(start, end);
-              console.log(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
+          const lkpsSnippet = await this.retrieveLKPSSnippet(i, lkpsContent, submissionId, ragReady ? ragService : null, () => {
+            let snippet;
+
+            // For Kriteria 6 (Mahasiswa), find sheets 5a, 5b, 5c, 5d
+            if (i === 6) {
+              // Try various sheet name patterns
+              let sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5a ---');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5.a ---');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('Sheet: 5a');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('5a.1');
+
+              let sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5b ---');
+              if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5.b ---');
+              if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('Sheet: 5b');
+
+              let sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5c ---');
+              if (sheet5cIdx === -1) sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5.c ---');
+
+              console.log(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
+
+              if (sheet5aIdx !== -1) {
+                // Extract from Sheet 5a to end of 5d (or 80KB)
+                const start = sheet5aIdx;
+                const end = Math.min(lkpsContent.length, start + 80000);
+                snippet = lkpsContent.substring(start, end);
+                console.log(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
+              } else {
+                // Fallback
+                snippet = this.findRelevantSnippet(lkpsContent, [
+                  'Jumlah Mahasiswa Aktif', 'Mahasiswa Asing',
+                  'Rata-rata IPK', 'IPK Lulusan',
+                  'Prestasi', 'Tingkat', 'Lokal', 'Nasional', 'Internasional',
+                  'Masa Studi', 'Waktu Tunggu'
+                ], 35000);
+              }
             } else {
-              // Fallback
-              lkpsSnippet = this.findRelevantSnippet(lkpsContent, [
-                'Jumlah Mahasiswa Aktif', 'Mahasiswa Asing',
-                'Rata-rata IPK', 'IPK Lulusan',
-                'Prestasi', 'Tingkat', 'Lokal', 'Nasional', 'Internasional',
-                'Masa Studi', 'Waktu Tunggu'
-              ], 35000);
+              // Other criteria use keyword search
+              const keywords = i === 2 ? ['Butir 9', 'Butir 10', 'Tabel 4', 'Kerjasama', 'BOP', 'Dana Penelitian'] :
+                              i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
+              const windowSize = 15000;
+              snippet = this.findRelevantSnippet(lkpsContent, keywords, windowSize);
             }
-          } else {
-            // Other criteria use keyword search
-            const keywords = i === 2 ? ['Butir 9', 'Butir 10', 'Tabel 4', 'Kerjasama', 'BOP', 'Dana Penelitian'] :
-                            i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
-            const windowSize = 15000;
-            lkpsSnippet = this.findRelevantSnippet(lkpsContent, keywords, windowSize);
-          }
-          
+
+            return snippet;
+          });
+
           const lkpsPrompt = this.getLKPSExtractionPrompt(i, lkpsSnippet);
           
           if (lkpsPrompt) {
