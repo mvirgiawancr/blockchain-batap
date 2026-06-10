@@ -203,19 +203,19 @@ const uploadDocuments = async (req, res, next) => {
       logger.info('Starting AI analysis with Gemini...');
 
       try {
-        // Send progress: AI analysis
-        websocketService.sendAnalysisProgress(userId, {
-          stage: 'extracting',
-          progress: 60,
-          message: 'Analyzing documents with AI (this may take 2-3 minutes)...'
-        });
-
         // Index dokumen ke RAG (non-fatal — analisis tetap jalan bila gagal)
         const RagService = require('../services/ragService');
         const ragService = new RagService();
         websocketService.sendAnalysisProgress(userId, { stage: 'indexing', progress: 55, message: 'Mengindeks dokumen untuk RAG...' });
         await ragService.indexDocument({ submissionId, docType: 'LED', content: ledContent });
         await ragService.indexDocument({ submissionId, docType: 'LKPS', content: lkpsContent });
+
+        // Send progress: AI analysis
+        websocketService.sendAnalysisProgress(userId, {
+          stage: 'extracting',
+          progress: 60,
+          message: 'Analyzing documents with AI (this may take 2-3 minutes)...'
+        });
 
         const analysisResult = await geminiService.analyzeDocumentsForScoring(
           programStudi,

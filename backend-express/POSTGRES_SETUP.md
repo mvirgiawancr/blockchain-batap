@@ -298,3 +298,39 @@ crontab -e
 3. **Add audit logging** (use `audit_logs` table)
 4. **Setup monitoring** (Prometheus + Grafana)
 5. **Enable replication** (master-slave setup)
+
+---
+
+## 🔎 RAG (Full) — Setup
+
+The AI analysis pipeline uses full RAG (chunking → Gemini embeddings → pgvector → hybrid retrieval) for LED/LKPS documents and the LAM-TEK pedoman knowledge base. It degrades gracefully: if pgvector or the embedding API is unavailable, the system automatically falls back to the legacy keyword retrieval — no fatal errors.
+
+### Steps
+
+1. **Use a pgvector-capable Postgres image.** `docker-compose.db.yml` already uses `pgvector/pgvector:pg15`. On a fresh volume, `init-db.sql` auto-creates the `document_chunks` table + `vector` extension.
+
+2. **Existing DB (volume already initialized)?** Run the migration once:
+   ```bash
+   cd backend-express
+   node scripts/run-migration.js
+   ```
+
+3. **Ingest the LAM-TEK pedoman** (one-time, global knowledge base):
+   ```bash
+   node scripts/ingest-pedoman.js
+   # default reads ../skoring/pedoman-penilaian.md
+   # or: node scripts/ingest-pedoman.js /path/to/pedoman.md (or .pdf)
+   ```
+   The markdown source (`skoring/pedoman-penilaian.md`) must be present, or pass an explicit path.
+
+### Environment variables (optional)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GEMINI_EMBEDDING_MODEL` | `text-embedding-004` | Embedding model (768-dim) |
+| `GEMINI_MIN_REQUEST_INTERVAL_MS` | `4000` | Throttle between Gemini generation calls. Lower it if your tier allows higher RPM (this is the main lever for analysis speed). |
+
+### Verify
+
+- `node scripts/run-migration.js` prints `[Migration] Selesai.`
+- After an upload, backend logs show `[Gemini] RAG retrieval: ON`. If it shows `OFF (jalur lama)`, RAG isn't available (check pgvector + `GEMINI_API_KEY`) — analysis still works via fallback.
