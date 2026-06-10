@@ -817,28 +817,31 @@ ${butirLines}
       
       // For Kriteria 4, we need multiple tables: 3a1, 3a4, 3b1, 3b2, 3b3
       // Take a large snippet that covers all these tables
-      let lkpsSnippetK4;
-      if (sheet3a1Final !== -1) {
-        // Found the sheet, extract a LARGE section (150KB) to include 3a1, 3a4, 3b1, 3b2, 3b3
-        const start = sheet3a1Final;
-        const end = Math.min(lkpsContent.length, start + 150000); // Take 150KB to cover all tables
-        lkpsSnippetK4 = lkpsContent.substring(start, end);
-        console.log(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
-        
-        // Check if we have the required tables in snippet
-        const has3b1 = lkpsSnippetK4.includes('3b1') || lkpsSnippetK4.includes('3.b.1');
-        const has3b2 = lkpsSnippetK4.includes('3b2') || lkpsSnippetK4.includes('3.b.2');
-        const has3b3 = lkpsSnippetK4.includes('3b3') || lkpsSnippetK4.includes('3.b.3');
-        console.log(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
-      } else {
-        // Fallback: search with keywords including penelitian and publikasi
-        lkpsSnippetK4 = this.findRelevantSnippet(lkpsContent, [
-          'NIDN/NIDK', 'Jabatan Akademik', 'Penelitian', 'Publikasi',
-          'Guru Besar', 'Lektor Kepala', 'Lektor',
-          'Nama Dosen Tetap', 'Pendidikan Terakhir'
-        ], 100000); // Larger window
-      }
-      
+      let lkpsSnippetK4 = await this.retrieveLKPSSnippet(4, lkpsContent, submissionId, ragReady ? ragService : null, () => {
+        let snippet;
+        if (sheet3a1Final !== -1) {
+          // Found the sheet, extract a LARGE section (150KB) to include 3a1, 3a4, 3b1, 3b2, 3b3
+          const start = sheet3a1Final;
+          const end = Math.min(lkpsContent.length, start + 150000); // Take 150KB to cover all tables
+          snippet = lkpsContent.substring(start, end);
+          console.log(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
+
+          // Check if we have the required tables in snippet
+          const has3b1 = snippet.includes('3b1') || snippet.includes('3.b.1');
+          const has3b2 = snippet.includes('3b2') || snippet.includes('3.b.2');
+          const has3b3 = snippet.includes('3b3') || snippet.includes('3.b.3');
+          console.log(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
+        } else {
+          // Fallback: search with keywords including penelitian and publikasi
+          snippet = this.findRelevantSnippet(lkpsContent, [
+            'NIDN/NIDK', 'Jabatan Akademik', 'Penelitian', 'Publikasi',
+            'Guru Besar', 'Lektor Kepala', 'Lektor',
+            'Nama Dosen Tetap', 'Pendidikan Terakhir'
+          ], 100000); // Larger window
+        }
+        return snippet;
+      });
+
       console.log(`[Gemini] K4 Snippet length: ${lkpsSnippetK4.length} chars`);
       console.log(`[Gemini] K4 Snippet preview: ${lkpsSnippetK4.substring(0, 500)}...`);
       
