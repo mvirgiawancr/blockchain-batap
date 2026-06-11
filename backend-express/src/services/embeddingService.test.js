@@ -28,14 +28,15 @@ describe('embeddingService', () => {
     expect(svc.isConfigured()).toBe(false);
   });
 
-  test('embedDocuments memecah batch >100 teks', async () => {
+  test('embedDocuments memecah batch sesuai BATCH_SIZE', async () => {
     const fakeModel = {
       batchEmbedContents: jest.fn().mockImplementation(({ requests }) =>
         Promise.resolve({ embeddings: requests.map(() => ({ values: [0] })) }))
     };
     const svc = new EmbeddingService({ embedModel: fakeModel, minIntervalMs: 0 });
-    const vecs = await svc.embedDocuments(new Array(150).fill('x'));
-    expect(vecs).toHaveLength(150);
-    expect(fakeModel.batchEmbedContents).toHaveBeenCalledTimes(2);
+    const n = EmbeddingService.BATCH_SIZE * 2 + 1; // 2 batch penuh + 1 sisa = 3 batch
+    const vecs = await svc.embedDocuments(new Array(n).fill('x'));
+    expect(vecs).toHaveLength(n);
+    expect(fakeModel.batchEmbedContents).toHaveBeenCalledTimes(3);
   });
 });
