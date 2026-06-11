@@ -54,7 +54,7 @@ exports.getAssessors = async (req, res) => {
     // Get assessors from database WITH research profiles
     const result = await db.query(
       `SELECT u.id, u.username, u.name, u.institution, u.program_studi, u.phone,
-              ap.research_areas, ap.h_index, ap.publication_count
+              ap.research_areas, ap.h_index, ap.publication_count, ap.last_synced_at
        FROM users u
        LEFT JOIN assessor_profiles ap ON u.id = ap.user_id
        WHERE u.role IN ('asesor', 'assessor') AND u.is_active = TRUE
@@ -72,6 +72,7 @@ exports.getAssessors = async (req, res) => {
       hIndex: row.h_index,
       publicationCount: row.publication_count || 0,
       phone: row.phone,
+      lastSyncedAt: row.last_synced_at,
       totalAssignments: 0 // TODO: Count from assignments table
     }));
 
@@ -87,6 +88,50 @@ exports.getAssessors = async (req, res) => {
 
     // If programStudi is provided, use AI to rank assessors
     if (programStudi) {
+      // On-demand: lengkapi profil riset yang masih kosong langsung dari
+      // Semantic Scholar berdasarkan NAMA asesor, lalu cache ke assessor_profiles.
+      // Non-fatal & hanya untuk asesor nyata dari DB yang belum pernah disinkronkan.
+      if (result.rows.length > 0) {
+        const semanticScholar = require('../services/semanticScholarService');
+        for (const a of assessors) {
+          const sudahPunyaProfil = a.researchAreas && a.researchAreas.length > 0;
+          const pernahDicoba = !!a.lastSyncedAt;
+          if (sudahPunyaProfil || pernahDicoba) continue;
+          try {
+            logger.info(`[KEA] Mengambil profil "${a.name}" dari Semantic Scholar (by-name)...`);
+            const profile = await semanticScholar.fetchResearchProfile(a.name, a.institution);
+            if (profile.found && profile.researchAreas.length > 0) {
+              await db.query(
+                `INSERT INTO assessor_profiles
+                   (user_id, research_areas, h_index, publication_count, last_synced_at)
+                 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+                 ON CONFLICT (user_id) DO UPDATE SET
+                   research_areas = $2, h_index = $3,
+                   publication_count = $4, last_synced_at = CURRENT_TIMESTAMP`,
+                [a.id, profile.researchAreas, profile.hIndex, profile.paperCount]
+              );
+              a.researchAreas = profile.researchAreas;
+              a.expertise = profile.researchAreas.join(', ');
+              a.hIndex = profile.hIndex;
+              a.publicationCount = profile.paperCount;
+              a.recentPublications = profile.recentPublications;
+              logger.info(`[KEA] Profil "${a.name}" terisi (H-Index ${profile.hIndex}, ${profile.researchAreas.length} bidang)`);
+            } else {
+              // Tandai sudah dicoba agar tidak menarik ulang setiap kali daftar dibuka.
+              await db.query(
+                `INSERT INTO assessor_profiles (user_id, last_synced_at)
+                 VALUES ($1, CURRENT_TIMESTAMP)
+                 ON CONFLICT (user_id) DO UPDATE SET last_synced_at = CURRENT_TIMESTAMP`,
+                [a.id]
+              );
+              logger.info(`[KEA] Profil "${a.name}" tidak ditemukan di Semantic Scholar`);
+            }
+          } catch (err) {
+            logger.warn(`[KEA] Gagal mengambil profil "${a.name}": ${err.message}`);
+          }
+        }
+      }
+
       logger.info(`Ranking assessors for program studi: ${programStudi}`);
       const rankedAssessors = await geminiService.matchAssessorExpertise(programStudi, assessors);
       logger.info(`Retrieved ${rankedAssessors.length} ranked assessors`);
