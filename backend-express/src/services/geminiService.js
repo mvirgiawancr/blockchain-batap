@@ -20,7 +20,7 @@ class GeminiService {
 
     // Global rate limiting for Free Tier (2 RPM = 1 request per 30 seconds)
     this.lastRequestTime = 0;
-    this.minRequestIntervalMs = 35000; // 35 seconds between requests (safe margin for 2 RPM)
+    this.minRequestIntervalMs = config.gemini.minRequestIntervalMs; // configurable (env GEMINI_MIN_REQUEST_INTERVAL_MS, default 4000)
 
     // LAM-TEK 2025: 7 Kriteria Configuration with 53 Butir (Instrumen 2025)
     // Bobot per program type: S=Sarjana, M=Magister, D=Doktor
@@ -583,6 +583,46 @@ Return ONLY the JSON, no markdown, no explanation.`;
     return content.substring(skipHeader, skipHeader + windowSize);
   }
 
+  lkpsSheetsForCriterion(i) {
+    const map = {
+      2: ['2a1','2a2','2a3','2b','4a','6'],
+      3: ['3a','3b','3c'],
+      4: ['4a','4c','3b','3c','4d','4f-1','4f-2','4f-3','4f-4','4i','3a1','3a3','3b1','3b4'],
+      6: ['6a','6b','6c1','6c2','6d','6e1','6f1','6f2','6g1','6g2','2b','5a','5b1','5b2','5b3','5c','5d']
+    };
+    return map[i] || [];
+  }
+
+  async retrieveLKPSSnippet(i, lkpsContent, submissionId, ragService, fallbackFn) {
+    if (ragService && submissionId) {
+      try {
+        const sheets = this.lkpsSheetsForCriterion(i);
+        let rows = await ragService.getLKPSSheets(submissionId, sheets);
+        if (!rows.length) {
+          rows = await ragService.search({ query: this.criteriaConfig[i].name, submissionId, docType: 'LKPS', topK: 8 });
+        }
+        if (rows.length) return rows.map(r => r.content).join('\n\n');
+      } catch (err) {
+        console.warn(`[Gemini] RAG LKPS K${i} gagal, fallback:`, err.message);
+      }
+    }
+    return fallbackFn();
+  }
+
+  async retrieveLEDSnippet(i, ledContent, submissionId, ragService) {
+    if (ragService && submissionId) {
+      try {
+        const crit = this.criteriaConfig[i];
+        const query = `${crit.name} ${(crit.ledKeys || []).join(' ')}`;
+        const rows = await ragService.search({ query, submissionId, docType: 'LED', kriteria: i, topK: 6 });
+        if (rows.length) return rows.map(r => r.content).join('\n\n').slice(0, 25000);
+      } catch (err) {
+        console.warn(`[Gemini] RAG LED K${i} gagal, fallback:`, err.message);
+      }
+    }
+    return ledContent.substring(0, 25000);
+  }
+
   /**
    * Generate Gemini response with retry logic
    */
@@ -671,9 +711,70 @@ Return ONLY the JSON, no markdown, no explanation.`;
   }
 
   /**
+   * Parse JSON skor butir kualitatif dari respons Gemini. Clamp 0-4.
+   */
+  parseQualitativeScores(responseText) {
+    try {
+      const start = responseText.indexOf('{');
+      const end = responseText.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) return {};
+      const data = JSON.parse(responseText.substring(start, end + 1));
+      const scores = data.butir_scores || data;
+      const out = {};
+      for (const [code, v] of Object.entries(scores)) {
+        if (!v || typeof v !== 'object') continue;
+        let s = Number(v.score);
+        if (Number.isNaN(s)) continue;
+        s = Math.max(0, Math.min(4, s));
+        out[code] = { score: s, justification: v.justification || '', confidence: v.confidence || 'low' };
+      }
+      return out;
+    } catch (err) {
+      console.warn('[Gemini] parseQualitativeScores gagal:', err.message);
+      return {};
+    }
+  }
+
+  /**
+   * Nilai butir kualitatif satu kriteria berdasarkan rubrik pedoman + bukti LED.
+   */
+  async scoreQualitativeButir(criterionNum, butirList, ledEvidence, pedomanRubric) {
+    if (!this.model) return {};
+    const butirLines = butirList.map(b => `- ${b.code}: ${b.name}`).join('\n');
+    const firstCode = butirList[0] ? butirList[0].code : '1.1';
+    const prompt = `# TUGAS
+Nilai setiap butir kualitatif Kriteria ${criterionNum} akreditasi LAM-TEK 2025 dengan SKALA 0-4.
+
+# RUBRIK PEDOMAN (RUJUKAN RESMI — daftar aspek indikator)
+\`\`\`
+${(pedomanRubric || '(tidak tersedia)').slice(0, 4000)}
+\`\`\`
+
+# BUKTI DARI LED (Laporan Evaluasi Diri)
+\`\`\`
+${(ledEvidence || '(tidak tersedia)').slice(0, 12000)}
+\`\`\`
+
+# BUTIR YANG DINILAI
+${butirLines}
+
+# ATURAN PENILAIAN
+1. Skor 4 = SELURUH aspek indikator terbukti kuat di LED.
+2. Skor turun proporsional dengan jumlah aspek yang TIDAK terbukti.
+3. Jika bukti TIDAK ditemukan di LED, set "confidence":"low" dan score sekitar 2.0 — JANGAN beri 0 hanya karena bukti tidak ketemu.
+4. Skor 0-1.5 hanya jika ADA bukti eksplisit capaian memang rendah/tidak ada.
+
+# OUTPUT (JSON saja, tanpa markdown)
+{"butir_scores":{"${firstCode}":{"score":3.5,"justification":"alasan singkat","confidence":"high"}}}`;
+
+    const raw = await this.generateGeminiResponse(prompt);
+    return this.parseQualitativeScores(raw);
+  }
+
+  /**
    * Analyze documents for LAM-TEK 2025 scoring (7 Criteria)
    */
-  async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S') {
+  async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S', options = {}) {
     console.log(`[Gemini] Starting LAM-TEK 2025 analysis (7 Criteria) for ${programStudi} (${programType})`);
 
     // Check if Gemini is configured
@@ -681,6 +782,10 @@ Return ONLY the JSON, no markdown, no explanation.`;
       console.error('[Gemini] Analysis error: Gemini API not configured');
       throw new Error('Gemini API not configured. Please set GEMINI_API_KEY in .env file. Get your key from https://makersuite.google.com/app/apikey');
     }
+
+    const { submissionId = null, ragService = null } = options;
+    const ragReady = ragService ? await ragService.isAvailable().catch(() => false) : false;
+    console.log(`[Gemini] RAG retrieval: ${ragReady ? 'ON' : 'OFF (jalur lama)'}`);
 
     const finalLedData = {};
     const finalLkpsData = {};
@@ -712,28 +817,31 @@ Return ONLY the JSON, no markdown, no explanation.`;
       
       // For Kriteria 4, we need multiple tables: 3a1, 3a4, 3b1, 3b2, 3b3
       // Take a large snippet that covers all these tables
-      let lkpsSnippetK4;
-      if (sheet3a1Final !== -1) {
-        // Found the sheet, extract a LARGE section (150KB) to include 3a1, 3a4, 3b1, 3b2, 3b3
-        const start = sheet3a1Final;
-        const end = Math.min(lkpsContent.length, start + 150000); // Take 150KB to cover all tables
-        lkpsSnippetK4 = lkpsContent.substring(start, end);
-        console.log(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
-        
-        // Check if we have the required tables in snippet
-        const has3b1 = lkpsSnippetK4.includes('3b1') || lkpsSnippetK4.includes('3.b.1');
-        const has3b2 = lkpsSnippetK4.includes('3b2') || lkpsSnippetK4.includes('3.b.2');
-        const has3b3 = lkpsSnippetK4.includes('3b3') || lkpsSnippetK4.includes('3.b.3');
-        console.log(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
-      } else {
-        // Fallback: search with keywords including penelitian and publikasi
-        lkpsSnippetK4 = this.findRelevantSnippet(lkpsContent, [
-          'NIDN/NIDK', 'Jabatan Akademik', 'Penelitian', 'Publikasi',
-          'Guru Besar', 'Lektor Kepala', 'Lektor',
-          'Nama Dosen Tetap', 'Pendidikan Terakhir'
-        ], 100000); // Larger window
-      }
-      
+      let lkpsSnippetK4 = await this.retrieveLKPSSnippet(4, lkpsContent, submissionId, ragReady ? ragService : null, () => {
+        let snippet;
+        if (sheet3a1Final !== -1) {
+          // Found the sheet, extract a LARGE section (150KB) to include 3a1, 3a4, 3b1, 3b2, 3b3
+          const start = sheet3a1Final;
+          const end = Math.min(lkpsContent.length, start + 150000); // Take 150KB to cover all tables
+          snippet = lkpsContent.substring(start, end);
+          console.log(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
+
+          // Check if we have the required tables in snippet
+          const has3b1 = snippet.includes('3b1') || snippet.includes('3.b.1');
+          const has3b2 = snippet.includes('3b2') || snippet.includes('3.b.2');
+          const has3b3 = snippet.includes('3b3') || snippet.includes('3.b.3');
+          console.log(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
+        } else {
+          // Fallback: search with keywords including penelitian and publikasi
+          snippet = this.findRelevantSnippet(lkpsContent, [
+            'NIDN/NIDK', 'Jabatan Akademik', 'Penelitian', 'Publikasi',
+            'Guru Besar', 'Lektor Kepala', 'Lektor',
+            'Nama Dosen Tetap', 'Pendidikan Terakhir'
+          ], 100000); // Larger window
+        }
+        return snippet;
+      });
+
       console.log(`[Gemini] K4 Snippet length: ${lkpsSnippetK4.length} chars`);
       console.log(`[Gemini] K4 Snippet preview: ${lkpsSnippetK4.substring(0, 500)}...`);
       
@@ -761,7 +869,7 @@ Return ONLY the JSON, no markdown, no explanation.`;
 
         // Extract LED data if applicable
         if (criterion.ledKeys.length > 0) {
-          const ledSnippet = ledContent.substring(0, 25000);
+          const ledSnippet = await this.retrieveLEDSnippet(i, ledContent, submissionId, ragReady ? ragService : null);
           const ledPrompt = this.getLEDExtractionPrompt(i, ledSnippet);
           
           if (ledPrompt) {
@@ -777,48 +885,52 @@ Return ONLY the JSON, no markdown, no explanation.`;
 
         // Extract LKPS data if applicable
         if (criterion.lkpsKeys.length > 0) {
-          let lkpsSnippet;
-          
-          // For Kriteria 6 (Mahasiswa), find sheets 5a, 5b, 5c, 5d
-          if (i === 6) {
-            // Try various sheet name patterns
-            let sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5a ---');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5.a ---');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('Sheet: 5a');
-            if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('5a.1');
-            
-            let sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5b ---');
-            if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5.b ---');
-            if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('Sheet: 5b');
-            
-            let sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5c ---');
-            if (sheet5cIdx === -1) sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5.c ---');
-            
-            console.log(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
-            
-            if (sheet5aIdx !== -1) {
-              // Extract from Sheet 5a to end of 5d (or 80KB)
-              const start = sheet5aIdx;
-              const end = Math.min(lkpsContent.length, start + 80000);
-              lkpsSnippet = lkpsContent.substring(start, end);
-              console.log(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
+          const lkpsSnippet = await this.retrieveLKPSSnippet(i, lkpsContent, submissionId, ragReady ? ragService : null, () => {
+            let snippet;
+
+            // For Kriteria 6 (Mahasiswa), find sheets 5a, 5b, 5c, 5d
+            if (i === 6) {
+              // Try various sheet name patterns
+              let sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5a ---');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('--- Sheet: 5.a ---');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('Sheet: 5a');
+              if (sheet5aIdx === -1) sheet5aIdx = lkpsContent.indexOf('5a.1');
+
+              let sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5b ---');
+              if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('--- Sheet: 5.b ---');
+              if (sheet5bIdx === -1) sheet5bIdx = lkpsContent.indexOf('Sheet: 5b');
+
+              let sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5c ---');
+              if (sheet5cIdx === -1) sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5.c ---');
+
+              console.log(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
+
+              if (sheet5aIdx !== -1) {
+                // Extract from Sheet 5a to end of 5d (or 80KB)
+                const start = sheet5aIdx;
+                const end = Math.min(lkpsContent.length, start + 80000);
+                snippet = lkpsContent.substring(start, end);
+                console.log(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
+              } else {
+                // Fallback
+                snippet = this.findRelevantSnippet(lkpsContent, [
+                  'Jumlah Mahasiswa Aktif', 'Mahasiswa Asing',
+                  'Rata-rata IPK', 'IPK Lulusan',
+                  'Prestasi', 'Tingkat', 'Lokal', 'Nasional', 'Internasional',
+                  'Masa Studi', 'Waktu Tunggu'
+                ], 35000);
+              }
             } else {
-              // Fallback
-              lkpsSnippet = this.findRelevantSnippet(lkpsContent, [
-                'Jumlah Mahasiswa Aktif', 'Mahasiswa Asing',
-                'Rata-rata IPK', 'IPK Lulusan',
-                'Prestasi', 'Tingkat', 'Lokal', 'Nasional', 'Internasional',
-                'Masa Studi', 'Waktu Tunggu'
-              ], 35000);
+              // Other criteria use keyword search
+              const keywords = i === 2 ? ['Butir 9', 'Butir 10', 'Tabel 4', 'Kerjasama', 'BOP', 'Dana Penelitian'] :
+                              i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
+              const windowSize = 15000;
+              snippet = this.findRelevantSnippet(lkpsContent, keywords, windowSize);
             }
-          } else {
-            // Other criteria use keyword search
-            const keywords = i === 2 ? ['Butir 9', 'Butir 10', 'Tabel 4', 'Kerjasama', 'BOP', 'Dana Penelitian'] :
-                            i === 3 ? ['Butir 14', 'Butir 17', 'praktikum', 'Bahan Ajar', 'Pembelajaran'] : [];
-            const windowSize = 15000;
-            lkpsSnippet = this.findRelevantSnippet(lkpsContent, keywords, windowSize);
-          }
-          
+
+            return snippet;
+          });
+
           const lkpsPrompt = this.getLKPSExtractionPrompt(i, lkpsSnippet);
           
           if (lkpsPrompt) {

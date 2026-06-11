@@ -72,7 +72,7 @@ exports.getAssessors = async (req, res) => {
     // Get assessors from database WITH research profiles
     const result = await db.query(
       `SELECT u.id, u.username, u.name, u.institution, u.program_studi, u.phone,
-              ap.research_areas, ap.h_index, ap.publication_count
+              ap.research_areas, ap.h_index, ap.publication_count, ap.last_synced_at
        FROM users u
        LEFT JOIN assessor_profiles ap ON u.id = ap.user_id
        WHERE u.role IN ('asesor', 'assessor') AND u.is_active = TRUE
@@ -90,6 +90,7 @@ exports.getAssessors = async (req, res) => {
       hIndex: row.h_index,
       publicationCount: row.publication_count || 0,
       phone: row.phone,
+      lastSyncedAt: row.last_synced_at,
       totalAssignments: 0 // TODO: Count from assignments table
     }));
 
@@ -105,6 +106,77 @@ exports.getAssessors = async (req, res) => {
 
     // If programStudi is provided, use AI to rank assessors
     if (programStudi) {
+      // Profil riset asesor: COBA LIVE dulu dari Semantic Scholar lalu Google
+      // Scholar berdasarkan NAMA; bila keduanya gagal barulah memakai profil yang
+      // tersimpan di basis data (assessor_profiles) sebagai fallback. Hasil live
+      // yang berhasil di-cache ke DB. Seluruh proses bersifat non-fatal.
+      if (result.rows.length > 0) {
+        const semanticScholar = require('../services/semanticScholarService');
+        const googleScholar = require('../services/googleScholarService');
+        for (const a of assessors) {
+          let live = null;
+
+          // 1) Semantic Scholar (pencarian berdasarkan nama)
+          try {
+            const ss = await semanticScholar.fetchResearchProfile(a.name, a.institution);
+            if (ss.found && ss.researchAreas.length > 0) {
+              live = {
+                sumber: 'Semantic Scholar',
+                researchAreas: ss.researchAreas,
+                hIndex: ss.hIndex,
+                publicationCount: ss.paperCount,
+                recentPublications: ss.recentPublications
+              };
+            }
+          } catch (err) {
+            logger.warn(`[KEA] Semantic Scholar gagal untuk "${a.name}": ${err.message}`);
+          }
+
+          // 2) Google Scholar (pencarian berdasarkan nama) bila Semantic Scholar belum memberi hasil
+          if (!live) {
+            try {
+              const gs = await googleScholar.fetchProfile(a.name);
+              if (gs.found && gs.researchAreas.length > 0) {
+                live = {
+                  sumber: 'Google Scholar',
+                  researchAreas: gs.researchAreas,
+                  hIndex: gs.hIndex,
+                  publicationCount: gs.publications ? gs.publications.length : 0,
+                  recentPublications: (gs.publications || []).map(p => ({ title: p.title, year: p.year }))
+                };
+              }
+            } catch (err) {
+              logger.warn(`[KEA] Google Scholar gagal untuk "${a.name}": ${err.message}`);
+            }
+          }
+
+          // 3) Terapkan hasil live + cache ke DB, atau fallback ke profil DB
+          if (live) {
+            try {
+              await db.query(
+                `INSERT INTO assessor_profiles
+                   (user_id, research_areas, h_index, publication_count, last_synced_at)
+                 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+                 ON CONFLICT (user_id) DO UPDATE SET
+                   research_areas = $2, h_index = $3,
+                   publication_count = $4, last_synced_at = CURRENT_TIMESTAMP`,
+                [a.id, live.researchAreas, live.hIndex, live.publicationCount]
+              );
+            } catch (err) {
+              logger.warn(`[KEA] Gagal cache profil "${a.name}": ${err.message}`);
+            }
+            a.researchAreas = live.researchAreas;
+            a.expertise = live.researchAreas.join(', ');
+            a.hIndex = live.hIndex;
+            a.publicationCount = live.publicationCount;
+            a.recentPublications = live.recentPublications;
+            logger.info(`[KEA] Profil "${a.name}" diambil live dari ${live.sumber} (H-Index ${live.hIndex})`);
+          } else {
+            logger.info(`[KEA] Live gagal untuk "${a.name}", memakai profil dari basis data (fallback)`);
+          }
+        }
+      }
+
       logger.info(`Ranking assessors for program studi: ${programStudi}`);
       const rankedAssessors = await geminiService.matchAssessorExpertise(programStudi, assessors);
       logger.info(`Retrieved ${rankedAssessors.length} ranked assessors`);
