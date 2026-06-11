@@ -41,7 +41,8 @@ class EmbeddingService {
     await this._throttle();
     const res = await this.embedModel.embedContent({
       content: { parts: [{ text }] },
-      taskType: 'RETRIEVAL_QUERY'
+      taskType: 'RETRIEVAL_QUERY',
+      outputDimensionality: EMBED_DIM
     });
     return res.embedding.values;
   }
@@ -56,7 +57,8 @@ class EmbeddingService {
       const res = await this.embedModel.batchEmbedContents({
         requests: slice.map(t => ({
           content: { parts: [{ text: t }] },
-          taskType: 'RETRIEVAL_DOCUMENT'
+          taskType: 'RETRIEVAL_DOCUMENT',
+          outputDimensionality: EMBED_DIM
         }))
       });
       for (const e of res.embeddings) out.push(e.values);
