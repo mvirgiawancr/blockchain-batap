@@ -4,10 +4,10 @@ import { TrendingUp, Award, Star } from 'lucide-react';
 const ScoringResultDisplay = ({ scoringResult }) => {
   if (!scoringResult) {
     return (
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-dashed border-gray-300">
-        <div className="flex items-center justify-center gap-3 text-gray-500">
-          <Star className="w-6 h-6" />
-          <p>Belum ada hasil skoring tersedia</p>
+      <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-8 border-2 border-dashed border-slate-200 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+          <Star className="w-8 h-8 text-slate-300" />
+          <p className="text-sm font-semibold">Belum ada hasil skoring tersedia</p>
         </div>
       </div>
     );
@@ -53,42 +53,52 @@ const ScoringResultDisplay = ({ scoringResult }) => {
   const gradeColor = getGradeColor(finalGrade);
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-blue-600" />
-          </div>
+    <div className="bg-gradient-to-tr from-indigo-50/70 via-indigo-50/30 to-blue-50/20 rounded-2xl p-6 border border-indigo-100 shadow-sm relative overflow-hidden">
+      {/* Decorative background overlay */}
+      <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/5 rounded-full blur-lg pointer-events-none" />
+      
+      <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6 z-10">
+        <div className="flex items-center gap-4">
           <div>
-            <h4 className="text-lg font-bold text-blue-900">Hasil Skoring Otomatis</h4>
-            <p className="text-blue-600 text-sm">Metode: {finalMethod}</p>
+            <h4 className="text-lg font-black text-slate-900 tracking-tight">Hasil Skoring Otomatis AI</h4>
+            <p className="text-indigo-600 text-xs font-extrabold uppercase tracking-wider mt-0.5">Metodologi: {finalMethod}</p>
           </div>
         </div>
         
-        {/* Score Display - Only */}
-        <div className="text-center">
-          <div className="bg-white rounded-xl p-4 shadow-md border-2 border-blue-200">
-            <div className="text-3xl font-bold text-blue-900">{scoreOn4Scale}</div>
-            <div className="text-sm text-blue-600 mt-1">/ 4.0</div>
+        {/* Score Display */}
+        <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl px-5 py-3 shadow-sm border border-slate-200/60 text-center min-w-28">
+            <div className="text-3xl font-black text-indigo-600 font-heading">{scoreOn4Scale}</div>
+            <div className="text-[10px] text-slate-400 font-black tracking-wider uppercase mt-0.5">/ 4.00</div>
           </div>
-          <p className="text-sm text-gray-600 mt-2 font-medium">Skor</p>
+          <div className="text-left">
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Predikat Awal</p>
+            <p className={`text-base font-black ${
+              finalGrade === 'A' ? 'text-emerald-700' :
+              finalGrade === 'B' ? 'text-indigo-750' :
+              finalGrade === 'C' ? 'text-amber-700' :
+              'text-rose-700'
+            }`}>
+              {finalAkreditasi}
+            </p>
+          </div>
         </div>
       </div>
       
       {/* Summary Stats */}
       {summary && (
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-lg p-3 border border-blue-200 text-center">
-            <div className="text-xs text-gray-600 mb-1">Total Butir</div>
-            <div className="text-lg font-bold text-blue-900">{summary.totalButir || 0}</div>
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 border border-slate-200/50 text-center shadow-sm">
+            <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider mb-1">Total Butir</div>
+            <div className="text-xl font-black text-slate-800 font-heading">{summary.totalButir || 0}</div>
           </div>
-          <div className="bg-green-50 rounded-lg p-3 border border-green-200 text-center">
-            <div className="text-xs text-green-700 mb-1">Kriteria ≥ 3.5</div>
-            <div className="text-lg font-bold text-green-700">{summary.criteriaAbove3_5 || 0}</div>
+          <div className="bg-emerald-50/70 backdrop-blur-md rounded-xl p-3 border border-emerald-100 text-center shadow-sm">
+            <div className="text-[9px] text-emerald-750 font-black uppercase tracking-wider mb-1">Kriteria ≥ 3.5</div>
+            <div className="text-xl font-black text-emerald-800 font-heading">{summary.criteriaAbove3_5 || 0}</div>
           </div>
-          <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-center">
-            <div className="text-xs text-red-700 mb-1">Kriteria &lt; 2.0</div>
-            <div className="text-lg font-bold text-red-700">{summary.criteriaBellow2_0 || 0}</div>
+          <div className="bg-rose-50/70 backdrop-blur-md rounded-xl p-3 border border-rose-100 text-center shadow-sm">
+            <div className="text-[9px] text-rose-750 font-black uppercase tracking-wider mb-1">Kriteria &lt; 2.0</div>
+            <div className="text-xl font-black text-rose-800 font-heading">{summary.criteriaBellow2_0 || 0}</div>
           </div>
         </div>
       )}

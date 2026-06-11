@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { Calendar, MapPin, Clock, CheckCircle, XCircle, RefreshCw, FileText, User, Award } from 'lucide-react';
+import { Calendar, MapPin, Clock, CheckCircle, XCircle, RefreshCw, FileText, User, Award, Info, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 /**
@@ -111,64 +111,80 @@ export default function SekretariatALApprovalPage({ user }) {
     { id: 'processed', label: 'Sudah Diproses', icon: CheckCircle, count: processedSchedules.length }
   ];
 
+  const role = user?.role || 'sekretariat';
+  const menuItems = getMenuForRole(role);
+
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Ambient background glows */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-100/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-64 w-72 h-72 bg-violet-100/20 rounded-full blur-3xl pointer-events-none" />
+
       {/* Sidebar */}
       <Sidebar 
         user={user} 
         onLogout={() => navigate('/login')}
-        menuItems={getMenuForRole('sekretariat')}
+        menuItems={menuItems}
       />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex-1 ml-64 overflow-auto relative">
+        <div className="p-8 max-w-6xl mx-auto space-y-6">
+          
           {/* Header */}
-          <header className="flex justify-between items-center">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Award className="w-8 h-8 text-amber-500" />
-                Verifikasi Jadwal Asesmen Lapangan
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <Award className="w-8 h-8 text-indigo-600" />
+                Verifikasi Jadwal Asesmen Lapangan (AL)
               </h1>
-              <p className="text-gray-600 mt-1">Step 19-20: Verifikasi dan setujui jadwal AL dari KEA</p>
+              <p className="text-slate-500 text-sm font-semibold mt-1">Verifikasi kelayakan dan setujui usulan jadwal AL dari Komite KEA</p>
             </div>
             <button
               onClick={fetchData}
-              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-sm cursor-pointer"
             >
-              <RefreshCw className="w-5 h-5 text-gray-600" />
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              Refresh Data
             </button>
           </header>
 
-          {/* Message */}
+          {/* Message Alert */}
           {message && (
-            <div className={`rounded-xl p-4 ${
-              message.type === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
-              'bg-red-50 border-2 border-red-200 text-red-800'
+            <div className={`rounded-2xl p-4 border-2 animate-fade-in ${
+              message.type === 'success' 
+                ? 'bg-emerald-50 border-emerald-150 text-emerald-800' 
+                : 'bg-rose-50 border-rose-150 text-rose-800'
             }`}>
-              <p className="font-medium">{message.text}</p>
+              <div className="flex items-center gap-2">
+                {message.type === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
+                <p className="text-sm font-black leading-relaxed">{message.text}</p>
+              </div>
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="bg-white rounded-xl shadow-sm p-2">
-            <div className="flex gap-2">
+          {/* Tabs - Premium Glass Capsule */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="bg-slate-100/80 p-1.5 rounded-2xl flex flex-wrap gap-1 border border-slate-200/50 w-full md:w-auto shadow-inner">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                     activeTab === tab.id
-                      ? 'bg-amber-500 text-white shadow-md'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? tab.id === 'pending'
+                        ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
+                        : 'bg-emerald-600 text-white shadow-md shadow-emerald-200'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
                   {tab.count > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      activeTab === tab.id ? 'bg-white text-amber-600' : 'bg-amber-100 text-amber-600'
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      activeTab === tab.id 
+                        ? tab.id === 'pending' ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'
+                        : 'bg-slate-200 text-slate-700'
                     }`}>
                       {tab.count}
                     </span>
@@ -179,94 +195,100 @@ export default function SekretariatALApprovalPage({ user }) {
           </div>
 
           {loading ? (
-            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-              <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-600">Memuat data...</p>
+            <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-sm">
+              <RefreshCw className="w-10 h-10 text-indigo-600 animate-spin mb-3" />
+              <p className="text-slate-500 font-bold text-sm">Memuat data verifikasi jadwal...</p>
             </div>
           ) : (
             <>
               {/* Tab: Pending */}
               {activeTab === 'pending' && (
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-lg font-semibold text-gray-900">Jadwal Menunggu Verifikasi</h2>
-                  </div>
+                <div className="space-y-6">
                   {pendingSchedules.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">Tidak ada jadwal yang perlu diverifikasi</p>
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-16 text-center shadow-sm max-w-2xl mx-auto my-6 animate-fade-in">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200/50">
+                        <Clock className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-black text-slate-800 mb-2">Tidak Ada Jadwal</h3>
+                      <p className="text-slate-500 text-sm font-semibold max-w-md mx-auto leading-relaxed">
+                        Tidak ada pengajuan jadwal Asesmen Lapangan yang menunggu verifikasi saat ini.
+                      </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="grid grid-cols-1 gap-6">
                       {pendingSchedules.map(schedule => (
-                        <div key={schedule.id} className="p-6 hover:bg-amber-50 transition-colors">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <span className="inline-flex px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold mb-3">
-                                Menunggu Verifikasi
-                              </span>
-                              
+                        <div key={schedule.id} className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 relative overflow-hidden shadow-sm hover:-translate-y-0.5 animate-fade-in">
+                          {/* Top Border Status Line */}
+                          <div className="absolute top-0 left-0 w-full h-1 bg-amber-500" />
+                          
+                          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                            <div className="flex-1 space-y-4">
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> Menunggu Verifikasi
+                                </span>
+                                <span className="text-slate-400 text-xs font-semibold flex items-center gap-1">
+                                  <FileText className="w-3.5 h-3.5 text-slate-350" /> ID: {schedule.submission_id.substring(0, 18)}...
+                                </span>
+                              </div>
+
                               {/* Program Studi & Institusi */}
                               {schedule.programStudi && (
-                                <div className="mb-3">
-                                  <h3 className="font-bold text-gray-900 text-lg">{schedule.programStudi}</h3>
-                                  <p className="text-gray-600">{schedule.institusi}</p>
+                                <div>
+                                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{schedule.programStudi}</h3>
+                                  <p className="text-slate-550 text-sm font-bold">{schedule.institusi}</p>
                                 </div>
                               )}
 
-                              {/* Submission ID */}
-                              <div className="flex items-center gap-2 text-gray-400 text-xs mb-3">
-                                <FileText className="w-3 h-3" />
-                                <span>{schedule.submission_id}</span>
-                              </div>
-
                               {/* Assessors */}
                               {(schedule.assessor1Name || schedule.assessor2Name) && (
-                                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                  <p className="text-sm text-blue-700 font-semibold mb-2">Tim Asesor:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {schedule.assessor1Name && (
-                                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                                        {schedule.assessor1Name}
-                                      </span>
-                                    )}
-                                    {schedule.assessor2Name && (
-                                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-                                        {schedule.assessor2Name}
-                                      </span>
-                                    )}
+                                <div className="p-4.5 bg-indigo-50/50 border border-indigo-100 rounded-2xl max-w-2xl">
+                                  <p className="text-[10px] text-indigo-700 font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" /> Tim Asesor Ditugaskan
+                                  </p>
+                                  <div className="flex flex-col gap-1.5 text-slate-800 text-xs font-bold pl-1">
+                                    {schedule.assessor1Name && <span>• {schedule.assessor1Name}</span>}
+                                    {schedule.assessor2Name && <span>• {schedule.assessor2Name}</span>}
                                   </div>
                                 </div>
                               )}
 
-                              <div className="flex items-center gap-2 text-gray-900 mb-2">
-                                <Calendar className="w-5 h-5 text-amber-500" />
-                                <span className="font-semibold">{formatDate(schedule.proposed_date)}</span>
-                              </div>
-
-                              {schedule.proposed_end_date && (
-                                <div className="text-gray-600 text-sm ml-7 mb-2">
-                                  s/d {formatDate(schedule.proposed_end_date)}
+                              {/* Jadwal dan Detail Lokasi */}
+                              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 max-w-3xl">
+                                <div className="space-y-1">
+                                  <span className="text-[10px] text-slate-450 font-black uppercase tracking-wider block">Waktu Pelaksanaan</span>
+                                  <div className="flex items-start gap-2">
+                                    <Calendar className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <p className="text-sm font-bold text-slate-800">{formatDate(schedule.proposed_date)}</p>
+                                      {schedule.proposed_end_date && (
+                                        <p className="text-xs text-slate-500 font-bold mt-1">s.d. {formatDate(schedule.proposed_end_date)}</p>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
 
-                              <div className="flex items-center gap-2 text-gray-700">
-                                <MapPin className="w-5 h-5 text-gray-400" />
-                                <span>{schedule.proposed_venue}</span>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] text-slate-450 font-black uppercase tracking-wider block">Tempat / Venue</span>
+                                  <div className="flex items-start gap-2">
+                                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-slate-700">{schedule.proposed_venue}</p>
+                                  </div>
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
-                                <User className="w-4 h-4" />
-                                <span>Diusulkan oleh: {schedule.proposed_by_name || 'KEA'}</span>
+                              <div className="flex items-center gap-2 text-slate-450 text-[10px] font-black uppercase tracking-wider pt-2">
+                                <User className="w-3.5 h-3.5" />
+                                <span>Diusulkan oleh: <strong className="text-indigo-650 font-black">{schedule.proposed_by_name || 'KEA'}</strong></span>
                               </div>
                             </div>
 
                             <button
                               onClick={() => { setSelectedSchedule(schedule); setShowModal(true); }}
-                              className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium"
+                              className="w-full lg:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-150 shadow-md shadow-indigo-100 hover:-translate-y-0.5 cursor-pointer active:scale-95"
                             >
                               <CheckCircle className="w-4 h-4" />
-                              Verifikasi
+                              Verifikasi Jadwal
                             </button>
                           </div>
                         </div>
@@ -278,48 +300,81 @@ export default function SekretariatALApprovalPage({ user }) {
 
               {/* Tab: Processed */}
               {activeTab === 'processed' && (
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-lg font-semibold text-gray-900">Jadwal Sudah Diproses</h2>
-                  </div>
+                <div className="space-y-6">
                   {processedSchedules.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">Belum ada jadwal yang diproses</p>
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-16 text-center shadow-sm max-w-2xl mx-auto my-6 animate-fade-in">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200/50">
+                        <CheckCircle className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-black text-slate-800 mb-2">Belum Ada Data</h3>
+                      <p className="text-slate-500 text-sm font-semibold max-w-md mx-auto leading-relaxed">
+                        Belum ada jadwal Asesmen Lapangan yang diproses/diverifikasi saat ini.
+                      </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="grid grid-cols-1 gap-6">
                       {processedSchedules.map(schedule => (
-                        <div key={schedule.id} className="p-6">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold mb-3 ${
-                                schedule.status === 'approved' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
-                                {schedule.status === 'approved' ? (
-                                  <><CheckCircle className="w-3 h-3" /> Disetujui</>
-                                ) : (
-                                  <><XCircle className="w-3 h-3" /> Ditolak</>
-                                )}
-                              </span>
+                        <div key={schedule.id} className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 hover:shadow-md hover:border-slate-350 transition-all duration-200 relative overflow-hidden shadow-sm hover:-translate-y-0.5 animate-fade-in">
+                          {/* Top Border Status Line */}
+                          <div className={`absolute top-0 left-0 w-full h-1 ${
+                            schedule.status === 'approved' ? 'bg-emerald-600' : 'bg-rose-600'
+                          }`} />
 
-                              <div className="text-gray-400 text-xs mb-2">{schedule.submission_id}</div>
-                              
-                              <div className="flex items-center gap-2 text-gray-900 mb-1">
-                                <Calendar className="w-4 h-4 text-gray-400" />
-                                <span>{formatDate(schedule.proposed_date)}</span>
+                          <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+                            <div className="flex-1 space-y-4">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`px-3 py-1 border rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 ${
+                                  schedule.status === 'approved' 
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                                }`}>
+                                  {schedule.status === 'approved' ? (
+                                    <><CheckCircle className="w-3 h-3" /> Disetujui</>
+                                  ) : (
+                                    <><XCircle className="w-3 h-3" /> Ditolak</>
+                                  )}
+                                </span>
+                                <span className="text-slate-400 text-xs font-semibold flex items-center gap-1">
+                                  <FileText className="w-3.5 h-3.5 text-slate-350" /> ID: {schedule.submission_id.substring(0, 18)}...
+                                </span>
                               </div>
-                              
-                              <div className="flex items-center gap-2 text-gray-600">
-                                <MapPin className="w-4 h-4 text-gray-400" />
-                                <span>{schedule.proposed_venue}</span>
+
+                              {/* Program Studi & Institusi */}
+                              {schedule.programStudi && (
+                                <div>
+                                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{schedule.programStudi}</h3>
+                                  <p className="text-slate-550 text-sm font-bold">{schedule.institusi}</p>
+                                </div>
+                              )}
+
+                              {/* Jadwal dan Detail Lokasi */}
+                              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 max-w-3xl">
+                                <div className="space-y-1">
+                                  <span className="text-[10px] text-slate-450 font-black uppercase tracking-wider block">Waktu Pelaksanaan</span>
+                                  <div className="flex items-start gap-2">
+                                    <Calendar className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <p className="text-sm font-bold text-slate-800">{formatDate(schedule.proposed_date)}</p>
+                                      {schedule.proposed_end_date && (
+                                        <p className="text-xs text-slate-500 font-bold mt-1">s.d. {formatDate(schedule.proposed_end_date)}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <span className="text-[10px] text-slate-450 font-black uppercase tracking-wider block">Tempat / Venue</span>
+                                  <div className="flex items-start gap-2">
+                                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-slate-700">{schedule.proposed_venue}</p>
+                                  </div>
+                                </div>
                               </div>
 
                               {schedule.approval_notes && (
-                                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                                  <strong>Catatan:</strong> {schedule.approval_notes}
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 max-w-2xl">
+                                  <p className="text-[10px] text-slate-450 font-black uppercase tracking-wider mb-1">Catatan Verifikator</p>
+                                  <p className="text-sm font-bold text-slate-750 leading-relaxed">{schedule.approval_notes}</p>
                                 </div>
                               )}
 
@@ -354,18 +409,23 @@ export default function SekretariatALApprovalPage({ user }) {
                                       alert('Error downloading file');
                                     }
                                   }}
-                                  className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                  className="flex items-center gap-2 text-xs font-black text-indigo-600 hover:text-indigo-850 transition-all uppercase tracking-wider pt-2 cursor-pointer hover:underline"
                                 >
                                   <FileText className="w-4 h-4" />
-                                  Download Surat Tugas
+                                  Download Surat Tugas (PDF)
                                 </button>
                               )}
                             </div>
 
-                            <div className="text-right text-sm text-gray-500">
-                              <div>Diverifikasi oleh:</div>
-                              <div className="text-gray-700">{schedule.approved_by_name || 'Sekretariat'}</div>
-                              <div className="text-xs mt-1">{formatDate(schedule.approved_at)}</div>
+                            <div className="flex flex-col items-start lg:items-end justify-between gap-4 h-full lg:text-right border-l-0 lg:border-l border-slate-100 lg:pl-6 pt-4 lg:pt-0">
+                              <div>
+                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Verifikator</span>
+                                <span className="text-sm font-bold text-slate-800">{schedule.approved_by_name || 'Sekretariat'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Tanggal Proses</span>
+                                <span className="text-xs font-semibold text-slate-500">{formatDate(schedule.approved_at)}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -381,38 +441,48 @@ export default function SekretariatALApprovalPage({ user }) {
 
       {/* Modal Verification */}
       {showModal && selectedSchedule && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <Calendar className="w-6 h-6 text-amber-500" />
-              Verifikasi Jadwal AL
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-2xl max-w-lg w-full p-8 flex flex-col">
+            <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3 tracking-tight">
+              <Calendar className="w-6 h-6 text-indigo-600" />
+              Verifikasi Pengajuan Jadwal AL
             </h2>
             
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-xs text-gray-400 mb-2">Submission ID:</div>
-              <div className="font-semibold text-gray-900 mb-4">{selectedSchedule.submission_id}</div>
-              
-              <div className="flex items-center gap-2 text-gray-900 mb-2">
-                <Calendar className="w-5 h-5 text-amber-500" />
-                <span className="font-medium">{formatDate(selectedSchedule.proposed_date)}</span>
+            <div className="mb-6 p-5 bg-slate-50/70 border border-slate-200/50 rounded-xl space-y-4">
+              <div>
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">ID Pengajuan</span>
+                <span className="font-bold text-slate-700 text-xs">{selectedSchedule.submission_id}</span>
               </div>
               
-              <div className="flex items-center gap-2 text-gray-700">
-                <MapPin className="w-5 h-5 text-gray-400" />
-                <span>{selectedSchedule.proposed_venue}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Waktu Rencana</span>
+                  <div className="flex items-center gap-2 text-slate-800 mt-1">
+                    <Calendar className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span className="font-bold text-sm">{formatDate(selectedSchedule.proposed_date)}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Tempat</span>
+                  <div className="flex items-center gap-2 text-slate-800 mt-1">
+                    <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <span className="font-bold text-sm">{selectedSchedule.proposed_venue}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
                 Catatan Verifikasi (Opsional)
               </label>
               <textarea
                 value={decisionNotes}
                 onChange={(e) => setDecisionNotes(e.target.value)}
-                placeholder="Tambahkan catatan untuk keputusan Anda..."
+                placeholder="Berikan catatan persetujuan atau penolakan jadwal..."
                 rows={3}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-700 placeholder-slate-400 font-semibold text-sm outline-none transition-all"
               />
             </div>
 
@@ -420,24 +490,24 @@ export default function SekretariatALApprovalPage({ user }) {
               <button
                 onClick={() => handleDecision(false)}
                 disabled={submitting}
-                className="flex-1 px-4 py-3 border-2 border-red-500 text-red-600 rounded-xl font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-white hover:bg-rose-50/50 border border-rose-200 text-rose-650 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                <XCircle className="w-5 h-5" />
-                Tolak
+                <XCircle className="w-4 h-4" />
+                Tolak Jadwal
               </button>
               <button
                 onClick={() => handleDecision(true)}
                 disabled={submitting}
-                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-indigo-100 disabled:opacity-50"
               >
-                <CheckCircle className="w-5 h-5" />
-                {submitting ? 'Memproses...' : 'Setujui'}
+                <CheckCircle className="w-4 h-4" />
+                {submitting ? 'Memproses...' : 'Setujui Jadwal'}
               </button>
             </div>
             
             <button
               onClick={() => { setShowModal(false); setSelectedSchedule(null); setDecisionNotes(''); }}
-              className="w-full mt-3 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
+              className="mt-4 py-2 text-slate-450 hover:text-slate-700 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer text-center"
             >
               Batal
             </button>

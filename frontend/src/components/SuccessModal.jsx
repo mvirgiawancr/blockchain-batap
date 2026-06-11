@@ -5,21 +5,37 @@ const SuccessModal = ({ isOpen, onClose, title, message, onConfirm, confirmText 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm transform transition-all scale-100 animate-in zoom-in-95 duration-200">
-                <div className="p-6 text-center">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-                        <CheckCircle className="h-8 w-8 text-green-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200/85 shadow-2xl max-w-sm w-full overflow-hidden flex flex-col p-6 animate-in zoom-in-95 duration-200 relative">
+                {/* Close absolute button */}
+                <button 
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 border-0 bg-transparent cursor-pointer"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex flex-col items-center text-center space-y-4 pt-2">
+                    {/* Visual Seal badge */}
+                    <div className="w-16 h-16 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-inner">
+                        <CheckCircle className="w-9 h-9" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        {title || 'Berhasil!'}
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                        {message || 'Operasi berhasil dilakukan.'}
-                    </p>
+
+                    <div className="space-y-1.5">
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                            {title || 'Berhasil!'}
+                        </h3>
+                        <p className="text-slate-500 text-xs font-semibold leading-relaxed px-2">
+                            {message || 'Operasi berhasil dilakukan.'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Button container */}
+                <div className="mt-6 pt-4 border-t border-slate-100">
                     <button
                         onClick={onConfirm || onClose}
-                        className="w-full inline-flex justify-center items-center px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-lg shadow-indigo-200"
+                        className="w-full py-3 px-4 bg-gradient-to-tr from-indigo-600 to-purple-650 hover:from-indigo-700 hover:to-purple-750 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer text-center border-0"
                     >
                         {confirmText}
                     </button>
@@ -30,3 +46,4 @@ const SuccessModal = ({ isOpen, onClose, title, message, onConfirm, confirmText 
 };
 
 export default SuccessModal;
+

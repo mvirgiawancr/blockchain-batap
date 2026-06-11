@@ -8,7 +8,7 @@ import KEADashboard from './pages/KEADashboard';
 import AsesorDashboard from './pages/AsesorDashboard';
 import SubmissionsPage from './pages/SubmissionsPage';
 import StatusPage from './pages/StatusPage';
-import AsesorAssignmentsPage from './pages/AsesorAssignmentsPage';
+import AsesorAssignmentsPage from "./pages/AsesorAssignmentsPage";
 import UPPSAssignmentsPage from './pages/UPPSAssignmentsPage';
 import AssessorsInfoPage from './pages/AssessorsInfoPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -25,6 +25,9 @@ import KEAALSchedulingPage from './pages/KEAALSchedulingPage';
 import KEARejectionReviewPage from './pages/KEARejectionReviewPage';
 import AsesorAssessmentPage from './pages/AsesorAssessmentPage';
 import ComingSoonPage from './pages/ComingSoonPage';
+import KEAAssessorsPage from './pages/KEAAssessorsPage';
+import AsesorHistoryPage from './pages/AsesorHistoryPage';
+import AsesorAssignmentDetailPage from './pages/AsesorAssignmentDetailPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ALExecutionPage from './pages/ALExecutionPage';
@@ -36,8 +39,10 @@ import ReleasePage from './pages/ReleasePage';
 import UPPSALResponsePage from './pages/UPPSALResponsePage';
 import VerificationListPage from './pages/VerificationListPage';
 import MajelisDashboard from './pages/MajelisDashboard';
+import MajelisDecisionsPage from './pages/MajelisDecisionsPage';
 import ReleaseListPage from './pages/ReleaseListPage';
 import TraceabilityPage from './pages/TraceabilityPage';
+import UPPSPaymentPage from './pages/UPPSPaymentPage';
 
 
 function ProtectedRoute({ children, roles }) {
@@ -144,6 +149,14 @@ function App() {
           />
           
           {/* UPPS Pages */}
+          <Route
+            path="/upps/payment"
+            element={
+              <ProtectedRoute roles={['upps', 'admin']}>
+                <UPPSPaymentPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/upps/assignments"
             element={
@@ -256,7 +269,7 @@ function App() {
             path="/kea/assessors"
             element={
               <ProtectedRoute roles={['kea', 'admin']}>
-                <ComingSoonPage user={currentUser} title="Data Asesor" role="kea" />
+                <KEAAssessorsPage user={currentUser} />
               </ProtectedRoute>
             }
           />
@@ -290,7 +303,15 @@ function App() {
             path="/asesor/history"
             element={
               <ProtectedRoute roles={['asesor', 'assessor', 'admin']}>
-                <ComingSoonPage user={currentUser} title="Riwayat Penilaian" role="asesor" />
+                <AsesorHistoryPage user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/asesor/detail/:id"
+            element={
+              <ProtectedRoute roles={['asesor', 'assessor', 'admin']}>
+                <AsesorAssignmentDetailPage user={currentUser} />
               </ProtectedRoute>
             }
           />
@@ -298,7 +319,7 @@ function App() {
             path="/asesor/notifications"
             element={
               <ProtectedRoute roles={['asesor', 'assessor', 'admin']}>
-                <ComingSoonPage user={currentUser} title="Notifikasi Asesor" role="asesor" />
+                <NotificationsPage user={currentUser} />
               </ProtectedRoute>
             }
           />
@@ -360,7 +381,7 @@ function App() {
             path="/majelis/decisions"
             element={
               <ProtectedRoute roles={['majelis', 'sekretariat', 'admin']}>
-                <MajelisDashboard user={currentUser} />
+                <MajelisDecisionsPage user={currentUser} />
               </ProtectedRoute>
             }
           />
@@ -393,7 +414,7 @@ function App() {
 
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
-          <Route path="/traceability" element={<TraceabilityPage />} />
+          <Route path="/traceability" element={<TraceabilityPage user={currentUser} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

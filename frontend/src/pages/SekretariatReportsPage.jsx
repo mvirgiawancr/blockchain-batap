@@ -75,7 +75,7 @@ const SekretariatReportsPage = ({ user }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar
         user={user}
         onLogout={() => navigate('/login')}
@@ -83,124 +83,132 @@ const SekretariatReportsPage = ({ user }) => {
       />
 
       <div className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 mb-2">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-              Laporan & Statistik
-            </h1>
-            <p className="text-gray-600">Dashboard laporan dan analisis data akreditasi</p>
+        <div className="p-8 max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <TrendingUp className="w-8 h-8 text-indigo-650" />
+                Laporan & Statistik
+              </h1>
+              <p className="text-slate-500 text-sm font-semibold mt-1">Dashboard laporan dan analisis data akreditasi</p>
+            </div>
           </div>
 
-          {/* Date Range Selector */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex items-center gap-4">
-              <Calendar className="w-5 h-5 text-gray-600" />
-              <span className="text-sm font-semibold text-gray-700">Periode:</span>
-              <div className="flex gap-2">
-                {['week', 'month', 'quarter', 'year'].map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setDateRange(range)}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                      dateRange === range
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {range === 'week' ? 'Minggu Ini' : range === 'month' ? 'Bulan Ini' : range === 'quarter' ? 'Kuartal Ini' : 'Tahun Ini'}
-                  </button>
-                ))}
-              </div>
+          {/* Date Range Selector - Premium Glass Capsule */}
+          <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-indigo-650 flex-shrink-0" />
+              <span className="text-sm font-bold text-slate-700">Filter Periode Laporan:</span>
+            </div>
+            <div className="bg-slate-100/80 p-1 rounded-xl flex flex-wrap gap-1 border border-slate-200/20 shadow-inner-sm w-fit">
+              {['week', 'month', 'quarter', 'year'].map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setDateRange(range)}
+                  className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    dateRange === range
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-250'
+                      : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  {range === 'week' ? 'Minggu Ini' : range === 'month' ? 'Bulan Ini' : range === 'quarter' ? 'Kuartal Ini' : 'Tahun Ini'}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-green-600" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm flex items-center justify-between border-l-4 border-l-indigo-650 hover:-translate-y-0.5 transition-all duration-200">
+              <div>
+                <p className="text-[10px] text-slate-450 font-black uppercase tracking-wider">Total Submission</p>
+                <p className="text-3xl font-black text-slate-950 mt-1">{statistics.totalSubmissions}</p>
               </div>
-              <h3 className="text-gray-600 text-sm font-semibold mb-1">Total Submission</h3>
-              <p className="text-3xl font-bold text-gray-900">{statistics.totalSubmissions}</p>
+              <div className="w-12 h-12 bg-indigo-50 border border-indigo-250/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <FileText className="w-6 h-6 text-indigo-650" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-green-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-green-600" />
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm flex items-center justify-between border-l-4 border-l-emerald-600 hover:-translate-y-0.5 transition-all duration-200">
+              <div>
+                <p className="text-[10px] text-slate-450 font-black uppercase tracking-wider">Disetujui</p>
+                <p className="text-3xl font-black text-emerald-700 mt-1">{statistics.approved}</p>
               </div>
-              <h3 className="text-gray-600 text-sm font-semibold mb-1">Disetujui</h3>
-              <p className="text-3xl font-bold text-green-600">{statistics.approved}</p>
+              <div className="w-12 h-12 bg-emerald-50 border border-emerald-250/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="w-6 h-6 text-emerald-600" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <PieChart className="w-6 h-6 text-yellow-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-yellow-600" />
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm flex items-center justify-between border-l-4 border-l-amber-500 hover:-translate-y-0.5 transition-all duration-200">
+              <div>
+                <p className="text-[10px] text-slate-450 font-black uppercase tracking-wider">Pending</p>
+                <p className="text-3xl font-black text-amber-700 mt-1">{statistics.pending}</p>
               </div>
-              <h3 className="text-gray-600 text-sm font-semibold mb-1">Pending</h3>
-              <p className="text-3xl font-bold text-yellow-600">{statistics.pending}</p>
+              <div className="w-12 h-12 bg-amber-50 border border-amber-250/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <PieChart className="w-6 h-6 text-amber-550" />
+              </div>
             </div>
           </div>
 
           {/* Download Reports */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Unduh Laporan</h2>
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-8 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900 mb-6 tracking-tight">Unduh Dokumen Laporan Resmi</h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
               <button
                 onClick={() => downloadReport('submissions')}
-                className="flex items-center gap-3 p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className="group flex items-center gap-4 p-6 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-250 hover:-translate-y-0.5 cursor-pointer text-left w-full relative overflow-hidden"
               >
-                <FileText className="w-8 h-8 text-blue-600" />
-                <div className="text-left">
-                  <h3 className="font-bold text-gray-900">Laporan Submission</h3>
-                  <p className="text-sm text-gray-600">Data lengkap submission akreditasi</p>
+                <div className="w-12 h-12 bg-indigo-50 border border-indigo-150/30 rounded-xl flex items-center justify-center text-indigo-650 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+                  <FileText className="w-6 h-6" />
                 </div>
-                <Download className="w-5 h-5 text-gray-400 ml-auto" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-base">Laporan Submission</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Rincian data lengkap pengisian dokumen akreditasi</p>
+                </div>
+                <Download className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors ml-auto flex-shrink-0" />
               </button>
 
               <button
                 onClick={() => downloadReport('payments')}
-                className="flex items-center gap-3 p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                className="group flex items-center gap-4 p-6 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-250 hover:-translate-y-0.5 cursor-pointer text-left w-full relative overflow-hidden"
               >
-                <BarChart3 className="w-8 h-8 text-green-600" />
-                <div className="text-left">
-                  <h3 className="font-bold text-gray-900">Laporan Pembayaran</h3>
-                  <p className="text-sm text-gray-600">Riwayat pembayaran dan verifikasi</p>
+                <div className="w-12 h-12 bg-emerald-50 border border-emerald-150/30 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+                  <BarChart3 className="w-6 h-6" />
                 </div>
-                <Download className="w-5 h-5 text-gray-400 ml-auto" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-base">Laporan Pembayaran</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Riwayat pembayaran, bukti transfer & verifikasi keuangan</p>
+                </div>
+                <Download className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors ml-auto flex-shrink-0" />
               </button>
 
               <button
                 onClick={() => downloadReport('upps')}
-                className="flex items-center gap-3 p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all"
+                className="group flex items-center gap-4 p-6 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-250 hover:-translate-y-0.5 cursor-pointer text-left w-full relative overflow-hidden"
               >
-                <PieChart className="w-8 h-8 text-purple-600" />
-                <div className="text-left">
-                  <h3 className="font-bold text-gray-900">Laporan UPPS</h3>
-                  <p className="text-sm text-gray-600">Data UPPS dan institusi</p>
+                <div className="w-12 h-12 bg-purple-50 border border-purple-150/30 rounded-xl flex items-center justify-center text-purple-650 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+                  <PieChart className="w-6 h-6" />
                 </div>
-                <Download className="w-5 h-5 text-gray-400 ml-auto" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-base">Laporan Unit Pengelola (UPPS)</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Data detail UPPS, program studi, dan sebaran institusi</p>
+                </div>
+                <Download className="w-5 h-5 text-slate-400 group-hover:text-purple-600 transition-colors ml-auto flex-shrink-0" />
               </button>
 
               <button
                 onClick={() => downloadReport('comprehensive')}
-                className="flex items-center gap-3 p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all"
+                className="group flex items-center gap-4 p-6 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-250 hover:-translate-y-0.5 cursor-pointer text-left w-full relative overflow-hidden"
               >
-                <TrendingUp className="w-8 h-8 text-orange-600" />
-                <div className="text-left">
-                  <h3 className="font-bold text-gray-900">Laporan Komprehensif</h3>
-                  <p className="text-sm text-gray-600">Seluruh data dan statistik</p>
+                <div className="w-12 h-12 bg-amber-50 border border-amber-150/30 rounded-xl flex items-center justify-center text-amber-550 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+                  <TrendingUp className="w-6 h-6" />
                 </div>
-                <Download className="w-5 h-5 text-gray-400 ml-auto" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-base">Laporan Komprehensif</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Gabungan seluruh data statistik akreditasi terintegrasi</p>
+                </div>
+                <Download className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors ml-auto flex-shrink-0" />
               </button>
             </div>
           </div>

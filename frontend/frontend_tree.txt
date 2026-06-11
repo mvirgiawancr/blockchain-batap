@@ -1,0 +1,94 @@
+src
+├── App.css
+├── App.jsx
+├── assets
+│   └── react.svg
+├── components
+│   ├── DashboardLayout.jsx
+│   ├── Navbar.jsx
+│   ├── ResultModal.jsx
+│   ├── ScoringDetailDropdown.jsx
+│   ├── ScoringResultDisplay.jsx
+│   ├── Sidebar.jsx
+│   ├── SubmissionHistoryModal.jsx
+│   └── SuccessModal.jsx
+├── config
+│   └── api.js
+├── index.css
+├── main.jsx
+├── pages
+│   ├── ALExecutionPage.jsx
+│   ├── ALResponsePage.jsx
+│   ├── AsesorAssessmentPage.jsx
+│   ├── AsesorAssignmentsPage.jsx
+│   ├── AsesorDashboard.jsx
+│   ├── AssessorDashboard.jsx
+│   ├── AssessorsInfoPage.jsx
+│   ├── ComingSoonPage.jsx
+│   ├── KEAALSchedulingPage.jsx
+│   ├── KEAAssignmentsPage.jsx
+│   ├── KEAConsistencyDetailPage.jsx
+│   ├── KEAConsistencyPage.jsx
+│   ├── KEADashboard.jsx
+│   ├── KEAMonitoringPage.jsx
+│   ├── KEARejectionReviewPage.jsx
+│   ├── Login.jsx
+│   ├── MajelisDashboard.jsx
+│   ├── MajelisPage.jsx
+│   ├── NotificationsPage.jsx
+│   ├── Register.jsx
+│   ├── ReleaseListPage.jsx
+│   ├── ReleasePage.jsx
+│   ├── SekretariatALApprovalPage.jsx
+│   ├── SekretariatDashboard.jsx
+│   ├── SekretariatPaymentPage.jsx
+│   ├── SekretariatReportsPage.jsx
+│   ├── SekretariatUPPSPage.jsx
+│   ├── SekretariatVerifyPage.jsx
+│   ├── StatusPage.jsx
+│   ├── SubmissionsPage.jsx
+│   ├── TraceabilityPage.jsx
+│   ├── UPPSALResponsePage.jsx
+│   ├── UPPSAssignmentsPage.jsx
+│   ├── UPPSDashboard.jsx
+│   ├── UPPSPaymentPage.jsx
+│   ├── VerificationListPage.jsx
+│   └── VerificationPage.jsx
+└── services
+    ├── api.js
+    ├── auth.js
+    └── websocket.js
+
+6 directories, 54 files
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "axios": "^1.6.2",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@tailwindcss/vite": "^4.0.0-alpha.25",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "tailwindcss": "^4.0.0-alpha.25",
+    "vite": "^7.1.7"
+  }
+}

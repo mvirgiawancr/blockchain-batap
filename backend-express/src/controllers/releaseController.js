@@ -21,22 +21,38 @@ const getReadyForRelease = async (req, res, next) => {
             const result = await client.query(`
                 SELECT 
                     als.*,
-                    s.program_studi,
-                    s.institution as institusi,
                     ad.final_rank,
                     ad.final_score,
                     ad.sk_number,
                     ad.sk_date,
                     c.file_cid as existing_certificate_cid
                 FROM al_schedules als
-                JOIN users s ON als.proposed_by = s.id
-                LEFT JOIN submission_metadata sm ON als.submission_id = sm.submission_id
                 JOIN accreditation_decisions ad ON als.submission_id = ad.submission_id
                 LEFT JOIN certificates c ON als.submission_id = c.submission_id
                 WHERE als.status IN ('accredited', 'released')
                 ORDER BY ad.decided_at DESC
             `);
-            res.json({ success: true, data: result.rows });
+
+            const data = await Promise.all(result.rows.map(async (row) => {
+                let programStudi = 'N/A';
+                let institusi = 'N/A';
+                try {
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                    if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
+                    programStudi = blockchainData.programStudi || 'N/A';
+                    institusi = blockchainData.institusi || 'N/A';
+                } catch (e) {
+                    logger.warn(`Could not fetch blockchain data for ${row.submission_id}: ${e.message}`);
+                }
+                
+                return {
+                    ...row,
+                    program_studi: programStudi,
+                    institusi: institusi
+                };
+            }));
+
+            res.json({ success: true, data });
         } finally {
             client.release();
         }
@@ -70,7 +86,7 @@ const previewCertificate = async (req, res, next) => {
             let programStudi = 'N/A';
             let institusi = 'N/A';
             try {
-                let blockchainData = await fabricService.querySubmission(submissionId);
+                let blockchainData = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
                 if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                 programStudi = blockchainData.programStudi || 'N/A';
                 institusi = blockchainData.institusi || 'N/A';
@@ -136,7 +152,7 @@ const publishCertificate = async (req, res, next) => {
             let programStudi = 'N/A';
             let institusi = 'N/A';
             try {
-                let blockchainData = await fabricService.querySubmission(submissionId);
+                let blockchainData = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
                 if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                 programStudi = blockchainData.programStudi || 'N/A';
                 institusi = blockchainData.institusi || 'N/A';

@@ -206,86 +206,96 @@ const SekretariatVerifyPage = ({ user }) => {
 
           {/* Verification Modal */}
           {selectedSubmission && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                    Verifikasi Submission
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-3xl border border-slate-200/85 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col p-7 animate-scale-up">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                  <h2 className="text-xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
+                    <FileCheck className="w-6 h-6 text-indigo-650" />
+                    Verifikasi Dokumen Submission
                   </h2>
+                  <button
+                    onClick={() => {
+                      setSelectedSubmission(null);
+                      setVerifyNotes('');
+                    }}
+                    className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 border-0 bg-transparent cursor-pointer"
+                  >
+                    <XCircle className="w-5 h-5 text-slate-400 hover:text-slate-650" />
+                  </button>
+                </div>
 
-                  <div className="space-y-4 mb-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Program Studi</p>
-                        <p className="font-semibold text-gray-900">
-                          {selectedSubmission.programStudi}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Institusi</p>
-                        <p className="font-semibold text-gray-900">
-                          {selectedSubmission.institusi}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Jenjang</p>
-                        <p className="font-semibold text-gray-900">
-                          {selectedSubmission.jenjang}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Status</p>
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                            selectedSubmission.status
-                          )}`}
-                        >
-                          {selectedSubmission.status}
-                        </span>
-                      </div>
+                <div className="space-y-5 flex-1">
+                  <div className="grid md:grid-cols-2 gap-4 bg-slate-50/70 border border-slate-200/50 p-4.5 rounded-2xl shadow-inner-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Program Studi</p>
+                      <p className="text-sm font-black text-slate-800 leading-snug">
+                        {selectedSubmission.programStudi}
+                      </p>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Catatan Verifikasi
-                      </label>
-                      <textarea
-                        value={verifyNotes}
-                        onChange={(e) => setVerifyNotes(e.target.value)}
-                        rows={4}
-                        placeholder="Masukkan catatan untuk submission ini..."
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Institusi</p>
+                      <p className="text-sm font-bold text-slate-700">
+                        {selectedSubmission.institusi}
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Jenjang</p>
+                      <span className="px-2.5 py-0.5 text-[10px] font-black bg-indigo-50 border border-indigo-200 text-indigo-850 rounded-lg w-fit inline-block">
+                        {selectedSubmission.jenjang || 'S1'}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Status Berkas</p>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusColor(
+                          selectedSubmission.status
+                        )}`}
+                      >
+                        {selectedSubmission.status}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => handleVerify(selectedSubmission.submissionId, 'approve')}
-                      disabled={verifying}
-                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                      Setujui
-                    </button>
-                    <button
-                      onClick={() => handleVerify(selectedSubmission.submissionId, 'reject')}
-                      disabled={verifying}
-                      className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold flex items-center justify-center gap-2"
-                    >
-                      <XCircle className="w-5 h-5" />
-                      Tolak
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedSubmission(null);
-                        setVerifyNotes('');
-                      }}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors font-semibold"
-                    >
-                      Batal
-                    </button>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Catatan Verifikasi Sekretariat
+                    </label>
+                    <textarea
+                      value={verifyNotes}
+                      onChange={(e) => setVerifyNotes(e.target.value)}
+                      rows={4}
+                      placeholder="Masukkan catatan tinjauan kelayakan administratif untuk submission ini..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-xs font-semibold outline-none shadow-sm leading-relaxed"
+                    />
                   </div>
+                </div>
+
+                <div className="flex gap-3 border-t border-slate-100/60 pt-5 mt-6">
+                  <button
+                    onClick={() => handleVerify(selectedSubmission.submissionId, 'approve')}
+                    disabled={verifying}
+                    className="flex-1 px-5 py-3 bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Setujui Berkas
+                  </button>
+                  <button
+                    onClick={() => handleVerify(selectedSubmission.submissionId, 'reject')}
+                    disabled={verifying}
+                    className="flex-1 px-5 py-3 bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-700 hover:to-red-600 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Tolak Berkas
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSubmission(null);
+                      setVerifyNotes('');
+                    }}
+                    className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer active:scale-95 transition-all text-center"
+                  >
+                    Batal
+                  </button>
                 </div>
               </div>
             </div>

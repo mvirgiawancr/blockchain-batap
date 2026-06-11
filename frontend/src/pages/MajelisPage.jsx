@@ -73,8 +73,8 @@ const MajelisPage = () => {
                 <span className="text-2xl">⚠️</span>
             </div>
             <h2 className="text-xl font-bold text-gray-800">Data Submission Tidak Ditemukan</h2>
-            <button onClick={() => navigate('/majelis')} className="mt-4 text-purple-800 hover:underline font-medium">
-                Kembali ke Dashboard Majelis
+            <button onClick={() => navigate('/majelis/decisions')} className="mt-4 text-purple-800 hover:underline font-medium">
+                Kembali ke Keputusan Akreditasi
             </button>
         </div>
     );
@@ -86,8 +86,8 @@ const MajelisPage = () => {
             </div>
             <h2 className="text-xl font-bold text-gray-800">Belum Ada Hasil Verifikasi</h2>
             <p className="text-gray-500 mt-2">Submission ini belum diverifikasi oleh Sekretariat/KEA. Mohon tunggu proses verifikasi selesai.</p>
-            <button onClick={() => navigate('/majelis')} className="mt-4 text-purple-800 hover:underline font-medium">
-                Kembali ke Dashboard Majelis
+            <button onClick={() => navigate('/majelis/decisions')} className="mt-4 text-purple-800 hover:underline font-medium">
+                Kembali ke Keputusan Akreditasi
             </button>
         </div>
     );
@@ -107,11 +107,11 @@ const MajelisPage = () => {
             <div className="max-w-4xl mx-auto">
             {/* ... rest of the component */}
                 <button 
-                    onClick={() => navigate('/majelis')}
-                    className="flex items-center text-gray-500 hover:text-purple-800 mb-4 transition-colors"
+                    onClick={() => navigate('/majelis/decisions')}
+                    className="flex items-center text-gray-500 hover:text-purple-800 mb-4 transition-colors font-bold text-xs"
                 >
                     <span className="mr-2">←</span>
-                    Kembali ke Dashboard
+                    Kembali ke Keputusan Akreditasi
                 </button>
 
                 <h1 className="text-3xl font-bold mb-2 text-purple-900">Penetapan Keputusan Akreditasi</h1>
@@ -247,7 +247,7 @@ const MajelisPage = () => {
                             <div className="mt-8 flex gap-3">
                                 <button 
                                     type="button" 
-                                    onClick={() => navigate('/majelis')} 
+                                    onClick={() => navigate('/majelis/decisions')} 
                                     className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
                                 >
                                     Batal

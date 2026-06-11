@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import ResultModal from '../components/ResultModal';
-import { ClipboardList, CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw, User, FileText, Calendar } from 'lucide-react';
+import { 
+  ClipboardList, CheckCircle, XCircle, Clock, AlertTriangle, 
+  RefreshCw, User, FileText, Calendar, X
+} from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -106,181 +109,240 @@ export default function KEARejectionReviewPage({ user }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar menuItems={getMenuForRole(user?.role)} currentPath={window.location.pathname} userRole={user?.role} />
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Ambient background glow */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-200/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-[200px] w-[600px] h-[600px] bg-orange-200/10 rounded-full blur-[150px] pointer-events-none" />
+
+      <Sidebar
+        user={user}
+        onLogout={() => navigate('/login')}
+        menuItems={getMenuForRole('kea')}
+      />
       
-      <div className="flex-1 ml-64 p-8">
-        {/* Header */}
-        <div className="mb-8">
+      <div className="flex-1 ml-64 overflow-auto relative z-10">
+        <div className="p-8 max-w-7xl mx-auto space-y-8">
+          
+          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <ClipboardList className="w-8 h-8 text-amber-600" />
-                Review Penolakan UPPS
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm shadow-amber-100/50">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                Review Penolakan Asesor
               </h1>
-              <p className="text-gray-600 mt-1">
-                Tinjau dan proses alasan penolakan asesor dari UPPS
+              <p className="text-slate-500 text-sm font-semibold mt-1">
+                Tinjau dan proses alasan penolakan penugasan asesor yang diajukan oleh UPPS
               </p>
             </div>
             <button
               onClick={loadRejections}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/80 text-slate-650 hover:text-amber-600 font-bold text-xs cursor-pointer active:scale-95"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+              Refresh Data
             </button>
           </div>
-        </div>
 
-        {/* Stats Card */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl shadow-lg p-6 mb-8 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-amber-100">Menunggu Review</p>
-              <p className="text-4xl font-bold">{rejections.length}</p>
+          {/* Stats Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Menunggu Review</p>
+                <p className="text-2xl font-black text-slate-900 mt-1">{rejections.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
             </div>
-            <AlertTriangle className="w-16 h-16 text-amber-200 opacity-50" />
           </div>
-        </div>
 
-        {/* Rejections List */}
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-          </div>
-        ) : rejections.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-sm">
-            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Tidak Ada Penolakan</h3>
-            <p className="text-gray-500">Semua penolakan UPPS sudah ditinjau.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rejections.map((rejection) => (
-              <div key={rejection.submissionId} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-                        Menunggu Review
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {rejection.submissionId}
-                      </span>
-                    </div>
-                    
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">
-                      {rejection.programStudi}
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-3">{rejection.institusi}</p>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User className="w-4 h-4" />
-                        <span>Asesor 1: {rejection.assessor1Name}</span>
+          {/* Rejections List */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 glass-panel-light rounded-2xl shadow-sm animate-pulse">
+              <ClipboardList className="w-12 h-12 text-amber-500 animate-bounce mb-3" />
+              <p className="text-slate-500 font-bold text-sm">Memuat data penolakan UPPS...</p>
+            </div>
+          ) : rejections.length === 0 ? (
+            <div className="glass-panel-light rounded-2xl p-16 text-center shadow-sm max-w-2xl mx-auto my-6 animate-fade-in">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+                <CheckCircle className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 mb-2">Tidak Ada Penolakan</h3>
+              <p className="text-slate-500 text-sm font-semibold max-w-md mx-auto leading-relaxed">
+                Luar biasa! Seluruh permohonan penolakan asesor oleh UPPS telah selesai ditinjau.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-1 gap-6 animate-fade-in">
+              {rejections.map((rejection) => (
+                <div 
+                  key={rejection.submissionId} 
+                  className="glass-panel-light glass-panel-light-hover rounded-2xl p-6 hover:-translate-y-0.5 shadow-sm transition-all duration-300 flex flex-col justify-between relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
+                  
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2.5">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-800 uppercase shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Menunggu Review
+                          </span>
+                          <span className="text-xs font-mono font-bold text-slate-400">
+                            {rejection.submissionId}
+                          </span>
+                        </div>
+                        
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight leading-snug group-hover:text-amber-600 transition-colors">
+                          {rejection.programStudi}
+                        </h3>
+                        <p className="text-xs font-semibold text-slate-500 mt-0.5">{rejection.institusi}</p>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User className="w-4 h-4" />
-                        <span>Asesor 2: {rejection.assessor2Name}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-red-700 mb-1">Alasan Penolakan UPPS:</p>
-                          <p className="text-sm text-red-600">{rejection.rejectionReason || rejection.uppsNotes || 'Tidak ada alasan diberikan'}</p>
+                      
+                      {/* Assessors Display Tags */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-3 bg-slate-50/60 border border-slate-100 rounded-xl flex items-center gap-3 shadow-inner-sm">
+                          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650 font-black text-[10px]">
+                            A1
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Asesor 1</p>
+                            <p className="text-xs font-bold text-slate-700 truncate">{rejection.assessor1Name}</p>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-slate-50/60 border border-slate-100 rounded-xl flex items-center gap-3 shadow-inner-sm">
+                          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650 font-black text-[10px]">
+                            A2
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Asesor 2</p>
+                            <p className="text-xs font-bold text-slate-700 truncate">{rejection.assessor2Name}</p>
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Rejection Reason Block */}
+                      <div className="p-4 bg-rose-50/50 border border-rose-150 rounded-xl shadow-inner-sm">
+                        <div className="flex items-start gap-3">
+                          <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-black text-rose-800 uppercase tracking-wider mb-1">Alasan Penolakan UPPS</p>
+                            <p className="text-xs text-rose-700 font-semibold leading-relaxed">
+                              {rejection.rejectionReason || rejection.uppsNotes || 'Tidak ada alasan diberikan.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-405">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        Ditolak pada: {formatDate(rejection.uppsResponseAt)}
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      Ditolak pada: {formatDate(rejection.uppsResponseAt)}
+                    <div className="flex flex-col gap-2 self-stretch justify-center">
+                      <button
+                        onClick={() => openReviewModal(rejection)}
+                        className="w-full md:w-auto px-5 py-2.5 bg-gradient-to-tr from-amber-500 to-orange-650 hover:from-amber-600 hover:to-orange-750 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-150 shadow-md hover:shadow-lg shadow-amber-100/80 flex items-center justify-center gap-2 cursor-pointer hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Review Berkas
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-col gap-2 ml-4">
-                    <button
-                      onClick={() => openReviewModal(rejection)}
-                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Review
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Review Modal */}
       {reviewModal.isOpen && reviewModal.rejection && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <ClipboardList className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Review Penolakan</h3>
-                <p className="text-sm text-gray-500">{reviewModal.rejection.programStudi}</p>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4 mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Alasan Penolakan:</p>
-              <p className="text-gray-600">{reviewModal.rejection.rejectionReason || reviewModal.rejection.uppsNotes}</p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-              <p className="text-sm text-blue-700">
-                <strong>Terima Alasan:</strong> Asesor akan diganti dengan asesor baru.<br/>
-                <strong>Tolak Alasan:</strong> Asesor akan tetap ditugaskan (force assign).
-              </p>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Catatan KEA (Opsional)
-              </label>
-              <textarea
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Tambahkan catatan untuk keputusan ini..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleReview(reviewModal.rejection.submissionId, 'reason_accepted')}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 font-medium"
-              >
-                <CheckCircle className="w-5 h-5" />
-                {submitting ? 'Memproses...' : 'Terima Alasan'}
-              </button>
-              <button
-                onClick={() => handleReview(reviewModal.rejection.submissionId, 'reason_rejected')}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 font-medium"
-              >
-                <XCircle className="w-5 h-5" />
-                {submitting ? 'Memproses...' : 'Tolak Alasan'}
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col animate-fade-in">
+            <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 to-orange-500" />
             
-            <button
-              onClick={() => setReviewModal({ isOpen: false, rejection: null })}
-              className="w-full mt-3 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-            >
-              Batal
-            </button>
+            <div className="p-7 overflow-y-auto space-y-6">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm shadow-amber-100/50">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Review Penolakan Asesor</h3>
+                    <p className="text-xs font-semibold text-slate-500">{reviewModal.rejection.programStudi}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setReviewModal({ isOpen: false, rejection: null })}
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg hover:text-slate-700 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 bg-rose-50/50 border border-rose-150 rounded-xl shadow-inner-sm">
+                <p className="text-[10px] font-black text-rose-800 uppercase tracking-wider mb-1">Alasan Penolakan UPPS</p>
+                <p className="text-xs text-rose-700 font-semibold leading-relaxed">
+                  {reviewModal.rejection.rejectionReason || reviewModal.rejection.uppsNotes}
+                </p>
+              </div>
+
+              <div className="p-4 bg-indigo-50/50 border border-indigo-150 rounded-xl flex items-start gap-3 shadow-inner-sm">
+                <CheckCircle className="w-5 h-5 text-indigo-650 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black text-indigo-850 uppercase tracking-wide">Panduan Peninjauan KEA</p>
+                  <p className="text-xs text-slate-650 leading-relaxed mt-1">
+                    <strong>Terima Alasan:</strong> Menghapus penugasan saat ini dan membuka kembali opsi penugasan pasangan asesor baru di menu Penugasan Asesor.<br/>
+                    <strong className="mt-1 block">Tolak Alasan:</strong> Memaksakan penugasan saat ini (*force assign*), memicu penugasan permanen yang langsung tercatat di blockchain.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider">
+                  Catatan KEA (Opsional)
+                </label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Tambahkan catatan resmi KEA untuk keputusan penolakan ini..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none text-sm font-semibold outline-none focus:shadow-sm"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3 border-t border-slate-100/60 pt-4">
+                <button
+                  onClick={() => handleReview(reviewModal.rejection.submissionId, 'reason_accepted')}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-tr from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 transition-all font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:shadow-none shadow-emerald-100/80 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                >
+                  <CheckCircle className="w-4.5 h-4.5" />
+                  {submitting ? 'Memproses...' : 'Terima Alasan'}
+                </button>
+                <button
+                  onClick={() => handleReview(reviewModal.rejection.submissionId, 'reason_rejected')}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-tr from-rose-600 to-red-650 hover:from-rose-700 hover:to-red-750 text-white rounded-xl disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 transition-all font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:shadow-none shadow-rose-100/80 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                >
+                  <XCircle className="w-4.5 h-4.5" />
+                  {submitting ? 'Memproses...' : 'Tolak Alasan'}
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setReviewModal({ isOpen: false, rejection: null })}
+                className="w-full px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+            </div>
           </div>
         </div>
       )}

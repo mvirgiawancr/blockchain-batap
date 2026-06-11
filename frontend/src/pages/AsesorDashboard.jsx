@@ -259,7 +259,11 @@ export default function AsesorDashboard({ user }) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Ambient background glow */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-200/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-[200px] w-[600px] h-[600px] bg-indigo-200/10 rounded-full blur-[150px] pointer-events-none" />
+
       {/* Sidebar */}
       <Sidebar 
         user={user} 
@@ -268,419 +272,395 @@ export default function AsesorDashboard({ user }) {
       />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex-1 ml-64 overflow-auto relative z-10">
+        <div className="p-8 max-w-7xl mx-auto space-y-8">
           
           {/* Header */}
-          <header className="flex justify-between items-center">
+          <header className="flex justify-between items-center flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650 shadow-sm shadow-indigo-100/50">
+                  <Award className="w-5 h-5" />
+                </div>
                 Dashboard Asesor
               </h1>
-              <p className="text-gray-600 mt-1">Penilaian Kecukupan (AK) Akreditasi</p>
+              <p className="text-slate-550 text-sm font-semibold mt-1">
+                Penilaian Kecukupan (AK) & Pemantauan Usulan Akreditasi
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={loadSubmissions}
-                className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/80 text-slate-650 hover:text-indigo-600 font-bold text-xs cursor-pointer active:scale-95"
                 title="Refresh"
               >
-                <RefreshCw className="w-5 h-5 text-gray-600" />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
               </button>
-              <Award className="w-10 h-10 text-indigo-600" />
             </div>
           </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-amber-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">Penawaran Pending</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.pendingOffers}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-green-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">Penugasan Diterima</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.acceptedOffers}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-orange-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">AK Pending</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.akPending}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-emerald-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">AK Terkirim</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.akSubmitted}</p>
-          </div>
-        </div>
-
-        {/* Message */}
-        {message.text && (
-          <div className={`rounded-xl p-4 ${
-            message.type === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
-            'bg-red-50 border-2 border-red-200 text-red-800'
-          }`}>
-            <p className="font-medium">{message.text}</p>
-          </div>
-        )}
-
-        {/* Submissions List */}
-        <div className="space-y-4">
-          {loading ? (
-            <div className="bg-white rounded-xl p-8 text-center">
-              <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-600" />
-              <p className="text-gray-600">Memuat data...</p>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="glass-panel-light rounded-2xl p-5 border-l-4 border-l-amber-500 shadow-sm flex flex-col justify-between min-h-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penawaran Pending</p>
+              <p className="text-3xl font-black text-slate-800 mt-2">{stats.pendingOffers}</p>
             </div>
-          ) : submissions.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center">
-              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-600">Belum ada penugasan</p>
+            <div className="glass-panel-light rounded-2xl p-5 border-l-4 border-l-indigo-500 shadow-sm flex flex-col justify-between min-h-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penugasan Diterima</p>
+              <p className="text-3xl font-black text-slate-800 mt-2">{stats.acceptedOffers}</p>
             </div>
-          ) : (
-            submissions.map((sub) => {
-              const myResponse = getMyResponse(sub);
-              const isAssigned = sub.assignedAssessors && 
-                (sub.assignedAssessors.assessor1Id === user?.id || sub.assignedAssessors.assessor2Id === user?.id);
-              const akSubmitted = hasSubmittedAK(sub);
+            <div className="glass-panel-light rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-sm flex flex-col justify-between min-h-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">AK Pending</p>
+              <p className="text-3xl font-black text-slate-800 mt-2">{stats.akPending}</p>
+            </div>
+            <div className="glass-panel-light rounded-2xl p-5 border-l-4 border-l-emerald-500 shadow-sm flex flex-col justify-between min-h-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">AK Terkirim</p>
+              <p className="text-3xl font-black text-slate-800 mt-2">{stats.akSubmitted}</p>
+            </div>
+          </div>
 
-              return (
-                <div key={sub.submissionId} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="grid md:grid-cols-4 gap-4">
-                    
-                    {/* Info Column */}
-                    <div className="md:col-span-2">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{sub.programStudi}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{sub.institusi}</p>
-                      <p className="text-xs text-gray-500 font-mono">{sub.submissionId}</p>
-                      
-                      {sub.assignedAssessors && (
-                        <div className="mt-3 space-y-1 text-sm">
-                          <p className="font-semibold text-gray-700">Pasangan Asesor:</p>
-                          <p className="text-gray-600">• {sub.assignedAssessors.assessor1Name}</p>
-                          <p className="text-gray-600">• {sub.assignedAssessors.assessor2Name}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Status Column */}
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Status Penawaran</p>
-                      {myResponse && (
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                          myResponse.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                          myResponse.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-amber-100 text-amber-800'
-                        }`}>
-                          {myResponse.status === 'accepted' ? '✓ Diterima' :
-                           myResponse.status === 'rejected' ? '✗ Ditolak' :
-                           '⏳ Pending'}
-                        </span>
-                      )}
-
-                      {akSubmitted && (
-                        <div className="mt-3">
-                          <p className="text-sm font-semibold text-gray-700 mb-1">Status AK</p>
-                          <span className="inline-flex px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-semibold">
-                            ✓ Sudah Dinilai
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions Column */}
-                    <div className="flex flex-col gap-2">
-                      {myResponse?.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => openResponseModal(sub, 'accepted')}
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Terima
-                          </button>
-                          <button
-                            onClick={() => openResponseModal(sub, 'rejected')}
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Tolak
-                          </button>
-                        </>
-                      )}
-
-                      {isAssigned && !akSubmitted && (
-                        <button
-                          onClick={() => openAKModal(sub)}
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
-                        >
-                          <ClipboardCheck className="w-4 h-4" />
-                          Isi Penilaian AK
-                        </button>
-                      )}
-
-                      {isAssigned && sub.documents && sub.documents.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs font-semibold text-gray-600 mb-1">Dokumen:</p>
-                          {sub.documents.map((doc) => (
-                            <button
-                              key={doc.type}
-                              onClick={() => { setSelectedSubmission(sub); handleDownload(doc); }}
-                              disabled={downloading}
-                              className="w-full inline-flex items-center justify-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-xs font-medium transition-colors mb-1"
-                            >
-                              <Download className="w-3 h-3" />
-                              {doc.type}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+          {/* Message */}
+          {message.text && (
+            <div className={`rounded-xl p-4 border animate-fade-in ${
+              message.type === 'success' ? 'bg-emerald-50 border-emerald-250 text-emerald-800' :
+              'bg-rose-50 border-rose-250 text-rose-800'
+            }`}>
+              <p className="text-xs font-black uppercase tracking-wider">{message.type === 'success' ? 'Sukses ✓' : 'Gagal ⚠'}</p>
+              <p className="text-sm font-semibold mt-0.5">{message.text}</p>
+            </div>
           )}
-        </div>
 
-        {/* Response Modal - Modern Design */}
-        {showResponseModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all">
-              {/* Modal Header with Gradient */}
-              <div className={`p-6 text-white ${
-                responseType === 'accepted' 
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
-                  : 'bg-gradient-to-r from-red-600 to-rose-600'
-              }`}>
-                <div className="flex items-center gap-3">
-                  {responseType === 'accepted' ? (
-                    <CheckCircle className="w-10 h-10" />
-                  ) : (
-                    <XCircle className="w-10 h-10" />
-                  )}
-                  <div>
-                    <h2 className="text-2xl font-bold">
-                      {responseType === 'accepted' ? 'Terima Penugasan' : 'Tolak Penugasan'}
-                    </h2>
-                    <p className="text-sm opacity-90 mt-1">
-                      {responseType === 'accepted' 
-                        ? 'Konfirmasi penerimaan penugasan asesmen' 
-                        : 'Berikan alasan penolakan penugasan'}
-                    </p>
-                  </div>
-                </div>
+          {/* Submissions List */}
+          <div className="space-y-4">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-sm animate-pulse">
+                <Clock className="w-10 h-10 text-indigo-500 animate-bounce mb-3" />
+                <p className="text-slate-550 font-bold text-sm">Menyelaraskan data penugasan...</p>
               </div>
-
-              <div className="p-6">
-                {/* Submission Info Card */}
-                <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl border-2 border-indigo-200">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-bold text-gray-900 text-lg">{selectedSubmission?.programStudi}</p>
-                      <p className="text-sm text-gray-700 mt-1">{selectedSubmission?.institusi}</p>
-                      <p className="text-xs text-gray-500 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
-                    </div>
-                  </div>
+            ) : submissions.length === 0 ? (
+              <div className="glass-panel-light rounded-2xl p-16 text-center shadow-sm max-w-2xl mx-auto my-6 animate-fade-in">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200/50">
+                  <ClipboardCheck className="w-8 h-8 text-slate-400" />
                 </div>
+                <h3 className="text-lg font-black text-slate-800 mb-2">Belum Ada Penugasan</h3>
+                <p className="text-slate-500 text-sm font-semibold max-w-md mx-auto leading-relaxed">
+                  Saat ini Anda belum menerima penawaran atau tugas penilaian dari tim KEA AkreChain.
+                </p>
+              </div>
+            ) : (
+              submissions.map((sub) => {
+                const myResponse = getMyResponse(sub);
+                const isAssigned = sub.assignedAssessors && 
+                  (sub.assignedAssessors.assessor1Id === user?.id || sub.assignedAssessors.assessor2Id === user?.id);
+                const akSubmitted = hasSubmittedAK(sub);
 
-                {/* Notes Input */}
-                <div className="mb-6">
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-600" />
-                    Catatan {responseType === 'rejected' && <span className="text-red-500">*</span>}
-                  </label>
-                  <textarea
-                    value={responseNotes}
-                    onChange={(e) => setResponseNotes(e.target.value)}
-                    placeholder={responseType === 'accepted' 
-                      ? 'Catatan opsional (jika ada)...' 
-                      : 'Jelaskan alasan penolakan penugasan...'}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-                    rows={5}
-                    required={responseType === 'rejected'}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    {responseType === 'rejected' 
-                      ? 'Alasan penolakan wajib diisi dan akan dicatat di blockchain' 
-                      : 'Catatan opsional akan dicatat sebagai dokumentasi'}
-                  </p>
-                </div>
-
-                {/* Warning Alert */}
-                {responseType === 'accepted' && (
-                  <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-800">
-                      <span className="font-semibold">Perhatian:</span> Setelah menerima, Anda akan ditugaskan untuk melakukan penilaian AK terhadap submission ini.
-                    </p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleRespondToOffer}
-                    disabled={submitting || (responseType === 'rejected' && !responseNotes.trim())}
-                    className={`flex-1 px-6 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                      responseType === 'accepted'
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
-                        : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700'
-                    } disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none`}
-                  >
-                    {submitting ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Memproses...
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        {responseType === 'accepted' ? (
-                          <><CheckCircle className="w-5 h-5" /> Konfirmasi Terima</>
-                        ) : (
-                          <><XCircle className="w-5 h-5" /> Konfirmasi Tolak</>
+                return (
+                  <div key={sub.submissionId} className="glass-panel-light glass-panel-light-hover rounded-2xl p-6 hover:-translate-y-0.5 shadow-sm transition-all duration-300 relative overflow-hidden group animate-fade-in">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 to-blue-500" />
+                    
+                    <div className="grid md:grid-cols-4 gap-6 items-center">
+                      
+                      {/* Info Column */}
+                      <div className="md:col-span-2">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-indigo-50 border border-indigo-100 text-indigo-750 uppercase">
+                            {sub.programType || 'S1'}
+                          </span>
+                          <span className="text-xs font-mono text-slate-400 font-semibold">{sub.submissionId}</span>
+                        </div>
+                        <h3 className="text-lg font-black text-slate-900 leading-snug group-hover:text-indigo-650 transition-colors">
+                          {sub.programStudi}
+                        </h3>
+                        <p className="text-sm font-semibold text-slate-500 mt-0.5">{sub.institusi}</p>
+                        
+                        {sub.assignedAssessors && (
+                          <div className="mt-4 p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                            <p className="text-[10px] font-black text-slate-450 uppercase tracking-wider">Pasangan Asesor:</p>
+                            <div className="flex flex-col gap-0.5 text-xs font-semibold text-slate-600">
+                              <span>• {sub.assignedAssessors.assessor1Name}</span>
+                              <span>• {sub.assignedAssessors.assessor2Name}</span>
+                            </div>
+                          </div>
                         )}
                       </div>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowResponseModal(false)}
-                    disabled={submitting}
-                    className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:cursor-not-allowed transition-all border-2 border-gray-300"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* AK Assessment Modal - Modern Design */}
-        {showAKModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-8 overflow-hidden transform transition-all">
-              {/* Modal Header with Gradient */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
-                <div className="flex items-center gap-3">
-                  <ClipboardCheck className="w-10 h-10" />
+                      {/* Status Column */}
+                      <div className="flex flex-col gap-2">
+                        {myResponse && (
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Status Penawaran</p>
+                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                              myResponse.status === 'accepted' ? 'bg-emerald-50 border-emerald-250 text-emerald-800' :
+                              myResponse.status === 'rejected' ? 'bg-rose-50 border-rose-250 text-rose-800' :
+                              'bg-amber-50 border-amber-255 text-amber-800'
+                            }`}>
+                              {myResponse.status === 'accepted' ? '✓ Diterima' :
+                               myResponse.status === 'rejected' ? '✗ Ditolak' :
+                               '⏳ Pending'}
+                            </span>
+                          </div>
+                        )}
+
+                        {akSubmitted && (
+                          <div className="mt-2.5">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Status AK</p>
+                            <span className="inline-flex px-3 py-1 bg-emerald-50 border border-emerald-250 text-emerald-850 rounded-full text-[10px] font-black uppercase tracking-wider">
+                              ✓ Sudah Dinilai
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions Column */}
+                      <div className="flex flex-col gap-2 justify-end">
+                        <button
+                          onClick={() => navigate('/asesor/assignments')}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-650 hover:text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-200 active:scale-95"
+                        >
+                          Kelola Penugasan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Response Modal - Modern Design */}
+          {showResponseModal && (
+            <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-fade-in">
+                {/* Modal Header with Gradient */}
+                <div className={`p-6 text-white ${
+                  responseType === 'accepted' 
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500' 
+                    : 'bg-gradient-to-r from-rose-600 to-red-500'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {responseType === 'accepted' ? (
+                      <CheckCircle className="w-10 h-10" />
+                    ) : (
+                      <XCircle className="w-10 h-10" />
+                    )}
+                    <div>
+                      <h2 className="text-2xl font-black tracking-tight">
+                        {responseType === 'accepted' ? 'Terima Penugasan' : 'Tolak Penugasan'}
+                      </h2>
+                      <p className="text-xs opacity-90 font-medium mt-0.5">
+                        {responseType === 'accepted' 
+                          ? 'Konfirmasi penerimaan penugasan asesmen' 
+                          : 'Berikan alasan penolakan penugasan'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Submission Info Card */}
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <FileText className="w-5 h-5 text-indigo-650 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-black text-slate-800 text-base">{selectedSubmission?.programStudi}</p>
+                        <p className="text-xs text-slate-500 font-semibold mt-0.5">{selectedSubmission?.institusi}</p>
+                        <p className="text-[10px] text-slate-450 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes Input */}
                   <div>
-                    <h2 className="text-3xl font-bold">
-                      Penilaian Asesmen Kecukupan (AK)
-                    </h2>
-                    <p className="text-sm opacity-90 mt-1">
-                      Berikan penilaian objektif berdasarkan 7 Kriteria LAM-TEK 2025
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-slate-500" />
+                      Catatan & Alasan {responseType === 'rejected' && <span className="text-red-500">*</span>}
+                    </label>
+                    <textarea
+                      value={responseNotes}
+                      onChange={(e) => setResponseNotes(e.target.value)}
+                      placeholder={responseType === 'accepted' 
+                        ? 'Catatan opsional (jika ada)...' 
+                        : 'Jelaskan secara detail alasan penolakan penugasan ini...'}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-semibold text-sm bg-white"
+                      rows={4}
+                      required={responseType === 'rejected'}
+                    />
+                    <p className="text-[10px] text-slate-450 mt-1.5 font-semibold">
+                      {responseType === 'rejected' 
+                        ? 'Alasan penolakan wajib diisi untuk dicatatkan secara aman di blockchain AkreChain.' 
+                        : 'Catatan opsional akan dicatatkan pada arsip riwayat penugasan.'}
                     </p>
                   </div>
-                </div>
-              </div>
 
-              <div className="p-6">
-                {/* Submission Info Card */}
-                <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-8 h-8 text-indigo-600 flex-shrink-0" />
-                    <div>
-                      <p className="font-bold text-gray-900 text-xl">{selectedSubmission?.programStudi}</p>
-                      <p className="text-sm text-gray-700 mt-1">{selectedSubmission?.institusi}</p>
-                      <p className="text-xs text-gray-500 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
+                  {/* Warning Alert */}
+                  {responseType === 'accepted' && (
+                    <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-4 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-850 font-semibold leading-relaxed">
+                        <span className="font-black uppercase tracking-wider">Perhatian:</span> Dengan menerima penawaran ini, Anda berkomitmen untuk melaksanakan Penilaian AK secara objektif sesuai tenggat waktu.
+                      </p>
                     </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 justify-end pt-2">
+                    <button
+                      onClick={() => setShowResponseModal(false)}
+                      disabled={submitting}
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 active:scale-95 cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleRespondToOffer}
+                      disabled={submitting || (responseType === 'rejected' && !responseNotes.trim())}
+                      className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white transition-all duration-200 shadow-md cursor-pointer active:scale-95 ${
+                        responseType === 'accepted'
+                          ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 disabled:from-slate-250 disabled:to-slate-350'
+                          : 'bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-700 hover:to-red-600 disabled:from-slate-250 disabled:to-slate-350'
+                      }`}
+                    >
+                      {submitting ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Memproses...
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          {responseType === 'accepted' ? 'Konfirmasi Terima' : 'Konfirmasi Tolak'}
+                        </div>
+                      )}
+                    </button>
                   </div>
-                </div>
-
-                {/* Info Alert */}
-                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-semibold mb-1">Panduan Penilaian:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700">
-                      <li>Isi semua 7 kriteria dengan skor 0.00 - 4.00</li>
-                      <li>Gunakan hasil AI sebagai referensi pembanding</li>
-                      <li>Berikan catatan detail untuk justifikasi penilaian</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Scoring Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {Object.keys(akScores).map((key, index) => (
-                    <div key={key} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 border-2 border-gray-200 hover:border-indigo-300 transition-all">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                          {index + 1}
-                        </span>
-                        <label className="block text-sm font-bold text-gray-800">
-                          Kriteria LAM-TEK {index + 1}
-                        </label>
-                      </div>
-                      <input
-                        type="number"
-                        min="0"
-                        max="4"
-                        step="0.01"
-                        value={akScores[key]}
-                        onChange={(e) => setAkScores({ ...akScores, [key]: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-xl text-center text-indigo-600 bg-white"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 text-center mt-2">Skala 0.00 - 4.00</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Notes Section */}
-                <div className="mb-6 bg-amber-50 rounded-xl p-5 border-2 border-amber-200">
-                  <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-amber-600" />
-                    Catatan & Justifikasi Penilaian
-                  </label>
-                  <textarea
-                    value={akNotes}
-                    onChange={(e) => setAkNotes(e.target.value)}
-                    placeholder="Tambahkan catatan penilaian, justifikasi skor, dan rekomendasi untuk perbaikan..."
-                    className="w-full px-4 py-3 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none bg-white"
-                    rows={4}
-                  />
-                  <p className="text-xs text-gray-600 mt-2">Berikan penjelasan detail mengenai penilaian Anda</p>
-                </div>
-
-                {/* Warning Alert */}
-                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-yellow-800">
-                    <span className="font-semibold">Perhatian:</span> Penilaian AK akan dicatat secara permanen di blockchain dan tidak dapat diubah setelah submit. Pastikan semua skor dan catatan sudah benar.
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleSubmitAK}
-                    disabled={submitting}
-                    className="flex-1 inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Menyimpan Penilaian...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-6 h-6" />
-                        Kirim Penilaian AK
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowAKModal(false)}
-                    disabled={submitting}
-                    className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:cursor-not-allowed transition-all border-2 border-gray-300"
-                  >
-                    Batal
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* AK Assessment Modal - Modern Design */}
+          {showAKModal && (
+            <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-3xl shadow-2xl max-w-4xl w-full my-8 overflow-hidden transform transition-all animate-fade-in">
+                {/* Modal Header with Gradient */}
+                <div className="bg-gradient-to-r from-indigo-600 to-blue-650 p-6 text-white">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-10 h-10" />
+                    <div>
+                      <h2 className="text-2xl font-black tracking-tight">Penilaian Asesmen Kecukupan (AK)</h2>
+                      <p className="text-xs opacity-90 font-medium mt-0.5">Berikan penilaian objektif berdasarkan 7 Kriteria LAM-TEK 2025</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Submission Info Card */}
+                  <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <FileText className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-black text-slate-800 text-lg">{selectedSubmission?.programStudi}</p>
+                        <p className="text-sm text-slate-500 font-semibold mt-0.5">{selectedSubmission?.institusi}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 font-mono">{selectedSubmission?.submissionId}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info Alert */}
+                  <div className="bg-indigo-50/50 border border-indigo-150/60 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-indigo-650 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-indigo-850 font-semibold leading-relaxed">
+                      <p className="font-black uppercase tracking-wider mb-1">Panduan Penilaian Asesor:</p>
+                      <ul className="list-disc list-inside space-y-0.5 text-indigo-750 font-medium">
+                        <li>Lakukan penilaian terukur dengan skor skala 0.00 hingga 4.00</li>
+                        <li>Pastikan seluruh 7 kriteria terisi lengkap sebelum mengirim</li>
+                        <li>Sediakan justifikasi catatan secara detail untuk kemudahan review</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Scoring Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.keys(akScores).map((key, index) => (
+                      <div key={key} className="bg-slate-50/50 backdrop-blur-sm rounded-xl p-4 border border-slate-200/80 hover:border-indigo-300 transition-all flex flex-col justify-between min-h-[120px]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-black text-xs">
+                            {index + 1}
+                          </span>
+                          <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
+                            Kriteria {index + 1}
+                          </label>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="4"
+                          step="0.01"
+                          value={akScores[key]}
+                          onChange={(e) => setAkScores({ ...akScores, [key]: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-black text-lg text-center text-indigo-650 bg-white"
+                          required
+                        />
+                        <p className="text-[9px] font-extrabold text-slate-400 text-center mt-1 uppercase tracking-wider">Skor 0 - 4</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Notes Section */}
+                  <div className="bg-amber-50/40 rounded-xl p-5 border border-amber-200/60">
+                    <label className="block text-xs font-black text-amber-800 mb-2.5 flex items-center gap-2 uppercase tracking-wider">
+                      <FileText className="w-4 h-4" />
+                      Catatan & Justifikasi Penilaian
+                    </label>
+                    <textarea
+                      value={akNotes}
+                      onChange={(e) => setAkNotes(e.target.value)}
+                      placeholder="Tambahkan catatan penilaian, justifikasi skor, dan rekomendasi untuk perbaikan..."
+                      className="w-full px-4 py-3 border border-amber-200/60 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none resize-none bg-white font-semibold text-sm"
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Warning Alert */}
+                  <div className="bg-rose-50/50 border border-rose-200/60 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs font-semibold text-rose-800 leading-relaxed">
+                      <span className="font-black uppercase tracking-wider">Perhatian:</span> Penilaian AK akan dicatat secara permanen di blockchain dan tidak dapat diubah setelah disubmit. Pastikan semua skor dan catatan sudah benar.
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 justify-end pt-2">
+                    <button
+                      onClick={() => setShowAKModal(false)}
+                      disabled={submitting}
+                      className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 active:scale-95 cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSubmitAK}
+                      disabled={submitting}
+                      className="px-8 py-3 bg-gradient-to-tr from-indigo-600 to-blue-650 hover:from-indigo-700 hover:to-blue-750 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 active:scale-95 cursor-pointer shadow-md flex items-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Menyimpan Penilaian...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Kirim Penilaian AK
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

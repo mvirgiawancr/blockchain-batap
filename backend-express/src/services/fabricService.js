@@ -361,8 +361,14 @@ class FabricService {
   async getAllSubmissions(options = {}) {
     logger.info('[Fabric] Getting all submissions from blockchain');
     const result = await this.queryAllSubmissions(options);
-    // queryChaincode already returns parsed JSON
-    return Array.isArray(result) ? result : [];
+    const live = Array.isArray(result) ? result : [];
+
+    if (live.length === 0) {
+      logger.warn('[Fabric] Blockchain returned empty');
+      return [];
+    }
+
+    return live;
   }
 
   async getSubmission(submissionId, options = {}) {

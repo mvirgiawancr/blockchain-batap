@@ -13,9 +13,9 @@ export default function ScoringDetailDropdown({ scoring }) {
 
   if (!scoring || !scoring.criteriaScores) {
     return (
-      <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-        <AlertCircle className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-        <p>Data scoring tidak tersedia</p>
+      <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 text-center border border-slate-200 text-slate-500">
+        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+        <p className="text-sm font-semibold">Data scoring tidak tersedia</p>
       </div>
     );
   }
@@ -31,53 +31,52 @@ export default function ScoringDetailDropdown({ scoring }) {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 3.5) return 'text-green-600 bg-green-50';
-    if (score >= 3.0) return 'text-blue-600 bg-blue-50';
-    if (score >= 2.0) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (score >= 3.5) return 'text-emerald-705 bg-emerald-50 border-emerald-100';
+    if (score >= 3.0) return 'text-indigo-705 bg-indigo-50 border-indigo-100';
+    if (score >= 2.0) return 'text-amber-705 bg-amber-50 border-amber-100';
+    return 'text-rose-705 bg-rose-50 border-rose-100';
   };
 
   const getScoreBadgeColor = (score) => {
-    if (score >= 3.5) return 'bg-green-600';
-    if (score >= 3.0) return 'bg-blue-600';
-    if (score >= 2.0) return 'bg-yellow-600';
-    return 'bg-red-600';
+    if (score >= 3.5) return 'bg-gradient-to-br from-emerald-500 to-teal-500';
+    if (score >= 3.0) return 'bg-gradient-to-br from-indigo-500 to-blue-500';
+    if (score >= 2.0) return 'bg-gradient-to-br from-amber-400 to-orange-500';
+    return 'bg-gradient-to-br from-rose-500 to-red-500';
   };
 
   /**
    * Get reason label and styling for a butir score
-   * Possible reasons: "calculated", "low_confidence", "not_available", "not_detected", "default"
    */
   const getReasonInfo = (reason, score) => {
     switch (reason) {
       case 'low_confidence':
         return {
-          label: 'Data tipis/tidak ditemukan – skor minimum 2.0 (konfidensi rendah)',
+          label: 'Data minim / tidak utuh – skor minimum 2.00 (konfidensi rendah)',
           icon: ShieldAlert,
-          color: 'text-amber-700 bg-amber-50 border-amber-200',
+          color: 'text-amber-800 bg-amber-50 border-amber-100',
           show: true
         };
       case 'not_available':
         return {
-          label: 'Data tidak tersedia di LED/LKPS',
+          label: 'Data tidak ditemukan di lampiran LED/LKPS',
           icon: Database,
-          color: 'text-orange-600 bg-orange-50 border-orange-200',
+          color: 'text-orange-700 bg-orange-50 border-orange-100',
           show: true
         };
       case 'not_detected':
         return {
-          label: 'Data tidak terdeteksi oleh AI',
+          label: 'Data gagal terdeteksi oleh AI',
           icon: AlertTriangle,
-          color: 'text-red-600 bg-red-50 border-red-200',
+          color: 'text-rose-700 bg-rose-50 border-rose-100',
           show: true
         };
       case 'default':
       case 'calculated':
       default:
         return {
-          label: 'Dihitung dari data LED/LKPS',
+          label: 'Dihitung valid dari data LED/LKPS',
           icon: TrendingUp,
-          color: 'text-green-600 bg-green-50 border-green-200',
+          color: 'text-emerald-700 bg-emerald-50 border-emerald-100',
           show: false
         };
     }
@@ -172,37 +171,37 @@ export default function ScoringDetailDropdown({ scoring }) {
       {/* Main Dropdown Button */}
       <button
         onClick={() => setShowAllCriteria(!showAllCriteria)}
-        className="w-full flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+        className="w-full flex items-center justify-between px-6 py-4.5 bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-750 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg shadow-indigo-100/80 cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <Award className="w-6 h-6" />
-          <span className="font-bold text-lg">Lihat Rincian Skor Detail (7 Kriteria)</span>
+          <Award className="w-6 h-6 text-white/90" />
+          <span className="font-black text-sm tracking-wide uppercase">Lihat Rincian Skor Detail (7 Kriteria)</span>
         </div>
         {showAllCriteria ? (
-          <ChevronDown className="w-6 h-6" />
+          <ChevronDown className="w-5 h-5 text-white/90" />
         ) : (
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-5 h-5 text-white/90" />
         )}
       </button>
 
       {/* Criteria List */}
       {showAllCriteria && (
-        <div className="space-y-3 animate-fade-in">
+        <div className="space-y-3.5 animate-fade-in">
           {/* Legend */}
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <p className="text-sm font-semibold text-gray-700 mb-2">Keterangan Sumber Skor:</p>
-            <div className="flex flex-wrap gap-3 text-xs">
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-200">
-                <TrendingUp className="w-3 h-3" /> Dihitung dari data LED/LKPS
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/60 shadow-sm">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2.5">Keterangan Sumber Penilaian AI:</p>
+            <div className="flex flex-wrap gap-2.5 text-[10px] font-bold">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-100">
+                <TrendingUp className="w-3 h-3" /> Terhitung Valid dari LED/LKPS
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-                <ShieldAlert className="w-3 h-3" /> Konfidensi rendah – skor minimum 2.0
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-100">
+                <ShieldAlert className="w-3 h-3" /> Konfidensi Rendah (Skor Min 2.00)
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full border border-orange-200">
-                <Database className="w-3 h-3" /> Data tidak tersedia di LED/LKPS
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-850 rounded-full border border-orange-100">
+                <Database className="w-3 h-3" /> Data Tidak Tersedia
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-full border border-red-200">
-                <AlertTriangle className="w-3 h-3" /> Tidak terdeteksi oleh AI
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-800 rounded-full border border-rose-100">
+                <AlertTriangle className="w-3 h-3" /> Gagal Terdeteksi AI
               </span>
             </div>
           </div>
@@ -210,63 +209,63 @@ export default function ScoringDetailDropdown({ scoring }) {
           {criteriaArray.map((criteria) => (
             <div
               key={criteria.criteriaNumber}
-              className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden hover:border-blue-300 transition-all"
+              className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 overflow-hidden hover:border-indigo-300/80 transition-all duration-200 shadow-sm"
             >
               {/* Criteria Header - Clickable */}
               <button
                 onClick={() => toggleCriteria(criteria.criteriaNumber)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white ${getScoreBadgeColor(criteria.averageScore)}`}>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-white shadow-sm flex-shrink-0 ${getScoreBadgeColor(criteria.averageScore)}`}>
                     {criteria.criteriaNumber}
                   </div>
-                  <div className="text-left flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-gray-900 text-lg">
+                  <div className="text-left flex-1 min-w-0 pr-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-black text-slate-800 font-mono tracking-tight text-sm px-2 py-0.5 bg-slate-100 rounded border border-slate-200">
                         {criteria.criteriaCode}
                       </span>
-                      <span className="text-gray-700 font-medium">
+                      <span className="text-slate-800 font-extrabold text-sm truncate max-w-xs md:max-w-md">
                         {criteria.criteriaName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold">
                         {criteria.butirCount} butir penilaian
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getScoreColor(criteria.averageScore)}`}>
-                        Skor: {criteria.totalScore.toFixed(2)} / {criteria.maxPossibleScore}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wide ${getScoreColor(criteria.averageScore)}`}>
+                        Total: {criteria.totalScore.toFixed(2)} / {criteria.maxPossibleScore}
                       </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-3xl font-bold ${
-                      criteria.averageScore >= 3.5 ? 'text-green-600' :
-                      criteria.averageScore >= 3.0 ? 'text-blue-600' :
-                      criteria.averageScore >= 2.0 ? 'text-yellow-600' :
-                      'text-red-600'
+                  <div className="text-right flex-shrink-0 pr-2">
+                    <div className={`text-2xl font-black font-heading ${
+                      criteria.averageScore >= 3.5 ? 'text-emerald-600' :
+                      criteria.averageScore >= 3.0 ? 'text-indigo-600' :
+                      criteria.averageScore >= 2.0 ? 'text-amber-600' :
+                      'text-rose-600'
                     }`}>
                       {criteria.averageScore.toFixed(2)}
                     </div>
-                    <div className="text-xs text-gray-500">/ 4.00</div>
+                    <div className="text-[9px] text-slate-400 font-black tracking-wider uppercase">/ 4.00</div>
                   </div>
                 </div>
-                <div className="ml-4">
+                <div className="ml-2 flex-shrink-0">
                   {expandedCriteria.has(criteria.criteriaNumber) ? (
-                    <ChevronDown className="w-6 h-6 text-blue-600" />
+                    <ChevronDown className="w-5 h-5 text-indigo-600" />
                   ) : (
-                    <ChevronRight className="w-6 h-6 text-gray-400" />
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
                   )}
                 </div>
               </button>
 
               {/* Butir List - Nested Dropdown */}
               {expandedCriteria.has(criteria.criteriaNumber) && (
-                <div className="bg-gray-50 border-t-2 border-gray-200 px-6 py-4 animate-fade-in">
-                  <div className="space-y-2">
+                <div className="bg-slate-50/40 border-t border-slate-100 px-6 py-4.5 animate-fade-in pl-8">
+                  <div className="space-y-2.5">
                     <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp className="w-5 h-5 text-blue-600" />
-                      <h5 className="font-bold text-gray-800">Detail Skor per Butir:</h5>
+                      <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      <h5 className="font-black text-xs text-slate-700 uppercase tracking-wider">Detail Skor per Butir Evaluasi:</h5>
                     </div>
                     
                     {Object.entries(criteria.butirScores).map(([butirKey, butirScore]) => {
@@ -285,54 +284,54 @@ export default function ScoringDetailDropdown({ scoring }) {
                       return (
                         <div
                           key={butirKey}
-                          className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-blue-300 transition-all"
+                          className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 hover:border-indigo-200/65 transition-all shadow-sm"
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1">
-                              <span className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm ${getScoreBadgeColor(butirScore)}`}>
+                            <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                              <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-white font-black font-mono text-xs flex-shrink-0 shadow-sm ${getScoreBadgeColor(butirScore)}`}>
                                 {butirKey}
                               </span>
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-900 text-sm">
+                              <div className="flex-1 min-w-0 pr-4">
+                                <p className="font-bold text-slate-800 text-sm leading-snug truncate">
                                   {butirName}
                                 </p>
-                                <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                                <div className="mt-2 w-full bg-slate-100 rounded-full h-1.5 border border-slate-200/30">
                                   <div
-                                    className={`h-2 rounded-full transition-all duration-500 ${
-                                      butirScore >= 3.5 ? 'bg-green-500' :
-                                      butirScore >= 3.0 ? 'bg-blue-500' :
-                                      butirScore >= 2.0 ? 'bg-yellow-500' :
-                                      'bg-red-500'
+                                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                                      butirScore >= 3.5 ? 'bg-emerald-500' :
+                                      butirScore >= 3.0 ? 'bg-indigo-500' :
+                                      butirScore >= 2.0 ? 'bg-amber-500' :
+                                      'bg-rose-500'
                                     }`}
                                     style={{ width: `${(butirScore / 4) * 100}%` }}
                                   />
                                 </div>
                                 {/* Score Reason Indicator */}
                                 {showReason && reasonInfo && (
-                                  <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${reasonInfo.color}`}>
+                                  <div className={`mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black border uppercase tracking-wider ${reasonInfo.color}`}>
                                     <reasonInfo.icon className="w-3 h-3" />
                                     {reasonInfo.label}
                                   </div>
                                 )}
                                 {/* Special indicator for zero score without explicit reason */}
                                 {butirScore === 0 && !showReason && (
-                                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200">
+                                  <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black border text-rose-800 bg-rose-50 border-rose-100 uppercase tracking-wider animate-pulse">
                                     <AlertTriangle className="w-3 h-3" />
-                                    Data tidak terdeteksi oleh AI dari dokumen LED/LKPS
+                                    Data tidak terdeteksi oleh AI
                                   </div>
                                 )}
                               </div>
                             </div>
-                            <div className="text-right ml-4">
-                              <div className={`text-2xl font-bold ${
-                                butirScore >= 3.5 ? 'text-green-600' :
-                                butirScore >= 3.0 ? 'text-blue-600' :
-                                butirScore >= 2.0 ? 'text-yellow-600' :
-                                'text-red-600'
+                            <div className="text-right flex-shrink-0">
+                              <div className={`text-xl font-black font-heading ${
+                                butirScore >= 3.5 ? 'text-emerald-600' :
+                                butirScore >= 3.0 ? 'text-indigo-600' :
+                                butirScore >= 2.0 ? 'text-amber-600' :
+                                'text-rose-600'
                               }`}>
                                 {butirScore.toFixed(2)}
                               </div>
-                              <div className="text-xs text-gray-500">/ 4.00</div>
+                              <div className="text-[9px] text-slate-400 font-black tracking-wider uppercase">/ 4.00</div>
                             </div>
                           </div>
                         </div>
@@ -341,13 +340,11 @@ export default function ScoringDetailDropdown({ scoring }) {
                   </div>
                   
                   {/* Criteria Summary */}
-                  <div className="mt-4 pt-4 border-t-2 border-gray-200">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold text-gray-700">Total Skor Kriteria {criteria.criteriaNumber}:</span>
-                      <span className="font-bold text-blue-600">
-                        {criteria.totalScore.toFixed(2)} / {criteria.maxPossibleScore}
-                      </span>
-                    </div>
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
+                    <span className="text-slate-500">Total Nilai Akumulasi Kriteria {criteria.criteriaNumber}:</span>
+                    <span className="font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-lg">
+                      {criteria.totalScore.toFixed(2)} / {criteria.maxPossibleScore}
+                    </span>
                   </div>
                 </div>
               )}

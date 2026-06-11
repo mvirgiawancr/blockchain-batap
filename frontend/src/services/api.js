@@ -113,5 +113,23 @@ export const manualScore = async (payload) => {
   return response.data;
 };
 
+// Payment APIs
+export const checkPaymentStatus = async () => {
+  const response = await api.get('/sekretariat/payments/check-status');
+  return response.data;
+};
+
+export const getMyPayments = async () => {
+  const response = await api.get('/sekretariat/payments/my');
+  return response.data;
+};
+
+export const uploadPaymentProof = async (paymentId, formData) => {
+  const response = await api.post(`/sekretariat/payments/${paymentId}/upload-proof`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+};
+
 // Export the API instance for direct use if needed
 export default api;

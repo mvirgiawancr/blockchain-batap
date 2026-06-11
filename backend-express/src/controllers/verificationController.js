@@ -20,18 +20,34 @@ const getPendingVerifications = async (req, res, next) => {
             const result = await client.query(`
                 SELECT 
                     als.*,
-                    s.program_studi,
-                    s.institution as institusi,
                     ae.total_score as al_score,
                     ae.submitted_at as al_submitted_at
                 FROM al_schedules als
-                JOIN users s ON als.proposed_by = s.id
-                LEFT JOIN submission_metadata sm ON als.submission_id = sm.submission_id
                 LEFT JOIN al_executions ae ON als.submission_id = ae.submission_id
                 WHERE als.status = 'completed'
                 ORDER BY ae.submitted_at ASC
             `);
-            res.json({ success: true, data: result.rows });
+            
+            const data = await Promise.all(result.rows.map(async (row) => {
+                let programStudi = 'N/A';
+                let institusi = 'N/A';
+                try {
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'KEA' });
+                    if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
+                    programStudi = blockchainData.programStudi || 'N/A';
+                    institusi = blockchainData.institusi || 'N/A';
+                } catch (e) {
+                    logger.warn(`Could not fetch blockchain data for ${row.submission_id}: ${e.message}`);
+                }
+                
+                return {
+                    ...row,
+                    program_studi: programStudi,
+                    institusi: institusi
+                };
+            }));
+
+            res.json({ success: true, data });
         } finally {
             client.release();
         }
@@ -48,19 +64,35 @@ const getPendingDecisions = async (req, res, next) => {
             const result = await client.query(`
                 SELECT 
                     als.*,
-                    s.program_studi,
-                    s.institution as institusi,
                     vr.final_score as verified_score,
                     vr.recommended_rank,
                     vr.verified_at
                 FROM al_schedules als
-                JOIN users s ON als.proposed_by = s.id
-                LEFT JOIN submission_metadata sm ON als.submission_id = sm.submission_id
                 JOIN verification_results vr ON als.submission_id = vr.submission_id
                 WHERE als.status = 'verified'
                 ORDER BY vr.verified_at ASC
             `);
-            res.json({ success: true, data: result.rows });
+
+            const data = await Promise.all(result.rows.map(async (row) => {
+                let programStudi = 'N/A';
+                let institusi = 'N/A';
+                try {
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'MajelisMSP' });
+                    if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
+                    programStudi = blockchainData.programStudi || 'N/A';
+                    institusi = blockchainData.institusi || 'N/A';
+                } catch (e) {
+                    logger.warn(`Could not fetch blockchain data for ${row.submission_id}: ${e.message}`);
+                }
+                
+                return {
+                    ...row,
+                    program_studi: programStudi,
+                    institusi: institusi
+                };
+            }));
+
+            res.json({ success: true, data });
         } finally {
             client.release();
         }
@@ -266,27 +298,36 @@ const getDecidedSubmissions = async (req, res, next) => {
                     ad.valid_until,
                     ad.decided_at,
                     ad.certificate_cid,
-                    c.file_cid as certificate_file_cid,
-                    u.program_studi,
-                    u.institution as institusi
+                    c.file_cid as certificate_file_cid
                 FROM accreditation_decisions ad
                 LEFT JOIN certificates c ON ad.submission_id = c.submission_id
-                LEFT JOIN al_schedules als ON ad.submission_id = als.submission_id
-                LEFT JOIN users u ON als.proposed_by = u.id
                 ORDER BY ad.decided_at DESC
             `);
 
-            const data = result.rows.map(row => ({
-                submission_id: row.submission_id,
-                final_rank: row.final_rank,
-                final_score: row.final_score,
-                sk_number: row.sk_number,
-                sk_date: row.sk_date,
-                valid_until: row.valid_until,
-                decided_at: row.decided_at,
-                certificate_cid: row.certificate_cid || row.certificate_file_cid,
-                program_studi: row.program_studi || 'N/A',
-                institusi: row.institusi || 'N/A'
+            const data = await Promise.all(result.rows.map(async (row) => {
+                let programStudi = 'N/A';
+                let institusi = 'N/A';
+                try {
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'MajelisMSP' });
+                    if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
+                    programStudi = blockchainData.programStudi || 'N/A';
+                    institusi = blockchainData.institusi || 'N/A';
+                } catch (e) {
+                    logger.warn(`Could not fetch blockchain data for ${row.submission_id}: ${e.message}`);
+                }
+                
+                return {
+                    submission_id: row.submission_id,
+                    final_rank: row.final_rank,
+                    final_score: row.final_score,
+                    sk_number: row.sk_number,
+                    sk_date: row.sk_date,
+                    valid_until: row.valid_until,
+                    decided_at: row.decided_at,
+                    certificate_cid: row.certificate_cid || row.certificate_file_cid,
+                    program_studi: programStudi,
+                    institusi: institusi
+                };
             }));
 
             res.json({ success: true, data });

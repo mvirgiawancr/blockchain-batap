@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createSubmission } from '../services/api';
 import wsService from '../services/websocket';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download, RefreshCw, TrendingUp } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download, RefreshCw, TrendingUp, Banknote, ShieldAlert } from 'lucide-react';
 import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 
 export default function UPPSDashboard({ user }) {
@@ -33,6 +33,9 @@ export default function UPPSDashboard({ user }) {
     skorTerakhir: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(true);
+  const [pendingPayment, setPendingPayment] = useState(null);
 
   // Function to fetch statistics from backend
   const fetchStatistics = async () => {
@@ -106,6 +109,7 @@ export default function UPPSDashboard({ user }) {
 
   useEffect(() => {
     fetchStatistics(); // Fetch statistics on mount
+    fetchPaymentStatus(); // Check payment verification status
     
     const wsId = (user && (user.username || user.id)) || 'upps';
     wsService.connect(wsId);
@@ -228,6 +232,32 @@ export default function UPPSDashboard({ user }) {
       wsService.disconnect();
     };
   }, [user]);
+
+  // Fetch payment verification status
+  const fetchPaymentStatus = async () => {
+    setPaymentLoading(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/sekretariat/payments/check-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPaymentVerified(data.paymentVerified);
+        setPendingPayment(data.pendingPayment || null);
+      } else {
+        // If endpoint doesn't exist yet or error, default to not verified
+        setPaymentVerified(false);
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      setPaymentVerified(false);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   const addNotification = (message, type = 'info') => {
     // Use timestamp + counter to ensure uniqueness
@@ -450,7 +480,7 @@ export default function UPPSDashboard({ user }) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
         user={user} 
@@ -463,142 +493,151 @@ export default function UPPSDashboard({ user }) {
           
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full p-8 animate-fade-in">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 rounded-2xl shadow-2xl shadow-indigo-900/30 max-w-lg w-full p-8 animate-fade-in overflow-hidden">
+            {/* Background glow */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+
             {modalContent.type === 'progress' && (
-              <div>
-                <div className="text-center mb-6">
-                  <div className="flex justify-center mb-4">
-                    <div className="relative">
-                      <Clock className="w-16 h-16 text-blue-600 animate-spin" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-blue-600">
-                          {uploadProgress.step}/6
-                        </span>
+              <div className="relative">
+                <div className="text-center mb-7">
+                  {/* Animated ring */}
+                  <div className="flex justify-center mb-5">
+                    <div className="relative w-20 h-20">
+                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="#312e81" strokeWidth="6" />
+                        <circle
+                          cx="40" cy="40" r="34"
+                          fill="none"
+                          stroke="url(#progressGrad)"
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 34}`}
+                          strokeDashoffset={`${2 * Math.PI * 34 * (1 - uploadProgress.step / 6)}`}
+                          className="transition-all duration-700"
+                        />
+                        <defs>
+                          <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#818cf8" />
+                            <stop offset="100%" stopColor="#a78bfa" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-xl font-black text-white">{uploadProgress.step}</span>
+                        <span className="text-[10px] text-indigo-300 font-bold">/ 6</span>
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    Memproses Dokumen
-                  </h3>
-                  <p className="text-gray-600">
-                    Mohon tunggu, sistem sedang memverifikasi dan menganalisis dokumen Anda
-                  </p>
-                  {/* Time tracker */}
-                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">
+                  <h3 className="text-2xl font-black text-white mb-1">Memproses Dokumen</h3>
+                  <p className="text-indigo-300 text-sm font-medium">Sistem sedang memverifikasi dan menganalisis dokumen Anda</p>
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
+                    <Clock className="w-3.5 h-3.5 text-indigo-400 animate-spin" style={{animationDuration:'3s'}} />
+                    <span className="text-xs font-bold text-indigo-300">
                       Waktu proses: {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
+
+                <div className="space-y-2 mb-6">
                   {uploadProgress.steps.map((step) => (
-                    <div 
+                    <div
                       key={step.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                        step.status === 'completed' ? 'bg-green-50' :
-                        step.status === 'processing' ? 'bg-blue-50 border-2 border-blue-300' :
-                        'bg-gray-50'
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-500 ${
+                        step.status === 'completed'
+                          ? 'bg-emerald-500/10 border border-emerald-500/20'
+                          : step.status === 'processing'
+                          ? 'bg-indigo-500/15 border border-indigo-400/30 shadow-sm shadow-indigo-900/20'
+                          : 'bg-white/5 border border-white/5'
                       }`}
                     >
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        step.status === 'completed' ? 'bg-green-500' :
-                        step.status === 'processing' ? 'bg-blue-500 animate-pulse' :
-                        'bg-gray-300'
+                      <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${
+                        step.status === 'completed'
+                          ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                          : step.status === 'processing'
+                          ? 'bg-indigo-500 text-white animate-pulse shadow-sm shadow-indigo-500/30'
+                          : 'bg-white/10 text-slate-400'
                       }`}>
                         {step.status === 'completed' ? (
-                          <CheckCircle className="w-5 h-5 text-white" />
+                          <CheckCircle className="w-4 h-4" />
                         ) : step.status === 'processing' ? (
-                          <Clock className="w-5 h-5 text-white animate-spin" />
+                          <Clock className="w-4 h-4 animate-spin" />
                         ) : (
-                          <span className="text-white text-sm font-bold">{step.id}</span>
+                          step.id
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className={`font-medium ${
-                          step.status === 'completed' ? 'text-green-700' :
-                          step.status === 'processing' ? 'text-blue-700' :
-                          'text-gray-500'
-                        }`}>
-                          {step.name}
-                        </p>
-                        {step.message && (
-                          <p className={`text-xs mt-1 ${
-                            step.status === 'completed' ? 'text-green-600' :
-                            step.status === 'processing' ? 'text-blue-600' :
-                            'text-gray-500'
-                          }`}>
-                            {step.message}
-                          </p>
-                        )}
+                        <p className={`text-sm font-semibold ${
+                          step.status === 'completed' ? 'text-emerald-300' :
+                          step.status === 'processing' ? 'text-indigo-200' :
+                          'text-slate-500'
+                        }`}>{step.name}</p>
                         {step.status === 'processing' && !step.message && (
-                          <p className="text-xs text-blue-600 mt-1">Sedang diproses...</p>
+                          <p className="text-[11px] text-indigo-400">Memulai verifikasi...</p>
                         )}
-                        {step.status === 'completed' && !step.message && (
-                          <p className="text-xs text-green-600 mt-1">Selesai</p>
+                        {step.message && (
+                          <p className={`text-[11px] ${
+                            step.status === 'completed' ? 'text-emerald-400' : 'text-indigo-400'
+                          }`}>{step.message}</p>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
-                
-                <div className="mt-6">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+
+                {/* Progress bar */}
+                <div>
+                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700 shadow-sm shadow-indigo-500/50"
                       style={{ width: `${(uploadProgress.step / 6) * 100}%` }}
                     />
                   </div>
-                  <p className="text-center text-sm text-gray-600 mt-2">
+                  <p className="text-center text-xs text-indigo-400 font-bold mt-2">
                     {Math.round((uploadProgress.step / 6) * 100)}% selesai
                   </p>
                 </div>
               </div>
             )}
-            
+
             {modalContent.type === 'success' && (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-12 h-12 text-green-600" />
+              <div className="text-center relative">
+                <div className="flex justify-center mb-5">
+                  <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                    <CheckCircle className="w-10 h-10 text-emerald-400" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-green-700 mb-2">
-                  Unggah Berhasil!
-                </h3>
-                <p className="text-gray-600 whitespace-pre-line">
-                  {modalContent.message}
-                </p>
-                <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-800">
-                    ✓ Dokumen telah diverifikasi AI<br/>
-                    ✓ Tersimpan di IPFS<br/>
-                    ✓ Tercatat di Blockchain
+                <h3 className="text-2xl font-black text-white mb-2">Unggah Berhasil!</h3>
+                <p className="text-indigo-300 text-sm mb-5 font-medium">{modalContent.message}</p>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-left space-y-1.5">
+                  <p className="text-emerald-300 text-sm font-semibold flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> Dokumen telah diverifikasi AI
+                  </p>
+                  <p className="text-emerald-300 text-sm font-semibold flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> Tersimpan di IPFS
+                  </p>
+                  <p className="text-emerald-300 text-sm font-semibold flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> Tercatat di Blockchain
                   </p>
                 </div>
               </div>
             )}
-            
+
             {modalContent.type === 'error' && (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-12 h-12 text-red-600" />
+              <div className="text-center relative">
+                <div className="flex justify-center mb-5">
+                  <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-10 h-10 text-red-400" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-red-700 mb-2">
-                  Validasi Gagal
-                </h3>
-                <div className="bg-red-50 rounded-lg p-4 mb-4">
-                  <p className="text-gray-700 whitespace-pre-line text-left text-sm">
-                    {modalContent.message}
-                  </p>
+                <h3 className="text-2xl font-black text-white mb-3">Validasi Gagal</h3>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-5 text-left">
+                  <p className="text-red-300 whitespace-pre-line text-sm font-medium">{modalContent.message}</p>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/30 cursor-pointer"
                 >
                   Tutup
                 </button>
@@ -625,137 +664,187 @@ export default function UPPSDashboard({ user }) {
         </div>
       )}
 
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 max-w-7xl mx-auto font-sans">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <FileText className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+              <FileText className="w-8 h-8 text-indigo-600" />
               Dashboard UPPS
             </h1>
-            <p className="text-gray-600 mt-1">Unggah dan Verifikasi Dokumen Akreditasi</p>
+            <p className="text-slate-500 text-sm font-semibold mt-1">Unggah dan Verifikasi Dokumen Akreditasi Program Studi</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => window.location.reload()}
-              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/80 text-slate-600 hover:text-indigo-600 cursor-pointer"
               title="Refresh"
             >
-              <RefreshCw className="w-5 h-5 text-gray-600" />
+              <RefreshCw className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Statistics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+          
+          {/* Card 1: Total Submission (Blue/Indigo Gradient) */}
+          <div className="bg-gradient-to-tr from-blue-50/90 via-indigo-50/40 to-white border border-blue-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:shadow-indigo-50/50 hover:border-blue-300 transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Total Submission</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-[10px] text-blue-600 font-extrabold uppercase tracking-wider">Total Submission</p>
+                <p className="text-3xl font-black text-blue-800 mt-1">
                   {loadingStats ? '...' : statistics.totalSubmissions}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-100 border border-blue-500/20">
+                <FileText className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-yellow-500">
+          {/* Card 2: Sedang Diproses (Amber/Orange Gradient) */}
+          <div className="bg-gradient-to-tr from-amber-50/90 via-orange-50/40 to-white border border-amber-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:shadow-amber-50/50 hover:border-amber-300 transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Sedang Diproses</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider">Sedang Diproses</p>
+                <p className="text-3xl font-black text-amber-800 mt-1">
                   {loadingStats ? '...' : statistics.sedangDiproses}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-amber-100 border border-amber-400/20">
+                <Clock className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+          {/* Card 3: Disetujui (Emerald/Green Gradient) */}
+          <div className="bg-gradient-to-tr from-emerald-50/90 via-teal-50/40 to-white border border-emerald-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:shadow-emerald-50/50 hover:border-emerald-300 transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Disetujui</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Disetujui</p>
+                <p className="text-3xl font-black text-emerald-800 mt-1">
                   {loadingStats ? '...' : statistics.disetujui}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-100 border border-emerald-500/20">
+                <CheckCircle className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+          {/* Card 4: Skor Terakhir (Fuchsia/Purple Gradient) */}
+          <div className="bg-gradient-to-tr from-fuchsia-50/90 via-purple-50/40 to-white border border-fuchsia-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:shadow-fuchsia-50/50 hover:border-fuchsia-300 transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Skor Terakhir</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-[10px] text-fuchsia-600 font-extrabold uppercase tracking-wider">Skor Terakhir</p>
+                <p className="text-3xl font-black text-fuchsia-800 mt-1">
                   {loadingStats ? '...' : statistics.skorTerakhir}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-fuchsia-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-fuchsia-100 border border-fuchsia-500/20">
+                <TrendingUp className="w-6 h-6" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Upload className="w-6 h-6 text-blue-600" />
+        {/* Upload Form */}
+        <div className="glass-panel-light rounded-2xl shadow-xl shadow-slate-200/40 p-8 mb-6 border border-indigo-100/50 relative">
+          
+          {pendingPayment && (
+            <div className={`p-4 mb-6 rounded-xl border-2 flex items-center justify-between shadow-sm animate-fade-in ${
+              pendingPayment.status === 'invoiced' ? 'bg-amber-50/70 border-amber-200 text-amber-800' :
+              pendingPayment.status === 'submitted' ? 'bg-indigo-50/70 border-indigo-200 text-indigo-800' :
+              pendingPayment.status === 'verified' ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800' :
+              'bg-rose-50/70 border-rose-200 text-rose-800'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  pendingPayment.status === 'invoiced' ? 'bg-amber-100 text-amber-600' :
+                  pendingPayment.status === 'submitted' ? 'bg-indigo-100 text-indigo-600' :
+                  pendingPayment.status === 'verified' ? 'bg-emerald-100 text-emerald-600' :
+                  'bg-rose-100 text-rose-600'
+                }`}>
+                  <Banknote className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <span className="font-bold text-sm">Status Tagihan Akreditasi: </span>
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    pendingPayment.status === 'invoiced' ? 'bg-amber-100 text-amber-800' :
+                    pendingPayment.status === 'submitted' ? 'bg-indigo-100 text-indigo-800' :
+                    pendingPayment.status === 'verified' ? 'bg-emerald-100 text-emerald-800' :
+                    'bg-rose-100 text-rose-800'
+                  }`}>
+                    {pendingPayment.status === 'invoiced' ? 'Menunggu Pembayaran' :
+                     pendingPayment.status === 'submitted' ? 'Menunggu Verifikasi' :
+                     pendingPayment.status === 'verified' ? 'Terverifikasi' :
+                     'Ditolak'}
+                  </span>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                    Jumlah Tagihan: Rp {Number(pendingPayment.amount || 0).toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/upps/payment')}
+                className="px-4 py-2 bg-white hover:bg-slate-50 text-indigo-600 rounded-lg text-xs font-extrabold border border-indigo-200 transition-all shadow-sm cursor-pointer"
+              >
+                Detail Pembayaran
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3.5 mb-8">
+            <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center shadow-sm">
+              <Upload className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                 Unggah Dokumen Akreditasi
               </h2>
-              <p className="text-sm text-gray-600">LED dan LKPS wajib diunggah untuk proses akreditasi</p>
+              <p className="text-sm text-slate-500 font-semibold">LED dan LKPS wajib diunggah untuk memulai proses akreditasi LAM-TEK</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Program Studi <span className="text-red-500">*</span>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 ml-1">
+                  Program Studi <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.programStudi}
                   onChange={(e) => setFormData({ ...formData, programStudi: e.target.value })}
                   placeholder="e.g., Teknik Industri Pertanian"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Institusi <span className="text-red-500">*</span>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 ml-1">
+                  Institusi <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.institusi}
                   onChange={(e) => setFormData({ ...formData, institusi: e.target.value })}
                   placeholder="e.g., IPB University"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Jenjang Program <span className="text-red-500">*</span>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 ml-1">
+                  Jenjang Program <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={formData.programType}
                   onChange={(e) => setFormData({ ...formData, programType: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.65rem_auto] bg-[right_1.2rem_center] bg-no-repeat"
                   required
                 >
                   <option value="S">Sarjana (S)</option>
@@ -772,74 +861,77 @@ export default function UPPSDashboard({ user }) {
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FileCheck className="w-5 h-5 text-white" />
+            {/* LED Upload Box (Vibrant Indigo/Blue Gradient Frame) */}
+            <div className="bg-gradient-to-br from-indigo-50/50 to-blue-50/20 rounded-2xl p-6 border border-indigo-100/80 shadow-sm">
+              <label className="block text-sm font-bold text-indigo-950 mb-3 flex items-center gap-2">
+                <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-sm shadow-indigo-100">
+                  <FileCheck className="w-5 h-5" />
                 </div>
-                <span>LED (Laporan Evaluasi Diri) <span className="text-red-500">*</span></span>
+                <span>LED (Laporan Evaluasi Diri) <span className="text-rose-500">*</span></span>
               </label>
-              <div className="border-3 border-dashed border-blue-300 rounded-xl p-6 bg-white hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+              <div className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-white/70 hover:bg-indigo-50/20 transition-all rounded-xl p-6 cursor-pointer relative group">
                 <input
                   type="file"
                   accept=".pdf,.xlsx,.xls"
                   onChange={(e) => setLedFile(e.target.files[0])}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer"
                   required
                 />
               </div>
               {ledFile && (
-                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">{ledFile.name}</span>
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 animate-fade-in shadow-inner">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-800">{ledFile.name}</span>
                 </div>
               )}
             </div>
 
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <FileCheck className="w-5 h-5 text-white" />
+            {/* LKPS Upload Box (Vibrant Purple/Fuchsia Gradient Frame) */}
+            <div className="bg-gradient-to-br from-purple-50/50 to-fuchsia-50/20 rounded-2xl p-6 border border-purple-100/80 shadow-sm">
+              <label className="block text-sm font-bold text-purple-950 mb-3 flex items-center gap-2">
+                <div className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center shadow-sm shadow-purple-100">
+                  <FileCheck className="w-5 h-5" />
                 </div>
-                <span>LKPS (Laporan Kinerja Program Studi) <span className="text-red-500">*</span></span>
+                <span>LKPS (Laporan Kinerja Program Studi) <span className="text-rose-500">*</span></span>
               </label>
-              <div className="border-3 border-dashed border-purple-300 rounded-xl p-6 bg-white hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
+              <div className="border-2 border-dashed border-purple-200 hover:border-purple-500 bg-white/70 hover:bg-purple-50/20 transition-all rounded-xl p-6 cursor-pointer relative group">
                 <input
                   type="file"
                   accept=".pdf,.xlsx,.xls"
                   onChange={(e) => setLkpsFile(e.target.files[0])}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 file:cursor-pointer"
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-purple-600 file:text-white hover:file:bg-purple-700 file:cursor-pointer"
                   required
                 />
               </div>
               {lkpsFile && (
-                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">{lkpsFile.name}</span>
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 animate-fade-in shadow-inner">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-800">{lkpsFile.name}</span>
                 </div>
               )}
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-gray-600" />
+            {/* Optional Additional Files (Vibrant Slate/Slate Gradient Frame) */}
+            <div className="bg-gradient-to-br from-slate-50/70 to-blue-50/20 rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <label className="block text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-slate-500" />
                 Dokumen Tambahan (Opsional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 bg-white hover:border-gray-400 transition-all">
+              <div className="border-2 border-dashed border-slate-200 hover:border-indigo-500 bg-white/70 hover:bg-indigo-50/20 transition-all rounded-xl p-6 cursor-pointer">
                 <input
                   type="file"
                   multiple
                   accept=".pdf,.xlsx,.xls"
                   onChange={(e) => setAdditionalFiles(Array.from(e.target.files))}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-white hover:file:bg-gray-700"
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-slate-600 file:text-white hover:file:bg-slate-700 file:cursor-pointer"
                 />
               </div>
               {additionalFiles.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {additionalFiles.map((file, idx) => (
-                    <div key={idx} className="p-2 bg-white border border-gray-200 rounded-lg flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-gray-600" />
-                      <span className="text-sm text-gray-700">{file.name}</span>
+                    <div key={idx} className="p-2 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 animate-fade-in">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-bold text-emerald-800">{file.name}</span>
                     </div>
                   ))}
                 </div>
@@ -847,12 +939,12 @@ export default function UPPSDashboard({ user }) {
             </div>
 
             {error && (
-              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+              <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 animate-fade-in">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-6 h-6 text-red-600" />
+                  <div className="w-9 h-9 bg-rose-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-rose-600" />
                   </div>
-                  <p className="font-medium text-red-800">{error}</p>
+                  <p className="text-xs font-bold text-rose-800">{error}</p>
                 </div>
               </div>
             )}
@@ -860,17 +952,17 @@ export default function UPPSDashboard({ user }) {
             <button
               type="submit"
               disabled={uploading || !ledFile || !lkpsFile}
-              className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 text-white font-extrabold rounded-xl hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 cursor-pointer transform hover:-translate-y-0.5 duration-200"
             >
               {uploading ? (
                 <>
                   <Clock className="w-6 h-6 animate-spin" />
-                  <span>Memproses & Memverifikasi...</span>
+                  <span>Memproses & Memverifikasi Dokumen...</span>
                 </>
               ) : (
                 <>
                   <Upload className="w-6 h-6" />
-                  <span>Unggah Dokumen</span>
+                  <span>Unggah Dokumen Akreditasi</span>
                 </>
               )}
             </button>
@@ -878,173 +970,81 @@ export default function UPPSDashboard({ user }) {
         </div>
 
         {result && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-green-200">
+          <div className="glass-panel-light border-2 border-emerald-200 rounded-2xl p-8 shadow-xl shadow-emerald-50/20 mb-6 animate-fade-in">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-green-600" />
+              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center border border-emerald-200/50">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-green-700">
-                  Unggah Berhasil!
+                <h3 className="text-2xl font-black text-emerald-800">
+                  Unggah &amp; Verifikasi Berhasil!
                 </h3>
-                <p className="text-gray-600">Dokumen telah diverifikasi dan tersimpan</p>
+                <p className="text-slate-600 text-sm font-semibold">Dokumen LED &amp; LKPS telah diverifikasi AI dan dicatat secara permanen di blockchain</p>
               </div>
             </div>
-            
-            <div className="grid md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                <p className="text-sm text-blue-700 font-medium mb-1">Submission ID</p>
-                <p className="font-mono text-lg text-blue-900 font-bold">{result.submissionId}</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
-                <p className="text-sm text-green-700 font-medium mb-1">Status</p>
-                <span className="inline-block px-4 py-1 bg-green-600 text-white rounded-full text-sm font-semibold">
-                  {result.status}
-                </span>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-                <p className="text-sm text-purple-700 font-medium mb-1">Kelengkapan Dokumen</p>
-                <div className="flex items-center gap-2 mt-2">
-                  {result?.ai?.hasLED && (
-                    <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
-                      ✓ LED
-                    </span>
-                  )}
-                  {result?.ai?.hasLKPS && (
-                    <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold">
-                      ✓ LKPS
-                    </span>
-                  )}
-                </div>
-              </div>
-              {result.ai?.scoring && (
-                <div className="col-span-full">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-blue-900">🎯 Hasil Scoring LAM-TEK 2025</h4>
-                        <p className="text-sm text-blue-700">
-                          Metode: {result.ai?.scoring?.method || 'LAM-TEK 2025'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-5xl font-bold text-blue-900">
-                          {(result.ai?.scoring?.overallScore || 0).toFixed(2)} / 4.00
-                        </div>
-                        <div className="text-sm text-blue-700 mt-1">
-                          Rata-rata Skor 7 Kriteria
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Summary Stats */}
-                    <div className="text-center mb-4">
-                      {result.ai?.scoring?.summary && (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-white/50 rounded-lg p-4">
-                            <div className="text-green-700 font-semibold text-sm">Kriteria ≥ 3.5</div>
-                            <div className="text-3xl font-bold text-green-800">{result.ai?.scoring?.summary?.criteriaAbove3_5 || 0}</div>
-                          </div>
-                          <div className="bg-white/50 rounded-lg p-4">
-                            <div className="text-red-700 font-semibold text-sm">Kriteria &lt; 2.0</div>
-                            <div className="text-3xl font-bold text-red-800">{result.ai?.scoring?.summary?.criteriaBellow2_0 || 0}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* LAM-TEK Summary */}
-                    <div className="text-center text-blue-800 bg-white/50 rounded-lg p-3">
-                      <p className="text-lg">
-                        <span className="font-bold">7 Kriteria</span> Akreditasi LAM-TEK 2025
-                      </p>
-                      <p className="text-sm mt-1">
-                        Skor Total: <span className="font-bold">{(result.ai?.scoring?.finalScore || 0).toFixed(2)}</span> / {result.ai?.scoring?.maxPossibleScore || 220}
-                      </p>
-                    </div>
-                    
-                    {/* Detailed Criteria Breakdown with Nested Dropdowns */}
-                    {result.ai?.scoring && (
-                      <div className="mt-6">
-                        <ScoringDetailDropdown scoring={result.ai.scoring} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {!result.ai?.scoring && (
-                <div className="col-span-full">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-dashed border-gray-300">
-                    <h4 className="text-lg font-semibold text-gray-700 mb-2">🎯 Hasil Scoring Otomatis</h4>
-                    <p className="text-gray-600 mb-4">Scoring sedang diproses atau tidak tersedia</p>
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
-                      <span className="text-gray-600">Menunggu hasil scoring...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">📄 Dokumen Terupload</h4>
-                <div className="space-y-3">
-                  {(result?.documents || []).map((doc, idx) => (
-                    <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">{doc.type}</p>
-                              <p className="text-sm text-gray-600">{doc.filename}</p>
-                              {doc.verified && (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    Terverifikasi {(doc.confidence * 100).toFixed(0)}%
-                                  </span>
-                                </div>
-                              )}
-                              <div className="mt-2 space-y-1">
-                                <p className="text-xs text-gray-500"><span className="font-medium">CID:</span> {doc.cid}</p>
-                                <p className="text-xs text-gray-500"><span className="font-medium">Hash:</span> {doc.hash}</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleDownload(result.submissionId, doc.type, doc.filename)}
-                              className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-semibold"
-                            >
-                              <Download size={16} />
-                              Download
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              {result?.ai?.recommendations && result.ai.recommendations.length > 0 && (
-                <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
-                  <h4 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                    💡 Rekomendasi AI
-                  </h4>
-                  <ul className="space-y-2">
-                    {result.ai.recommendations.map((rec, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-blue-800">
-                        <span className="text-blue-600 font-bold">•</span>
-                        <span className="text-sm">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
+            {/* AI Scoring Section */}
+            {result.ai?.scoring && (
+              <div className="animate-fade-in">
+                <div className="bg-indigo-50/40 border border-indigo-100/50 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="text-lg font-black text-indigo-950 flex items-center gap-2">🎯 Hasil Penilaian LAM-TEK 2025</h4>
+                      <p className="text-xs text-indigo-700 font-semibold">
+                        Metodologi AI: {result.ai?.scoring?.method || 'LAM-TEK 2025'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-4xl font-black text-indigo-900 font-heading">
+                        {(result.ai?.scoring?.overallScore || 0).toFixed(2)} / 4.00
+                      </div>
+                      <div className="text-[10px] text-indigo-700 font-extrabold uppercase mt-0.5 tracking-wider">
+                        Skor Rata-rata 7 Kriteria
+                      </div>
+                    </div>
+                  </div>
+
+                  {result.ai?.scoring?.summary && (
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-white/70 border border-slate-200/50 rounded-xl p-3.5 shadow-sm">
+                        <div className="text-emerald-700 font-extrabold text-xs uppercase tracking-wider">Kriteria Memuaskan (≥ 3.5)</div>
+                        <div className="text-3xl font-black text-emerald-800 mt-1 font-heading">{result.ai?.scoring?.summary?.criteriaAbove3_5 || 0}</div>
+                      </div>
+                      <div className="bg-white/70 border border-slate-200/50 rounded-xl p-3.5 shadow-sm">
+                        <div className="text-rose-700 font-extrabold text-xs uppercase tracking-wider">Kriteria Perlu Perbaikan (&lt; 2.0)</div>
+                        <div className="text-3xl font-black text-rose-800 mt-1 font-heading">{result.ai?.scoring?.summary?.criteriaBellow2_0 || 0}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-center text-indigo-900 bg-white/70 border border-slate-200/50 rounded-xl p-4 shadow-sm mb-4">
+                    <p className="text-base font-bold">Peringkat Awal Berdasarkan 7 Kriteria LAM-TEK</p>
+                    <p className="text-xs font-semibold text-slate-500 mt-1">
+                      Skor Kinerja Kumulatif: <span className="font-extrabold text-indigo-600 text-sm">{(result.ai?.scoring?.finalScore || 0).toFixed(2)}</span> / {result.ai?.scoring?.maxPossibleScore || 220}
+                    </p>
+                  </div>
+
+                  <ScoringDetailDropdown scoring={result.ai.scoring} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* AI Recommendations */}
+            {result?.ai?.recommendations && result.ai.recommendations.length > 0 && (
+              <div className="bg-indigo-50/50 rounded-xl p-5 border border-indigo-100 animate-fade-in mt-4">
+                <h4 className="text-sm font-extrabold text-indigo-900 mb-3 flex items-center gap-2">
+                  💡 Rekomendasi Perbaikan AI
+                </h4>
+                <ul className="space-y-2">
+                  {result.ai.recommendations.map((rec, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-indigo-800">
+                      <span className="text-indigo-500 font-bold">•</span>
+                      <span className="text-xs font-semibold">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
         </div>
@@ -1052,3 +1052,4 @@ export default function UPPSDashboard({ user }) {
     </div>
   );
 }
+

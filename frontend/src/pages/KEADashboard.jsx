@@ -5,7 +5,8 @@ import wsService from '../services/websocket';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import { 
   Users, CheckSquare, XSquare, Clock, AlertTriangle, 
-  TrendingUp, FileCheck, Award, Search, Filter, RefreshCw
+  TrendingUp, FileCheck, Award, Search, Filter, RefreshCw,
+  FileText, CheckCircle, XCircle, AlertCircle, ShieldAlert
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -225,7 +226,7 @@ export default function KEADashboard({ user }) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
         user={user} 
@@ -235,343 +236,391 @@ export default function KEADashboard({ user }) {
 
       {/* Main Content */}
       <div className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="p-8 max-w-7xl mx-auto space-y-8">
           
           {/* Header */}
-          <header className="flex justify-between items-center">
+          <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                KEA Dashboard
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <Award className="w-8 h-8 text-purple-650" />
+                Evaluasi & Akreditasi
               </h1>
-              <p className="text-gray-600 mt-1">Komite Evaluasi dan Akreditasi</p>
+              <p className="text-slate-500 text-sm font-semibold mt-1">
+                Monitor penugasan asesor, hasil asesmen kecukupan, dan analisis konsistensi skor LAM-TEK
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={loadSubmissions}
-                className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-                title="Refresh"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/80 text-slate-650 hover:text-purple-650 font-bold text-xs cursor-pointer active:scale-95"
+                title="Refresh Data"
               >
-                <RefreshCw className="w-5 h-5 text-gray-600" />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh Data
               </button>
-              <Award className="w-10 h-10 text-purple-600" />
             </div>
-          </header>
+          </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-blue-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">Total Submission</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalSubmissions}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-amber-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">Penawaran Pending</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.pendingOffers}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-green-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">Asesor Ditugaskan</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.assignedAssessors}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-orange-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">AK Pending</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.akPending}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-emerald-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">AK Konsisten</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.akConsistent}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border-l-4 border-red-500 p-4">
-            <p className="text-sm text-gray-600 mb-1">AK Perlu Review</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.akInconsistent}</p>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari program studi atau institusi..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4.5">
+            {/* Total Submissions */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Total Berkas</p>
+                <p className="text-2xl font-black text-slate-900 mt-1">{stats.totalSubmissions}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-650 group-hover:scale-110 transition-transform">
+                <FileText className="w-5 h-5" />
               </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterStatus === 'all'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Semua
-              </button>
-              <button
-                onClick={() => setFilterStatus('pending-offer')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterStatus === 'pending-offer'
-                    ? 'bg-amber-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Penawaran Pending
-              </button>
-              <button
-                onClick={() => setFilterStatus('assigned')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterStatus === 'assigned'
-                    ? 'bg-green-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Ditugaskan
-              </button>
-              <button
-                onClick={() => setFilterStatus('ak-complete')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterStatus === 'ak-complete'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                AK Selesai
-              </button>
+
+            {/* Penawaran Pending */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-amber-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Tawaran Pending</p>
+                <p className="text-2xl font-black text-amber-600 mt-1">{stats.pendingOffers}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                <Clock className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Asesor Ditugaskan */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Asesor Ditunjuk</p>
+                <p className="text-2xl font-black text-emerald-650 mt-1">{stats.assignedAssessors}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* AK Pending */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-orange-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Penilaian Pending</p>
+                <p className="text-2xl font-black text-orange-600 mt-1">{stats.akPending}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* AK Konsisten */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-teal-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Skor Konsisten</p>
+                <p className="text-2xl font-black text-teal-650 mt-1">{stats.akConsistent}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 group-hover:scale-110 transition-transform">
+                <FileCheck className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* AK Perlu Review */}
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Perlu Review</p>
+                <p className="text-2xl font-black text-rose-650 mt-1">{stats.akInconsistent}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-150 flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Message */}
-        {message.text && (
-          <div className={`rounded-xl p-4 ${
-            message.type === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
-            'bg-red-50 border-2 border-red-200 text-red-800'
-          }`}>
-            <p className="font-medium">{message.text}</p>
-          </div>
-        )}
-
-        {/* Submissions Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Program Studi</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Institusi</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Status Penawaran</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Asesor</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">AK Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                      <Clock className="w-8 h-8 animate-spin mx-auto mb-2" />
-                      Memuat data...
-                    </td>
-                  </tr>
-                ) : filteredSubmissions.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                      Tidak ada data submission
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSubmissions.map((sub) => (
-                    <tr key={sub.submissionId} className="hover:bg-purple-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-900">{sub.programStudi}</div>
-                        <div className="text-sm text-gray-500">{sub.submissionId}</div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">{sub.institusi}</td>
-                      <td className="px-6 py-4">
-                        {sub.currentOffer ? (
-                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                            sub.currentOffer.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                            sub.currentOffer.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {sub.currentOffer.status}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Belum ada penawaran</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {sub.assignedAssessors ? (
-                          <div className="text-sm space-y-1">
-                            <div className="flex items-center gap-2">
-                              <CheckSquare className="w-4 h-4 text-green-600" />
-                              <span className="text-gray-700">{sub.assignedAssessors.assessor1Name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <CheckSquare className="w-4 h-4 text-green-600" />
-                              <span className="text-gray-700">{sub.assignedAssessors.assessor2Name}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {sub.akAssessments && sub.akAssessments.length > 0 ? (
-                          <div className="space-y-1">
-                            <div className="text-sm text-gray-600">
-                              {sub.akAssessments.length} / 2 penilaian
-                            </div>
-                            {sub.akConsistent === true && (
-                              <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                                ✓ Konsisten
-                              </span>
-                            )}
-                            {sub.akConsistent === false && (
-                              <span className="inline-flex px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
-                                ✗ Tidak Konsisten
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Belum ada penilaian</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          {(!sub.currentOffer || sub.currentOffer.status === 'rejected') && !sub.assignedAssessors && (
-                            <button
-                              onClick={() => openOfferModal(sub)}
-                              className="inline-flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors"
-                            >
-                              <Users className="w-4 h-4" />
-                              Tawarkan Asesor
-                            </button>
-                          )}
-                          {sub.akAssessments && sub.akAssessments.length >= 2 && !sub.akConsistent && (
-                            <button
-                              onClick={() => handleCheckConsistency(sub)}
-                              className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
-                            >
-                              <TrendingUp className="w-4 h-4" />
-                              Cek Konsistensi
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Offer Modal */}
-        {showOfferModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Tawarkan Pasangan Asesor
-              </h2>
-              
-              <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm font-semibold text-purple-900">{selectedSubmission?.programStudi}</p>
-                <p className="text-sm text-purple-700">{selectedSubmission?.institusi}</p>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                {/* Debug info - hapus setelah fix */}
-                <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                  Debug: {assessors.length} assessors loaded
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Asesor 1 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedAssessor1}
-                    onChange={(e) => setSelectedAssessor1(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  >
-                    <option value="">Pilih Asesor 1</option>
-                    {assessors.length === 0 && (
-                      <option disabled>Loading assessors...</option>
-                    )}
-                    {assessors.map(assessor => (
-                      <option key={assessor.id} value={assessor.id}>
-                        {assessor.name} {assessor.institution ? `- ${assessor.institution}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Asesor 2 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedAssessor2}
-                    onChange={(e) => setSelectedAssessor2(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  >
-                    <option value="">Pilih Asesor 2</option>
-                    {assessors.length === 0 && (
-                      <option disabled>Loading assessors...</option>
-                    )}
-                    {assessors.map(assessor => (
-                      <option key={assessor.id} value={assessor.id}>
-                        {assessor.name} {assessor.institution ? `- ${assessor.institution}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Catatan (Opsional)
-                  </label>
-                  <textarea
-                    value={offerNotes}
-                    onChange={(e) => setOfferNotes(e.target.value)}
-                    placeholder="Catatan tambahan untuk penugasan..."
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    rows={3}
+          {/* Filters - Glass Box */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[280px]">
+                <div className="relative">
+                  <Search className="absolute left-4.5 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Cari berdasarkan program studi, institusi universitas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-800 text-sm font-semibold transition-all duration-200 shadow-inner-sm"
                   />
                 </div>
               </div>
-
-              <div className="flex gap-3">
+              <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={handleOfferAssessors}
-                  disabled={submitting || !selectedAssessor1 || !selectedAssessor2}
-                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setFilterStatus('all')}
+                  className={`px-4.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-150 shadow-sm cursor-pointer ${
+                    filterStatus === 'all'
+                      ? 'bg-purple-600 text-white shadow-purple-100 shadow-lg'
+                      : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-650'
+                  }`}
                 >
-                  {submitting ? 'Mengirim...' : 'Kirim Penawaran'}
+                  Semua
                 </button>
                 <button
-                  onClick={() => {
-                    setShowOfferModal(false);
-                    setSelectedAssessor1('');
-                    setSelectedAssessor2('');
-                    setOfferNotes('');
-                  }}
-                  disabled={submitting}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setFilterStatus('pending-offer')}
+                  className={`px-4.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-150 shadow-sm cursor-pointer ${
+                    filterStatus === 'pending-offer'
+                      ? 'bg-amber-600 text-white shadow-amber-100 shadow-lg'
+                      : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-650'
+                  }`}
                 >
-                  Batal
+                  Tawaran Pending
+                </button>
+                <button
+                  onClick={() => setFilterStatus('assigned')}
+                  className={`px-4.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-150 shadow-sm cursor-pointer ${
+                    filterStatus === 'assigned'
+                      ? 'bg-emerald-600 text-white shadow-emerald-100 shadow-lg'
+                      : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-650'
+                  }`}
+                >
+                  Ditugaskan
+                </button>
+                <button
+                  onClick={() => setFilterStatus('ak-complete')}
+                  className={`px-4.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-150 shadow-sm cursor-pointer ${
+                    filterStatus === 'ak-complete'
+                      ? 'bg-indigo-600 text-white shadow-indigo-100 shadow-lg'
+                      : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-650'
+                  }`}
+                >
+                  AK Selesai
                 </button>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Message Alert */}
+          {message.text && (
+            <div className={`rounded-xl p-4.5 border flex items-start gap-3 shadow-sm animate-fade-in ${
+              message.type === 'success' 
+                ? 'bg-emerald-50 border-emerald-150 text-emerald-800' 
+                : 'bg-rose-50 border-rose-150 text-rose-800'
+            }`}>
+              {message.type === 'success' ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              )}
+              <p className="font-semibold text-sm leading-relaxed">{message.text}</p>
+            </div>
+          )}
+
+          {/* Submissions Table - Glass Box */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-black tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4.5 text-left">Program Studi</th>
+                    <th className="px-6 py-4.5 text-left">Institusi</th>
+                    <th className="px-6 py-4.5 text-left">Status Penawaran</th>
+                    <th className="px-6 py-4.5 text-left">Pasangan Asesor</th>
+                    <th className="px-6 py-4.5 text-left">Status Penilaian AK</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-16 text-center text-slate-500 font-semibold">
+                        <Clock className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-3" />
+                        Memuat data pengajuan...
+                      </td>
+                    </tr>
+                  ) : filteredSubmissions.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-16 text-center text-slate-400 font-semibold leading-relaxed">
+                        <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        Tidak ada berkas pengajuan yang sesuai filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSubmissions.map((sub) => (
+                      <tr key={sub.submissionId} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4.5">
+                          <div className="font-black text-slate-900 leading-snug">{sub.programStudi}</div>
+                          <div className="text-[10px] text-slate-400 font-bold font-mono tracking-tight mt-1 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded inline-block">
+                            {sub.submissionId}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 font-bold text-slate-700">{sub.institusi}</td>
+                        <td className="px-6 py-4.5">
+                          {sub.currentOffer ? (
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${
+                              sub.currentOffer.status === 'pending' ? 'bg-amber-55/60 border-amber-200 text-amber-800' :
+                              sub.currentOffer.status === 'completed' ? 'bg-emerald-55/60 border-emerald-250 text-emerald-800' :
+                              'bg-rose-55/60 border-rose-250 text-rose-800'
+                            }`}>
+                              {sub.currentOffer.status}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-semibold">Belum ditawarkan</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4.5">
+                          {sub.assignedAssessors ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-750">
+                                <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                <span>{sub.assignedAssessors.assessor1Name}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-750">
+                                <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                <span>{sub.assignedAssessors.assessor2Name}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-bold">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4.5">
+                          {sub.akAssessments && sub.akAssessments.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div className="text-xs font-bold text-slate-500">
+                                {sub.akAssessments.length} / 2 Penilaian Masuk
+                              </div>
+                              {sub.akConsistent === true && (
+                                <span className="inline-flex px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-black uppercase text-emerald-700 shadow-sm">
+                                  ✓ Konsisten
+                                </span>
+                              )}
+                              {sub.akConsistent === false && (
+                                <span className="inline-flex px-2.5 py-0.5 bg-rose-50 border border-rose-200 rounded-full text-[10px] font-black uppercase text-rose-700 shadow-sm">
+                                  ✗ Tidak Konsisten
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-bold">Belum dimulai</span>
+                          )}
+                        </td>
+
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Offer Modal */}
+          {showOfferModal && selectedSubmission && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col">
+                <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600" />
+                <div className="p-7 space-y-6">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight mb-1 flex items-center gap-2">
+                      <Users className="w-6 h-6 text-purple-600" />
+                      Tawarkan Pasangan Asesor
+                    </h2>
+                    <p className="text-slate-500 text-xs font-semibold">Tugaskan sepasang asesor untuk melakukan Asesmen Kecukupan (AK) program studi</p>
+                  </div>
+                  
+                  <div className="p-4 bg-purple-50/40 rounded-xl border border-purple-150 shadow-inner-sm">
+                    <p className="text-[10px] font-black text-purple-650 uppercase tracking-wider mb-1">Sasaran Program Studi</p>
+                    <p className="text-base font-black text-purple-900 leading-snug">{selectedSubmission.programStudi}</p>
+                    <p className="text-xs font-semibold text-purple-750 mt-0.5">{selectedSubmission.institusi}</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Asesor 1 */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
+                        Asesor 1 <span className="text-rose-500 font-bold">*</span>
+                      </label>
+                      <select
+                        value={selectedAssessor1}
+                        onChange={(e) => setSelectedAssessor1(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-805 text-sm font-semibold transition-all duration-200 shadow-sm cursor-pointer"
+                        required
+                      >
+                        <option value="">-- Pilih Asesor Pertama --</option>
+                        {assessors.map(assessor => (
+                          <option key={assessor.id} value={assessor.id}>
+                            {assessor.name} {assessor.institution ? `(${assessor.institution})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Asesor 2 */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
+                        Asesor 2 <span className="text-rose-500 font-bold">*</span>
+                      </label>
+                      <select
+                        value={selectedAssessor2}
+                        onChange={(e) => setSelectedAssessor2(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-805 text-sm font-semibold transition-all duration-200 shadow-sm cursor-pointer"
+                        required
+                      >
+                        <option value="">-- Pilih Asesor Kedua --</option>
+                        {assessors.map(assessor => (
+                          <option key={assessor.id} value={assessor.id}>
+                            {assessor.name} {assessor.institution ? `(${assessor.institution})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Catatan Penugasan */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
+                        Catatan Khusus <span className="text-slate-400 font-normal">(Opsional)</span>
+                      </label>
+                      <textarea
+                        value={offerNotes}
+                        onChange={(e) => setOfferNotes(e.target.value)}
+                        placeholder="Berikan instruksi tambahan atau batas waktu penyelesaian penugasan..."
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm font-semibold transition-all duration-200 shadow-inner-sm min-h-[90px]"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={handleOfferAssessors}
+                      disabled={submitting || !selectedAssessor1 || !selectedAssessor2}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-tr from-purple-600 to-indigo-650 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl disabled:from-slate-300 disabled:to-slate-400 transition-all font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:shadow-none shadow-purple-100 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0"
+                    >
+                      {submitting ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          Mengirim Penawaran...
+                        </>
+                      ) : (
+                        <>
+                          <Users className="w-4 h-4" />
+                          Kirim Penawaran Penugasan
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowOfferModal(false);
+                        setSelectedAssessor1('');
+                        setSelectedAssessor2('');
+                        setOfferNotes('');
+                      }}
+                      disabled={submitting}
+                      className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/40 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

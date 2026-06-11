@@ -1,18 +1,13 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FileText, 
   Users, 
   ClipboardCheck, 
-  Settings, 
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
+  Settings,
   Award,
   Banknote,
   ShieldCheck,
-  UserCircle,
   Bell,
   FileCheck,
   TrendingUp,
@@ -24,7 +19,6 @@ import {
 const Sidebar = ({ user, onLogout, menuItems }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const defaultMenuItems = menuItems || [];
 
@@ -32,91 +26,26 @@ const Sidebar = ({ user, onLogout, menuItems }) => {
     navigate(path);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    if (onLogout) onLogout();
-    navigate('/login');
-  };
-
   const isActive = (path) => {
     return location.pathname === path;
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 shadow-2xl z-50`}>
+    <div className="w-64 bg-white border-r border-slate-200/60 text-slate-800 flex flex-col h-[calc(100vh-5rem)] fixed left-0 top-20 z-40 transition-all duration-300">
       
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="space-y-3">
-              {/* Institution Logos */}
-              <div className="flex items-center gap-2">
-                <a href="https://www.ipb.ac.id/" target="_blank" rel="noopener noreferrer">
-                  <img 
-                    src="https://www.ipb.ac.id/wp-content/uploads/2023/12/Logo-IPB-University_Horizontal.png" 
-                    alt="IPB" 
-                    className="h-8 object-contain bg-white rounded px-1"
-                  />
-                </a>
-                <a href="https://www.unikom.ac.id/" target="_blank" rel="noopener noreferrer">
-                  <img 
-                    src="/UNIKOM-LOGO-2025-High-Resolution-2048x2048.webp" 
-                    alt="UNIKOM" 
-                    className="h-8 w-8 object-contain bg-white rounded"
-                  />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <img 
-                    src="/batap.jpg" 
-                    alt="BATAP" 
-                    className="h-8 w-8 object-contain rounded"
-                  />
-                </a>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  LAM-TEK 2025
-                </h1>
-                <p className="text-xs text-gray-400">Blockchain Accreditation</p>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            {isCollapsed ? (
-              <ChevronRight className="w-5 h-5 text-gray-300" />
-            ) : (
-              <ChevronLeft className="w-5 h-5 text-gray-300" />
-            )}
-          </button>
+      <div className="p-5 border-b border-slate-100 bg-slate-50/20">
+        <div>
+          <h1 className="text-xl font-black text-indigo-600 tracking-tight">
+            AkreChain
+          </h1>
+          <p className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase mt-0.5">Accreditation Portal</p>
         </div>
       </div>
 
-      {/* User Profile */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-            <UserCircle className="w-6 h-6 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">
-                {user?.fullName || user?.username || 'User'}
-              </p>
-              <p className="text-xs text-gray-400 capitalize truncate">
-                {user?.role || 'Role'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
+      <nav className="flex-1 overflow-y-auto py-4 px-3">
         <div className="space-y-1">
           {defaultMenuItems.map((item, index) => {
             const Icon = item.icon;
@@ -126,19 +55,16 @@ const Sidebar = ({ user, onLogout, menuItems }) => {
               <button
                 key={index}
                 onClick={() => handleNavigation(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-150 cursor-pointer ${
                   active
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-indigo-50/80 text-indigo-600 font-bold border-r-4 border-indigo-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-r-4 border-transparent'
                 }`}
-                title={isCollapsed ? item.label : ''}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-white' : ''}`} />
-                {!isCollapsed && (
-                  <span className="text-sm font-medium">{item.label}</span>
-                )}
-                {!isCollapsed && item.badge && (
-                  <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
+                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                <span className="text-sm">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto px-2 py-0.5 text-[10px] font-extrabold bg-indigo-600 text-white rounded-full">
                     {item.badge}
                   </span>
                 )}
@@ -147,27 +73,6 @@ const Sidebar = ({ user, onLogout, menuItems }) => {
           })}
         </div>
       </nav>
-
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-700 space-y-2">
-        <button
-          onClick={() => handleNavigation('/settings')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-all"
-          title={isCollapsed ? 'Settings' : ''}
-        >
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span className="text-sm font-medium">Pengaturan</span>}
-        </button>
-        
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-900/20 hover:text-red-300 transition-all"
-          title={isCollapsed ? 'Logout' : ''}
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span className="text-sm font-medium">Keluar</span>}
-        </button>
-      </div>
     </div>
   );
 };
@@ -177,6 +82,7 @@ export const getMenuForRole = (role) => {
   const menus = {
     upps: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+      { icon: Banknote, label: 'Pembayaran', path: '/upps/payment' },
       { icon: FileText, label: 'Submission Saya', path: '/submissions' },
       { icon: ClipboardCheck, label: 'Status Akreditasi', path: '/status' },
       { icon: Users, label: 'Persetujuan Asesor', path: '/upps/assignments' },
@@ -187,11 +93,10 @@ export const getMenuForRole = (role) => {
     ],
     sekretariat: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/sekretariat' },
-      { icon: FileCheck, label: 'Verifikasi Dokumen', path: '/sekretariat/verify' },
-      { icon: Users, label: 'Manajemen UPPS', path: '/sekretariat/upps' },
       { icon: Banknote, label: 'Verifikasi Pembayaran', path: '/sekretariat/payment' },
       { icon: Award, label: 'Verifikasi Jadwal AL', path: '/sekretariat/al-approval' },
       { icon: TrendingUp, label: 'Laporan', path: '/sekretariat/reports' },
+      { icon: Award, label: 'Rilis Sertifikat', path: '/release' },
     ],
     kea: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/kea' },
@@ -238,14 +143,6 @@ export const getMenuForRole = (role) => {
             menus.kea.push({ icon: FileCheck, label: 'Verifikasi Hasil AL', path: '/verification' });
         }
      }
-  }
-
-  // Update Sekretariat menu to include Release
-  if (menus.sekretariat) {
-      const hasRelease = menus.sekretariat.find(m => m.path === '/release');
-      if (!hasRelease) {
-          menus.sekretariat.push({ icon: Award, label: 'Rilis Sertifikat', path: '/release' });
-      }
   }
 
   return menus[role] || menus.upps;

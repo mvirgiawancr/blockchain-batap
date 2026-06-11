@@ -13,21 +13,39 @@ const fabricService = require('../services/fabricService');
  */
 exports.getApprovedSubmissions = async (req, res) => {
   try {
-    // Get submissions with status 'approved' (from Phase 2) or 'submitted' depending on workflow
-    // Assuming 'submitted' or 'under_review' is the initial state, and after desk evaluation it might be 'approved' for AL?
-    // Actually, for Phase 3A (Assignment), the submission usually comes from Phase 2 (Desk Evaluation) or just initial submission if simplified.
-    // Let's query all and filter or query by status 'submitted' or 'approved'.
-    // Based on user request Phase 3A starts after Phase 2.
-    
-    // For now, let's get all and filter in memory or query by status if we know it.
-    // Let's assume 'submitted' is the status waiting for assignment.
+    const db = require('../config/database');
     const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
     
-    // Filter for submissions that need assignment (e.g. status 'submitted' or 'approved_desk_eval' and no currentOffer)
+    // Filter for submissions that need assignment (e.g. status 'submitted' or 'approved' and no currentOffer)
     const readySubmissions = submissions.filter(s => 
       (s.status === 'submitted' || s.status === 'approved') && 
       !s.assignedAssessors
     );
+
+    // Fetch and attach payment status from database
+    if (readySubmissions.length > 0) {
+      const submissionIds = readySubmissions.map(s => s.submissionId);
+      try {
+        const paymentResult = await db.query(
+          `SELECT submission_id, status FROM accreditation_payments WHERE submission_id = ANY($1)`,
+          [submissionIds]
+        );
+
+        const paymentMap = {};
+        paymentResult.rows.forEach(row => {
+          paymentMap[row.submission_id] = row.status;
+        });
+
+        readySubmissions.forEach(s => {
+          s.paymentStatus = paymentMap[s.submissionId] || null; // null if not invoiced/found
+        });
+      } catch (dbErr) {
+        logger.error('Error fetching payment status for submissions:', dbErr);
+        readySubmissions.forEach(s => {
+          s.paymentStatus = null;
+        });
+      }
+    }
 
     logger.info(`Retrieved ${readySubmissions.length} submissions ready for assignment`);
     res.json(readySubmissions);
@@ -122,6 +140,35 @@ exports.assignAssessors = async (req, res) => {
 
     if (!assessor1Id || !assessor2Id) {
       return res.status(400).json({ error: 'Two assessors are required (assessor1Id, assessor2Id)' });
+    }
+
+    // Gating Validation: Check database if the payment is verified
+    const db = require('../config/database');
+    try {
+      const paymentCheck = await db.query(
+        `SELECT status FROM accreditation_payments WHERE submission_id = $1`,
+        [submissionId]
+      );
+      
+      if (paymentCheck.rows.length === 0 || paymentCheck.rows[0].status !== 'verified') {
+        const paymentStatus = paymentCheck.rows.length > 0 ? paymentCheck.rows[0].status : 'uninvoiced';
+        let explanation = 'belum ditagih';
+        if (paymentStatus === 'invoiced') explanation = 'belum dibayar';
+        if (paymentStatus === 'submitted') explanation = 'menunggu verifikasi';
+        if (paymentStatus === 'rejected') explanation = 'ditolak';
+
+        logger.warn(`Assessor assignment blocked for submission ${submissionId} because payment is ${paymentStatus}`);
+        return res.status(403).json({
+          error: 'Pembayaran Belum Terverifikasi',
+          message: `Penugasan asesor diblokir karena status pembayaran untuk submisi ini ${explanation}.`
+        });
+      }
+    } catch (dbErr) {
+      logger.error('Error validating payment before assignment:', dbErr);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Gagal melakukan verifikasi pembayaran. Silakan coba lagi.'
+      });
     }
 
     const result = await fabricService.offerAssessorPair(

@@ -6,6 +6,7 @@
 const logger = require('../utils/logger');
 const fabricService = require('../services/fabricService');
 const notificationController = require('./notificationController');
+const { pool } = require('../config/database');
 
 /**
  * Get assignments for current asesor
@@ -18,7 +19,7 @@ exports.getAssignments = async (req, res) => {
     // Get all submissions and filter for this assessor
     const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
     
-    const assignments = submissions.filter(s => {
+    const filteredSubmissions = submissions.filter(s => {
       // Check for offers
       if (s.currentOffer) {
         if (s.currentOffer.assessor1Id === asesorId || s.currentOffer.assessor2Id === asesorId) {
@@ -32,7 +33,20 @@ exports.getAssignments = async (req, res) => {
         }
       }
       return false;
-    }).map(s => {
+    });
+
+    // Query all schedule statuses from PostgreSQL in one go
+    let scheduleMap = {};
+    try {
+      const dbResult = await pool.query('SELECT submission_id, status FROM al_schedules');
+      dbResult.rows.forEach(row => {
+        scheduleMap[row.submission_id] = row.status;
+      });
+    } catch (dbErr) {
+      logger.warn('Failed to query al_schedules database in getAssignments:', dbErr.message);
+    }
+
+    const assignments = filteredSubmissions.map(s => {
       // Map to assignment format
       let status = 'pending';
       let partnerAssessor = '';
@@ -58,6 +72,19 @@ exports.getAssignments = async (req, res) => {
         // Check if AK submitted
         if (s.akAssessments && s.akAssessments.find(a => a.assessorId === asesorId)) {
           status = 'ak_submitted';
+        }
+
+        // Sync with PostgreSQL AL schedules status if approved/completed
+        const dbScheduleStatus = scheduleMap[s.submissionId];
+        if (dbScheduleStatus === 'approved') {
+          status = 'al_ready';
+        } else if (dbScheduleStatus === 'completed') {
+          status = 'completed';
+        }
+
+        // Fallback sync with global status if it has advanced to AL or completed phase
+        if (s.status && ['al_ready', 'al_in_progress', 'completed'].includes(s.status)) {
+          status = s.status;
         }
       }
 

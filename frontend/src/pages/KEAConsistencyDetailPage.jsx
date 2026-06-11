@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { TrendingUp, ChevronLeft, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { 
+  TrendingUp, ChevronLeft, CheckCircle, XCircle, AlertTriangle, 
+  RefreshCw, X, GraduationCap, Award
+} from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-// Nama kriteria sesuai LAM-TEK
 const CRITERIA_NAMES = {
   '1': 'K1: Visi, Misi, Tujuan & Strategi',
   '2': 'K2: Tata Kelola & Kerjasama', 
@@ -51,7 +53,7 @@ export default function KEAConsistencyDetailPage({ user }) {
   };
 
   const handleConsistencyCheck = async (consistent) => {
-    if (!confirm(`Apakah Anda yakin ingin menandai submission ini sebagai ${consistent ? 'KONSISTEN' : 'TIDAK KONSISTEN'}?`)) {
+    if (!confirm(`Apakah Anda yakin ingin menandai pengajuan ini sebagai ${consistent ? 'KONSISTEN' : 'TIDAK KONSISTEN'}?`)) {
       return;
     }
 
@@ -86,141 +88,179 @@ export default function KEAConsistencyDetailPage({ user }) {
   };
 
   const getDifferenceColor = (diff) => {
-    if (diff <= 5) return 'text-green-600 bg-green-50';
-    if (diff <= 10) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (diff <= 5) return 'text-emerald-800 bg-emerald-50 border border-emerald-200';
+    if (diff <= 10) return 'text-amber-800 bg-amber-50 border border-amber-200';
+    return 'text-rose-800 bg-rose-50 border border-rose-250';
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Ambient background glow */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-200/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-[200px] w-[600px] h-[600px] bg-indigo-200/10 rounded-full blur-[150px] pointer-events-none" />
+
       <Sidebar 
         user={user} 
         onLogout={() => navigate('/login')}
         menuItems={getMenuForRole('kea')}
       />
 
-      <div className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex-1 ml-64 overflow-auto relative z-10">
+        <div className="p-8 max-w-6xl mx-auto space-y-6">
+          
           {/* Back Button */}
           <button
             onClick={() => navigate('/kea/consistency')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-black text-xs uppercase tracking-wider transition-all duration-200 group cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5" />
-            Kembali ke Daftar Konsistensi
+            <ChevronLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+            Kembali ke Daftar
           </button>
 
           {/* Header */}
           <header className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+              <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-sm shadow-purple-100/50">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
                 Detail Analisis Konsistensi
               </h1>
-              <p className="text-gray-600 mt-1">
-                Perbandingan nilai per kriteria antara dua asesor
+              <p className="text-slate-500 text-sm font-semibold mt-1">
+                Perbandingan nilai per kriteria antara dua asesor penilai instrumen kecukupan
               </p>
             </div>
             <button
               onClick={loadData}
-              className="p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/80 text-slate-650 hover:text-purple-600 font-bold text-xs cursor-pointer active:scale-95"
               title="Refresh"
             >
-              <RefreshCw className="w-5 h-5 text-gray-600" />
+              <RefreshCw className="w-4 h-4 text-slate-600" />
             </button>
           </header>
 
           {/* Message */}
           {message && (
-            <div className={`rounded-xl p-4 ${
-              message.type === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
-              'bg-red-50 border-2 border-red-200 text-red-800'
+            <div className={`rounded-xl p-4 border animate-fade-in ${
+              message.type === 'success' ? 'bg-emerald-50 border-emerald-250 text-emerald-800' :
+              'bg-rose-50 border-rose-250 text-rose-800'
             }`}>
-              <p className="font-medium">{message.text}</p>
+              <p className="text-xs font-black uppercase tracking-wider">{message.type === 'success' ? 'Sukses ✓' : 'Error'}</p>
+              <p className="text-sm font-semibold mt-0.5">{message.text}</p>
             </div>
           )}
 
           {loading ? (
-            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-              <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-600">Memuat data...</p>
+            <div className="flex flex-col items-center justify-center py-24 glass-panel-light rounded-2xl shadow-sm animate-pulse">
+              <RefreshCw className="w-12 h-12 text-purple-500 animate-spin mb-3" />
+              <p className="text-slate-500 font-bold text-sm">Menyelaraskan detail perbandingan...</p>
             </div>
           ) : !data ? (
-            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-              <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">Data Tidak Ditemukan</h3>
-              <p className="text-gray-500">Submission ini tidak memiliki data konsistensi</p>
+            <div className="glass-panel-light rounded-2xl p-16 text-center shadow-sm max-w-2xl mx-auto my-6 animate-fade-in">
+              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+                <XCircle className="w-8 h-8 text-rose-500" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 mb-2">Data Tidak Ditemukan</h3>
+              <p className="text-slate-500 text-sm font-semibold max-w-md mx-auto leading-relaxed">
+                Pengajuan akreditasi ini tidak memiliki data konsistensi yang valid.
+              </p>
             </div>
           ) : (
-            <>
+            <div className="space-y-6 animate-fade-in">
+              
               {/* Submission Info */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-1">{data.programStudi}</h2>
-                <p className="text-gray-600">{data.institusi}</p>
-                <p className="text-sm text-gray-400 mt-2">ID: {data.submissionId}</p>
+              <div className="glass-panel-light rounded-2xl p-6 shadow-sm">
+                <span className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider">
+                  {data.submissionId}
+                </span>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight leading-snug mt-1">{data.programStudi}</h2>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
+                  {data.institusi}
+                </p>
               </div>
 
               {/* Summary Cards */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
-                  <p className="text-sm text-gray-500 mb-1">Total Asesor 1</p>
-                  <p className="text-3xl font-bold text-gray-900">{data.assessor1.totalScore.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600 mt-1 truncate">{data.assessor1.name}</p>
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Assessor 1 */}
+                <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex flex-col justify-between group">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Total Skor Asesor 1
+                    </p>
+                    <p className="text-3xl font-black text-slate-900 mt-1">{data.assessor1.totalScore.toFixed(2)}</p>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-655 truncate mt-4 border-t border-slate-100 pt-3">{data.assessor1.name}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
-                  <p className="text-sm text-gray-500 mb-1">Total Asesor 2</p>
-                  <p className="text-3xl font-bold text-gray-900">{data.assessor2.totalScore.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600 mt-1 truncate">{data.assessor2.name}</p>
+
+                {/* Assessor 2 */}
+                <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex flex-col justify-between group">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      Total Skor Asesor 2
+                    </p>
+                    <p className="text-3xl font-black text-slate-900 mt-1">{data.assessor2.totalScore.toFixed(2)}</p>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-655 truncate mt-4 border-t border-slate-100 pt-3">{data.assessor2.name}</p>
                 </div>
-                <div className={`bg-white rounded-xl shadow-sm p-6 border-l-4 ${
-                  data.scoreDifference <= 5 ? 'border-green-500' : 'border-red-500'
-                }`}>
-                  <p className="text-sm text-gray-500 mb-1">Selisih Total</p>
-                  <p className="text-3xl font-bold text-gray-900">{data.scoreDifference.toFixed(2)}</p>
-                  <p className={`text-sm mt-1 ${data.scoreDifference <= 5 ? 'text-green-600' : 'text-red-600'}`}>
+
+                {/* Selisih */}
+                <div className={`bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 border-l-4 ${
+                  data.scoreDifference <= 5 ? 'border-emerald-500' : 'border-rose-500'
+                } shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden flex flex-col justify-between group`}>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${data.scoreDifference <= 5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      Selisih Total
+                    </p>
+                    <p className="text-3xl font-black text-slate-900 mt-1">{data.scoreDifference.toFixed(2)}</p>
+                  </div>
+                  <p className={`text-xs font-black mt-4 border-t border-slate-100 pt-3 ${data.scoreDifference <= 5 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {data.scoreDifference <= 5 ? '✓ Dalam batas toleransi' : '⚠ Melebihi batas (5)'}
                   </p>
                 </div>
               </div>
 
               {/* Per-Criteria Comparison Table */}
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">Perbandingan Per Kriteria</h3>
+              <div className="glass-panel-light rounded-2xl shadow-sm overflow-hidden border border-slate-200/60">
+                <div className="p-6 border-b border-slate-200/60 bg-slate-50/50">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">Perbandingan Nilai Per Kriteria</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Kriteria</th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-purple-600 to-indigo-650 text-white">
+                        <th className="px-6 py-4.5 text-left text-xs font-black uppercase tracking-wider">Kriteria Evaluasi</th>
+                        <th className="px-6 py-4.5 text-center text-xs font-black uppercase tracking-wider min-w-[150px]">
                           <div>{data.assessor1.name.split(' ').slice(0, 2).join(' ')}</div>
-                          <div className="text-xs font-normal opacity-80">Asesor 1</div>
+                          <div className="text-[9px] font-bold opacity-80 mt-0.5">Asesor 1 (Total)</div>
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold">
+                        <th className="px-6 py-4.5 text-center text-xs font-black uppercase tracking-wider min-w-[150px]">
                           <div>{data.assessor2.name.split(' ').slice(0, 2).join(' ')}</div>
-                          <div className="text-xs font-normal opacity-80">Asesor 2</div>
+                          <div className="text-[9px] font-bold opacity-80 mt-0.5">Asesor 2 (Total)</div>
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold">Selisih</th>
+                        <th className="px-6 py-4.5 text-center text-xs font-black uppercase tracking-wider min-w-[120px]">Selisih</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-150/60 bg-white/40">
                       {Object.entries(CRITERIA_NAMES).map(([key, name]) => {
                         const score1 = data.assessor1.scores[key] || 0;
                         const score2 = data.assessor2.scores[key] || 0;
                         const diff = Math.abs(score1 - score2);
                         
                         return (
-                          <tr key={key} className="hover:bg-purple-50 transition-colors">
-                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">{name}</td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="text-lg font-bold text-blue-600">{score1.toFixed(2)}</span>
+                          <tr key={key} className="hover:bg-purple-50/40 transition-colors duration-150">
+                            <td className="px-6 py-4.5 text-xs font-black text-slate-800">{name}</td>
+                            <td className="px-6 py-4.5 text-center">
+                              <span className="text-sm font-black text-blue-650">{score1.toFixed(2)}</span>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="text-lg font-bold text-purple-600">{score2.toFixed(2)}</span>
+                            <td className="px-6 py-4.5 text-center">
+                              <span className="text-sm font-black text-purple-650">{score2.toFixed(2)}</span>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifferenceColor(diff)}`}>
+                            <td className="px-6 py-4.5 text-center">
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getDifferenceColor(diff)}`}>
                                 {diff.toFixed(2)}
                               </span>
                             </td>
@@ -228,16 +268,16 @@ export default function KEAConsistencyDetailPage({ user }) {
                         );
                       })}
                     </tbody>
-                    <tfoot className="bg-gray-100">
-                      <tr>
-                        <td className="px-6 py-4 text-sm font-bold text-gray-900">TOTAL</td>
-                        <td className="px-6 py-4 text-center text-lg font-bold text-blue-700">
+                    <tfoot>
+                      <tr className="bg-slate-100/70 border-t border-slate-200/80 font-black">
+                        <td className="px-6 py-4 text-xs text-slate-900 uppercase font-black">TOTAL SKOR AKHIR</td>
+                        <td className="px-6 py-4 text-center text-sm text-blue-700">
                           {data.assessor1.totalScore.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 text-center text-lg font-bold text-purple-700">
+                        <td className="px-6 py-4 text-center text-sm text-purple-700">
                           {data.assessor2.totalScore.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 text-center text-lg font-bold text-gray-900">
+                        <td className="px-6 py-4 text-center text-sm text-slate-900">
                           {data.scoreDifference.toFixed(2)}
                         </td>
                       </tr>
@@ -247,28 +287,28 @@ export default function KEAConsistencyDetailPage({ user }) {
               </div>
 
               {/* Action Buttons */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Keputusan Konsistensi</h3>
-                <div className="flex gap-4">
+              <div className="glass-panel-light rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">Keputusan Konsistensi KEA</h3>
+                <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => handleConsistencyCheck(true)}
                     disabled={submitting}
-                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 font-semibold"
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-tr from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-750 text-white rounded-xl disabled:from-slate-200 disabled:to-slate-350 transition-all duration-150 font-black text-xs uppercase tracking-wider cursor-pointer shadow-md hover:shadow-lg shadow-emerald-100/80 active:scale-95 hover:-translate-y-0.5"
                   >
-                    <CheckCircle className="w-6 h-6" />
+                    <CheckCircle className="w-5 h-5" />
                     Nyatakan Konsisten
                   </button>
                   <button
                     onClick={() => handleConsistencyCheck(false)}
                     disabled={submitting}
-                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors disabled:opacity-50 font-semibold"
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-tr from-amber-500 to-orange-650 hover:from-amber-600 hover:to-orange-750 text-white rounded-xl disabled:from-slate-200 disabled:to-slate-350 transition-all duration-150 font-black text-xs uppercase tracking-wider cursor-pointer shadow-md hover:shadow-lg shadow-amber-100/80 active:scale-95 hover:-translate-y-0.5"
                   >
-                    <AlertTriangle className="w-6 h-6" />
+                    <AlertTriangle className="w-5 h-5" />
                     Perlu Diskusi Panel
                   </button>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
