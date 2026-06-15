@@ -7,3 +7,4 @@ venv/
 fablo-target/
 .claude/
 Example led lkps/
+.agent
