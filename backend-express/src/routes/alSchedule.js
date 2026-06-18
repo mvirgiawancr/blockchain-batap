@@ -53,6 +53,13 @@ router.post('/generate-letter/:submissionId',
   alScheduleController.generateAssignmentLetter
 );
 
+// Download Surat Tugas (akses asesor & UPPS dari notifikasi, juga sekretariat/admin)
+router.get('/letter/:submissionId/download',
+  authenticateToken,
+  authorizeRoles(['asesor', 'assessor', 'upps', 'sekretariat', 'admin']),
+  alScheduleController.downloadAssignmentLetter
+);
+
 // Step 21: Check sync status
 router.post('/check-sync/:submissionId',
   authenticateToken,

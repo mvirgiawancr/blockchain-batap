@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const { pool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const fabricService = require('../services/fabricService');
+const notificationController = require('./notificationController');
 
 /**
  * Get submissions ready for certificate release (Status: accredited)
@@ -237,6 +238,23 @@ const publishCertificate = async (req, res, next) => {
 
             await client.query('COMMIT');
 
+            // Notif ke UPPS: sertifikat terbit + tombol download.
+            try {
+              const um = await client.query('SELECT user_id FROM submission_metadata WHERE submission_id = $1', [submissionId]);
+              const uppsId = um.rows[0]?.user_id;
+              if (uppsId) {
+                await notificationController.createNotification(
+                  uppsId,
+                  'Sertifikat Akreditasi Terbit',
+                  `Sertifikat akreditasi untuk submission ${submissionId} telah diterbitkan. Silakan unduh.`,
+                  'success',
+                  { action: 'download_certificate', submissionId, downloadUrl: `/release/${submissionId}/certificate/download` }
+                );
+              }
+            } catch (e) {
+              logger.warn(`[Certificate] Gagal kirim notif UPPS (non-fatal): ${e.message}`);
+            }
+
             // === Step 5: Write certificate data to Blockchain (graceful) ===
             try {
                 const mspOrg = actor.msp_org || 'SekretariatMSP';
@@ -278,8 +296,60 @@ const publishCertificate = async (req, res, next) => {
     }
 };
 
+/**
+ * Download Sertifikat (GET) — dapat diakses UPPS (dari notifikasi), juga sekretariat/admin.
+ * PDF di-regenerasi on-the-fly. GET /api/v1/release/:submissionId/certificate/download
+ */
+const downloadCertificate = async (req, res, next) => {
+    try {
+        const { submissionId } = req.params;
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT ad.final_rank, ad.sk_number, ad.sk_date, ad.valid_until
+                FROM accreditation_decisions ad WHERE ad.submission_id = $1
+            `, [submissionId]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Sertifikat belum tersedia (keputusan akreditasi tidak ditemukan)' });
+            }
+
+            let programStudi = 'N/A';
+            let institusi = 'N/A';
+            try {
+                let bc = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                if (typeof bc === 'string') bc = JSON.parse(bc);
+                programStudi = bc.programStudi || 'N/A';
+                institusi = bc.institusi || 'N/A';
+            } catch (e) {
+                logger.warn(`[Certificate] Could not get blockchain data: ${e.message}`);
+            }
+
+            const data = result.rows[0];
+            const pdfBuffer = await certificateService.generateCertificatePDF({
+                submissionId,
+                institutionName: institusi,
+                programName: programStudi,
+                rank: data.final_rank,
+                skNumber: data.sk_number,
+                skDate: data.sk_date,
+                validUntil: data.valid_until
+            });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=Sertifikat_${submissionId}.pdf`);
+            res.send(pdfBuffer);
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        logger.error('Download Certificate error:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     getReadyForRelease,
     previewCertificate,
-    publishCertificate
+    publishCertificate,
+    downloadCertificate
 };
