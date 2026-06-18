@@ -4,34 +4,44 @@ class WebSocketService {
   constructor() {
     this.ws = null;
     this.listeners = {};
+    this.userId = null;
+    this.shouldReconnect = true;      // false saat disconnect() disengaja
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 3000;
+    this.maxReconnectAttempts = 30;   // proses upload bisa makan menit → jangan cepat menyerah
+    this.baseReconnectDelay = 2000;
+    this.maxReconnectDelay = 15000;
+    this.pingTimer = null;
   }
 
   connect(userId = null) {
+    this.userId = userId;
+    this.shouldReconnect = true;
+
+    // Hindari koneksi ganda (mencegah socket storm & desync).
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
     const url = userId ? `${WS_URL}?user_id=${userId}` : WS_URL;
-    
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');
+      const reconnected = this.reconnectAttempts > 0;
       this.reconnectAttempts = 0;
-      this.emit('connected', { status: 'connected' });
+      this.startKeepAlive();
+      this.emit('connected', { status: 'connected', reconnected });
+      // Setelah RECONNECT, pesan selama gap mungkin hilang → minta halaman refetch state.
+      if (reconnected) this.emit('reconnected', { status: 'reconnected' });
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('WebSocket message:', data);
-        
-        // Handle different message types from backend
         const messageType = data.type || data.event;
+        if (messageType === 'pong' || messageType === 'heartbeat') return; // keep-alive, abaikan
         if (messageType) {
-          // Emit specific event
           this.emit(messageType, data);
-          
-          // Also emit generic 'message' event
           this.emit('message', data);
         }
       } catch (error) {
@@ -46,25 +56,41 @@ class WebSocketService {
 
     this.ws.onclose = () => {
       console.log('WebSocket disconnected');
+      this.stopKeepAlive();
       this.emit('disconnected', { status: 'disconnected' });
-      this.attemptReconnect(userId);
+      if (this.shouldReconnect) this.attemptReconnect();
     };
   }
 
-  attemptReconnect(userId) {
+  startKeepAlive() {
+    this.stopKeepAlive();
+    // Kirim ping aplikasi tiap 25s agar proxy tidak menutup koneksi idle.
+    this.pingTimer = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 25000);
+  }
+
+  stopKeepAlive() {
+    if (this.pingTimer) { clearInterval(this.pingTimer); this.pingTimer = null; }
+  }
+
+  attemptReconnect() {
+    if (!this.shouldReconnect) return;
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      
-      setTimeout(() => {
-        this.connect(userId);
-      }, this.reconnectDelay);
+      const delay = Math.min(this.baseReconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1), this.maxReconnectDelay);
+      console.log(`Reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts}) dalam ${Math.round(delay / 1000)}s`);
+      setTimeout(() => this.connect(this.userId), delay);
     } else {
       console.error('Max reconnection attempts reached');
     }
   }
 
   disconnect() {
+    this.shouldReconnect = false; // cegah onclose memicu reconnect
+    this.stopKeepAlive();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -72,15 +98,12 @@ class WebSocketService {
   }
 
   on(event, callback) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
-    }
+    if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(callback);
   }
 
   off(event, callback) {
     if (!this.listeners[event]) return;
-    
     this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
   }
 
