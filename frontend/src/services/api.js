@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/
 // Create axios instance with defaults
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // Increased to 2 minutes for large document processing
+  timeout: 420000, // Increased to 7 minutes for large document processing
   headers: {
     'Content-Type': 'application/json',
   }
@@ -30,9 +30,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+    const isAuthAttempt = url.includes('/auth/login') || url.includes('/auth/register');
+    // Hanya redirect bila sesi benar-benar kedaluwarsa (token lama tidak valid),
+    // BUKAN saat percobaan login gagal — biar pesan error bisa tampil, bukan refresh.
+    if (status === 401 && !isAuthAttempt && window.location.pathname !== '/login') {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -55,7 +60,7 @@ export const createSubmission = async (formData, onProgress = null) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: 300000, // 5 minutes for large file uploads with full AI analysis
+    timeout: 1200000, // 20 menit: cover full RAG (embedding + retry 429 + analisis AI) agar respons HTTP jadi sumber kebenaran, tidak bergantung WS
     onUploadProgress: (progressEvent) => {
       if (onProgress) {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);

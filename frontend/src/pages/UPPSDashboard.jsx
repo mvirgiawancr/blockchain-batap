@@ -228,6 +228,14 @@ export default function UPPSDashboard({ user }) {
       }
     });
 
+    // Setelah reconnect (mis. WiFi sempat putus), pesan selama gap mungkin hilang →
+    // segarkan data agar tampilan tidak desync dengan backend.
+    wsService.on('reconnected', () => {
+      console.log('[Frontend] WebSocket reconnected — refetch data');
+      fetchStatistics();
+      addNotification('Koneksi real-time tersambung kembali.', 'info');
+    });
+
     return () => {
       wsService.disconnect();
     };
