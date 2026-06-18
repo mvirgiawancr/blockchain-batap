@@ -272,15 +272,20 @@ const uploadDocuments = async (req, res, next) => {
           // RAG scoring butir kualitatif (non-fatal). Retrieval per-kriteria dibungkus
           // sendiri agar kegagalan embedding (breaker 429) tidak membatalkan semuanya;
           // lalu SATU panggilan generasi untuk semua kriteria (hemat kuota: 5→1).
+          // Skor butir kualitatif DIBACA DARI LED di KEDUA mode:
+          //  • Full RAG  : bukti LED via ragService.search + rubrik via getPedomanContext.
+          //  • Lightweight: bukti LED via pencarian kata kunci (findRelevantSnippet), tanpa rubrik pgvector.
+          // Tetap SATU panggilan generasi untuk semua kriteria (hemat kuota). Non-fatal → fallback skor acak.
           let qualitativeScores = {};
           try {
-            if (ragService && await ragService.isAvailable()) {
-              const evidenceList = [];
-              for (const k of [1, 2, 3, 5, 7]) {
-                const crit = geminiService.criteriaConfig[k];
-                if (!crit || !crit.ledKeys || crit.ledKeys.length === 0) continue;
-                let ledEvidence = '';
-                let pedomanRubric = '';
+            const ragOn = !!(ragService && await ragService.isAvailable());
+            const evidenceList = [];
+            for (const k of [1, 2, 3, 5, 7]) {
+              const crit = geminiService.criteriaConfig[k];
+              if (!crit || !crit.ledKeys || crit.ledKeys.length === 0) continue;
+              let ledEvidence = '';
+              let pedomanRubric = '';
+              if (ragOn) {
                 try {
                   const ledRows = await ragService.search({ query: `${crit.name} ${crit.ledKeys.join(' ')}`, submissionId, docType: 'LED', kriteria: k, topK: 6 });
                   ledEvidence = ledRows.map(r => r.content).join('\n\n');
@@ -290,14 +295,17 @@ const uploadDocuments = async (req, res, next) => {
                   // Retrieval gagal (mis. embedding 429) → kriteria ini dinilai tanpa bukti (akan di-floor).
                   logger.warn(`RAG retrieval K${k} gagal (lanjut tanpa bukti): ${rErr.message}`);
                 }
-                evidenceList.push({ criterionNum: k, butirList: crit.butir, ledEvidence, pedomanRubric });
+              } else {
+                // Mode lightweight: ambil potongan LED relevan via kata kunci (tanpa pgvector).
+                ledEvidence = geminiService.findRelevantSnippet(ledContent, [crit.name, `KRITERIA ${k}`, `Kriteria ${k}`], 12000);
               }
-              if (evidenceList.length) {
-                qualitativeScores = await geminiService.scoreAllQualitativeButir(evidenceList);
-              }
+              evidenceList.push({ criterionNum: k, butirList: crit.butir, ledEvidence, pedomanRubric });
+            }
+            if (evidenceList.length) {
+              qualitativeScores = await geminiService.scoreAllQualitativeButir(evidenceList);
             }
           } catch (err) {
-            logger.warn('RAG qualitative scoring gagal (pakai default):', err.message);
+            logger.warn('Skoring kualitatif gagal (pakai default acak):', err.message);
           }
 
           scoringResult = lamtekScoringService.calculateDetailedLAMTEKScores(
