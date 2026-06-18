@@ -296,8 +296,10 @@ const uploadDocuments = async (req, res, next) => {
                   logger.warn(`RAG retrieval K${k} gagal (lanjut tanpa bukti): ${rErr.message}`);
                 }
               } else {
-                // Mode lightweight: ambil potongan LED relevan via kata kunci (tanpa pgvector).
+                // Mode lightweight: bukti LED via kata kunci (tanpa pgvector), dan rubrik dari
+                // deskripsi butir LAM-TEK yang tertanam di kode (getLEDFieldDescriptions).
                 ledEvidence = geminiService.findRelevantSnippet(ledContent, [crit.name, `KRITERIA ${k}`, `Kriteria ${k}`], 12000);
+                pedomanRubric = geminiService.getLEDFieldDescriptions(k) || '';
               }
               evidenceList.push({ criterionNum: k, butirList: crit.butir, ledEvidence, pedomanRubric });
             }
