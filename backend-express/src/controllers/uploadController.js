@@ -12,6 +12,7 @@ const encryptionKeyService = require('../services/encryptionKeyService');
 const { Submission, Document, AIRecommendation } = require('../models');
 const { generateSubmissionId, calculateHash, formatFileSize } = require('../utils/helpers');
 const logger = require('../utils/logger');
+const config = require('../config');
 
 /**
  * Upload and process LED/LKPS documents
@@ -203,12 +204,19 @@ const uploadDocuments = async (req, res, next) => {
       logger.info('Starting AI analysis with Gemini...');
 
       try {
-        // Index dokumen ke RAG (non-fatal — analisis tetap jalan bila gagal)
-        const RagService = require('../services/ragService');
-        const ragService = new RagService();
-        websocketService.sendAnalysisProgress(userId, { stage: 'indexing', progress: 55, message: 'Mengindeks dokumen untuk RAG...' });
-        await ragService.indexDocument({ submissionId, docType: 'LED', content: ledContent });
-        await ragService.indexDocument({ submissionId, docType: 'LKPS', content: lkpsContent });
+        // RAG penuh aktif bila FULL_RAG != false (default ON). FULL_RAG=false → jalur
+        // lightweight: tanpa indexing/embedding, ekstraksi langsung dari isi dokumen.
+        const ragEnabled = config.rag && config.rag.enabled;
+        let ragService = null;
+        if (ragEnabled) {
+          const RagService = require('../services/ragService');
+          ragService = new RagService();
+          websocketService.sendAnalysisProgress(userId, { stage: 'indexing', progress: 55, message: 'Mengindeks dokumen untuk RAG...' });
+          await ragService.indexDocument({ submissionId, docType: 'LED', content: ledContent });
+          await ragService.indexDocument({ submissionId, docType: 'LKPS', content: lkpsContent });
+        } else {
+          logger.info('RAG dinonaktifkan (FULL_RAG=false) — memakai jalur lightweight.');
+        }
 
         // Send progress: AI analysis
         websocketService.sendAnalysisProgress(userId, {
@@ -261,21 +269,31 @@ const uploadDocuments = async (req, res, next) => {
             details: { submissionId }
           });
 
-          // RAG scoring butir kualitatif (non-fatal)
+          // RAG scoring butir kualitatif (non-fatal). Retrieval per-kriteria dibungkus
+          // sendiri agar kegagalan embedding (breaker 429) tidak membatalkan semuanya;
+          // lalu SATU panggilan generasi untuk semua kriteria (hemat kuota: 5→1).
           let qualitativeScores = {};
           try {
-            if (await ragService.isAvailable()) {
+            if (ragService && await ragService.isAvailable()) {
+              const evidenceList = [];
               for (const k of [1, 2, 3, 5, 7]) {
                 const crit = geminiService.criteriaConfig[k];
                 if (!crit || !crit.ledKeys || crit.ledKeys.length === 0) continue;
-                const ledRows = await ragService.search({ query: `${crit.name} ${crit.ledKeys.join(' ')}`, submissionId, docType: 'LED', kriteria: k, topK: 6 });
-                const pedomanRows = await ragService.getPedomanContext({ kriteria: k, query: crit.name, topK: 3 });
-                const scores = await geminiService.scoreQualitativeButir(
-                  k, crit.butir,
-                  ledRows.map(r => r.content).join('\n\n'),
-                  pedomanRows.map(r => r.content).join('\n\n')
-                );
-                Object.assign(qualitativeScores, scores);
+                let ledEvidence = '';
+                let pedomanRubric = '';
+                try {
+                  const ledRows = await ragService.search({ query: `${crit.name} ${crit.ledKeys.join(' ')}`, submissionId, docType: 'LED', kriteria: k, topK: 6 });
+                  ledEvidence = ledRows.map(r => r.content).join('\n\n');
+                  const pedomanRows = await ragService.getPedomanContext({ kriteria: k, query: crit.name, topK: 3 });
+                  pedomanRubric = pedomanRows.map(r => r.content).join('\n\n');
+                } catch (rErr) {
+                  // Retrieval gagal (mis. embedding 429) → kriteria ini dinilai tanpa bukti (akan di-floor).
+                  logger.warn(`RAG retrieval K${k} gagal (lanjut tanpa bukti): ${rErr.message}`);
+                }
+                evidenceList.push({ criterionNum: k, butirList: crit.butir, ledEvidence, pedomanRubric });
+              }
+              if (evidenceList.length) {
+                qualitativeScores = await geminiService.scoreAllQualitativeButir(evidenceList);
               }
             }
           } catch (err) {

@@ -3,6 +3,7 @@
  * SEMUA kegagalan non-fatal — caller jatuh ke jalur lama.
  */
 const chunking = require('./chunkingService');
+const config = require('../config');
 
 function toVectorLiteral(vec) {
   return `[${vec.join(',')}]`;
@@ -12,6 +13,9 @@ class RagService {
   constructor(opts = {}) {
     this.db = opts.db || require('../config/database');
     this.embedding = opts.embedding || require('./embeddingServiceSingleton');
+    // FULL_RAG=false → mode lightweight: isAvailable() selalu false & indexing dilewati,
+    // sehingga seluruh sistem otomatis memakai jalur kata kunci versi sebelumnya.
+    this.enabled = opts.enabled != null ? opts.enabled : config.rag.enabled;
   }
 
   _chunk(docType, content) {
@@ -22,6 +26,7 @@ class RagService {
   }
 
   async isAvailable() {
+    if (!this.enabled) return false; // FULL_RAG=false → paksa jalur lightweight
     if (!this.embedding.isConfigured()) return false;
     try {
       await this.db.query('SELECT 1 FROM document_chunks LIMIT 1');
@@ -34,6 +39,10 @@ class RagService {
 
   async indexDocument({ submissionId, docType, content }) {
     try {
+      if (!this.enabled) {
+        console.log('[RAG] FULL_RAG=false → mode lightweight, lewati indexing');
+        return;
+      }
       if (!this.embedding.isConfigured()) {
         console.warn('[RAG] Embedding tidak terkonfigurasi — skip indexing');
         return;

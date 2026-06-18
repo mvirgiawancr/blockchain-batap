@@ -19,8 +19,18 @@ module.exports = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    // Model GA stabil yang dipakai saat model utama (mis. preview) balas 503/overload.
+    fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
     minRequestIntervalMs: parseInt(process.env.GEMINI_MIN_REQUEST_INTERVAL_MS || '4000')
+  },
+
+  // Toggle Full RAG. FULL_RAG=false → mode "lightweight" (retrieval kata kunci, versi lama).
+  // Default (tidak diset) → full RAG (pgvector + embedding). Alias lama: RAG_ENABLED.
+  rag: {
+    enabled: !['false', '0', 'no', 'off'].includes(
+      String(process.env.FULL_RAG ?? process.env.RAG_ENABLED ?? 'true').toLowerCase()
+    )
   },
 
   // Pinata IPFS Configuration (for document storage)
