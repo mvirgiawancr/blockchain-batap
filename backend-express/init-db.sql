@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     type VARCHAR(50) DEFAULT 'info',
     is_read BOOLEAN DEFAULT FALSE,
     related_submission_id VARCHAR(255),
+    metadata JSONB NOT NULL DEFAULT '{}', -- aksi/tombol (mis. download surat tugas / sertifikat)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

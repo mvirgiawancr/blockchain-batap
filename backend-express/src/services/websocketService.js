@@ -139,8 +139,20 @@ function getConnectionStats() {
   };
 }
 
+/**
+ * Send a generic notification to a user (push real-time).
+ */
+function sendNotification(userId, data) {
+  if (!websocketModule) {
+    logger.warn('[WebSocketService] Not initialized');
+    return false;
+  }
+  return websocketModule.sendToClient(userId, { type: 'notification', data });
+}
+
 module.exports = {
   initialize,
+  sendNotification,
   sendUploadProgress,
   sendAnalysisProgress,
   sendScoringUpdate,

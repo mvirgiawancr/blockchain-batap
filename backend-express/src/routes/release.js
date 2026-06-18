@@ -30,4 +30,11 @@ router.post('/:submissionId/publish',
     releaseController.publishCertificate
 );
 
+// Download Certificate (akses UPPS dari notifikasi, juga sekretariat/admin)
+router.get('/:submissionId/certificate/download',
+    authenticateToken,
+    authorizeRoles(['upps', 'sekretariat', 'admin', 'majelis']),
+    releaseController.downloadCertificate
+);
+
 module.exports = router;

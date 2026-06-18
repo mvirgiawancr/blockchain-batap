@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
-import { Bell, Check, X, Clock, Info, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
+import { Bell, Check, X, Clock, Info, AlertCircle, CheckCircle, Trash2, Download } from 'lucide-react';
 
 const NotificationsPage = ({ user }) => {
   const navigate = useNavigate();
@@ -88,6 +88,33 @@ const NotificationsPage = ({ user }) => {
       setNotifications(notifications.filter((n) => n.id !== notificationId));
     } catch (error) {
       console.error('Error deleting notification:', error);
+    }
+  };
+
+  // Unduh dokumen dari notifikasi (surat tugas / sertifikat) — fetch ber-auth lalu simpan blob.
+  const handleDownload = async (notification) => {
+    const url = notification.metadata?.downloadUrl;
+    if (!url) return;
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}${url}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Gagal mengunduh (${res.status})`);
+      const blob = await res.blob();
+      const isCert = notification.metadata?.action === 'download_certificate';
+      const filename = `${isCert ? 'Sertifikat' : 'Surat_Tugas'}_${notification.relatedSubmissionId || 'dokumen'}.pdf`;
+      const objUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(objUrl);
+      if (!notification.isRead) markAsRead(notification.id);
+    } catch (error) {
+      console.error('Download notifikasi gagal:', error);
+      alert('Gagal mengunduh dokumen. Pastikan dokumen sudah tersedia, lalu coba lagi.');
     }
   };
 
@@ -252,6 +279,16 @@ const NotificationsPage = ({ user }) => {
                             })}
                           </span>
                         </div>
+
+                        {notification.metadata?.downloadUrl && (
+                          <button
+                            onClick={() => handleDownload(notification)}
+                            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all duration-200 shadow-sm cursor-pointer hover:-translate-y-0.5"
+                          >
+                            <Download className="w-4 h-4" />
+                            {notification.metadata.action === 'download_certificate' ? 'Unduh Sertifikat' : 'Unduh Surat Tugas'}
+                          </button>
+                        )}
                       </div>
                     </div>
                     

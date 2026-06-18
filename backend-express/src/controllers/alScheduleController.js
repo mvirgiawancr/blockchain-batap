@@ -134,11 +134,43 @@ exports.approveSchedule = async (req, res) => {
       notificationController.createNotification(
         'kea',
         approved ? 'Jadwal AL Disetujui' : 'Jadwal AL Ditolak',
-        approved 
+        approved
           ? `Jadwal AL untuk submission ${submissionId} telah disetujui`
           : `Jadwal AL untuk submission ${submissionId} ditolak: ${notes}`,
         approved ? 'success' : 'warning'
       );
+
+      // Saat disetujui: notif ke KEDUA asesor + UPPS dengan tombol download Surat Tugas.
+      if (approved) {
+        try {
+          const recipients = [];
+          // UPPS (pengunggah) dari submission_metadata
+          try {
+            const um = await client.query('SELECT user_id FROM submission_metadata WHERE submission_id = $1', [submissionId]);
+            if (um.rows[0]?.user_id) recipients.push(um.rows[0].user_id);
+          } catch (_) { /* abaikan */ }
+          // Kedua asesor dari blockchain (assignedAssessors)
+          try {
+            const sub = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+            const aa = sub?.assignedAssessors;
+            if (aa?.assessor1Id) recipients.push(aa.assessor1Id);
+            if (aa?.assessor2Id) recipients.push(aa.assessor2Id);
+          } catch (e) {
+            logger.warn(`[AL] Tidak bisa ambil asesor dari blockchain untuk notif: ${e.message}`);
+          }
+          if (recipients.length) {
+            await notificationController.createNotification(
+              recipients,
+              'Surat Tugas Tersedia',
+              `Jadwal AL untuk submission ${submissionId} telah disetujui. Surat tugas siap diunduh.`,
+              'success',
+              { action: 'download_surat_tugas', submissionId, downloadUrl: `/al-schedule/letter/${submissionId}/download` }
+            );
+          }
+        } catch (e) {
+          logger.warn(`[AL] Gagal kirim notif surat tugas (non-fatal): ${e.message}`);
+        }
+      }
 
       logger.info(`AL schedule ${approved ? 'approved' : 'rejected'} for ${submissionId}`);
       res.json({
@@ -479,5 +511,67 @@ exports.generateAssignmentLetter = async (req, res) => {
   } catch (error) {
     logger.error('Error generating assignment letter:', error);
     res.status(500).json({ error: 'Failed to generate assignment letter', message: error.message });
+  }
+};
+
+/**
+ * Download Surat Tugas (GET) — dapat diakses asesor & UPPS (dari notifikasi),
+ * juga sekretariat/admin. PDF di-regenerasi on-the-fly.
+ * GET /api/v1/al-schedule/letter/:submissionId/download
+ */
+exports.downloadAssignmentLetter = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+
+    const client = await pool.connect();
+    let schedule = null;
+    let submissionInfo = null;
+    try {
+      const resSchedule = await client.query('SELECT * FROM al_schedules WHERE submission_id = $1', [submissionId]);
+      schedule = resSchedule.rows[0];
+      try {
+        const resSub = await client.query('SELECT * FROM submissions WHERE submission_id = $1', [submissionId]);
+        submissionInfo = resSub.rows[0];
+      } catch (e) { /* tabel submissions bisa tidak ada */ }
+    } finally {
+      client.release();
+    }
+
+    if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
+    if (schedule.status !== 'approved' && schedule.status !== 'released' && schedule.status !== 'accredited') {
+      return res.status(400).json({ error: 'Schedule belum disetujui' });
+    }
+
+    let submission = null;
+    try {
+      submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+    } catch (e) {
+      logger.warn(`[SuratTugas] Tidak bisa ambil submission dari blockchain: ${e.message}. Pakai fallback.`);
+    }
+
+    const programName = submission?.programStudi || submissionInfo?.program_name || 'Program Studi';
+    const institutionName = submission?.institusi || submissionInfo?.institution_name || schedule.proposed_venue || 'Institusi';
+    const assessor1Name = submission?.assignedAssessors?.assessor1Name || 'Asesor 1';
+    const assessor2Name = submission?.assignedAssessors?.assessor2Name || 'Asesor 2';
+
+    const pdfBuffer = await certificateService.generateAssignmentLetterPDF({
+      submissionId,
+      programName,
+      institutionName,
+      letterNumber: `ST/${submissionId.substring(0, 8).toUpperCase()}/${new Date().getFullYear()}`,
+      letterDate: new Date().toISOString(),
+      assessor1Name,
+      assessor2Name,
+      visitDateStart: new Date(schedule.proposed_date).toLocaleDateString('id-ID'),
+      visitDateEnd: schedule.proposed_end_date ? new Date(schedule.proposed_end_date).toLocaleDateString('id-ID') : '-',
+      venue: schedule.proposed_venue
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Surat_Tugas_${submissionId}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    logger.error('Error downloading assignment letter:', error);
+    res.status(500).json({ error: 'Failed to download assignment letter', message: error.message });
   }
 };
