@@ -8,3 +8,5 @@ fablo-target/
 .claude/
 Example led lkps/
 .agent
+*:Zone.Identifier
+**/*:Zone.Identifier

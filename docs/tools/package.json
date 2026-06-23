@@ -1,0 +1,14 @@
+{
+  "name": "akrechain-docx-builder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generate Word (.docx) Buku Panduan Pengujian AkreChain dari markdown + screenshot.",
+  "scripts": {
+    "build": "node build-docx.mjs"
+  },
+  "dependencies": {
+    "@turbodocx/html-to-docx": "^1.13.0",
+    "marked": "^12.0.2"
+  }
+}

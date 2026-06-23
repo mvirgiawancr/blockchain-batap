@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# TestSprite local run artifacts (contains API_KEY, logs) — never commit
+testsprite_tests/tmp/

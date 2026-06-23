@@ -55,7 +55,11 @@ export default function Login({ onLogin }) {
         setError('Gagal masuk. Periksa kembali kredensial Anda.');
       }
     } catch (err) {
-      const message = err.response?.data?.error || err.message;
+      const status = err.response?.status;
+      const backendMsg = err.response?.data?.error || err.response?.data?.message;
+      const message = status === 401
+        ? 'Nama pengguna atau kata sandi salah. Silakan periksa kembali.'
+        : (backendMsg || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');
       setError(message);
     } finally {
       setLoading(false);

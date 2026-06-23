@@ -1,0 +1,7 @@
+[
+  {
+    "id": "TC001",
+    "title": "post apiv1authregister register a new user",
+    "description": "Verify that a new user can be registered successfully with valid user details and that the response returns status 201 with the registered user data."
+  }
+]

@@ -135,10 +135,10 @@ class LAMTEKScoringService {
       console.log(`[LAM-TEK] Applied constraint: RL >= c, set RL = c (${c})`);
     }
 
-    // Calculate ratios
-    const A = a !== 0 ? constrainedRi / a : 0;
-    const B = b !== 0 ? constrainedRn / b : 0;
-    const C = c !== 0 ? constrainedRl / c : 0;
+    // Calculate ratios (capped at 1.0)
+    const A = Math.min(1.0, a !== 0 ? constrainedRi / a : 0);
+    const B = Math.min(1.0, b !== 0 ? constrainedRn / b : 0);
+    const C = Math.min(1.0, c !== 0 ? constrainedRl / c : 0);
 
     console.log(`[LAM-TEK] Ratios: A=${A.toFixed(3)}, B=${B.toFixed(3)}, C=${C.toFixed(3)}`);
 
@@ -719,6 +719,7 @@ class LAMTEKScoringService {
     { const r = this.resolveQualitativeScore('3.3', qualitativeScores); butirScores['3.3'] = r.score; reasons['3.3'] = r.reason; justifications['3.3'] = r.justification; }
     { const r = this.resolveQualitativeScore('3.4', qualitativeScores); butirScores['3.4'] = r.score; reasons['3.4'] = r.reason; justifications['3.4'] = r.justification; }
     { const r = this.resolveQualitativeScore('3.5', qualitativeScores); butirScores['3.5'] = r.score; reasons['3.5'] = r.reason; justifications['3.5'] = r.justification; }
+    { const r = this.resolveQualitativeScore('3.6', qualitativeScores); butirScores['3.6'] = r.score; reasons['3.6'] = r.reason; justifications['3.6'] = r.justification; }
     { const r = this.resolveQualitativeScore('3.7', qualitativeScores); butirScores['3.7'] = r.score; reasons['3.7'] = r.reason; justifications['3.7'] = r.justification; }
     { const r = this.resolveQualitativeScore('3.8', qualitativeScores); butirScores['3.8'] = r.score; reasons['3.8'] = r.reason; justifications['3.8'] = r.justification; }
     { const r = this.resolveQualitativeScore('3.9', qualitativeScores); butirScores['3.9'] = r.score; reasons['3.9'] = r.reason; justifications['3.9'] = r.justification; }

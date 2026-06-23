@@ -38,7 +38,27 @@ function chunkLED(text) {
     const start = matches[i].index;
     const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
     const sectionTitle = matches[i][0].trim();
-    const kriteriaMatch = sectionTitle.match(/KRITERIA\s+(\d+)/i);
+    
+    let kriteriaMatch = sectionTitle.match(/KRITERIA\s+(\d+)/i);
+    if (!kriteriaMatch) {
+      // Coba cocokkan angka kriteria di awal baris, mis. "6. Mahasiswa..."
+      const numMatch = sectionTitle.match(/^(\d+)\.\s+/);
+      if (numMatch) {
+        const num = parseInt(numMatch[1]);
+        if (num >= 1 && num <= 7) {
+          const titleLower = sectionTitle.toLowerCase();
+          const keywords = [
+            'misi', 'akuntabilitas', 'relevansi', 'pendidikan', 
+            'sumber daya', 'sdm', 'sarana', 'prasarana', 'k3l', 
+            'mahasiswa', 'luaran', 'mutu', 'penjaminan'
+          ];
+          if (keywords.some(k => titleLower.includes(k))) {
+            kriteriaMatch = numMatch;
+          }
+        }
+      }
+    }
+
     if (kriteriaMatch) {
       currentKriteria = parseInt(kriteriaMatch[1]);
     }

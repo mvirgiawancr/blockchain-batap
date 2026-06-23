@@ -6,6 +6,7 @@
 const logger = require('../utils/logger');
 const notificationController = require('./notificationController');
 const fabricService = require('../services/fabricService');
+const config = require('../config');
 
 /**
  * Get approved submissions (ready for assessor assignment)
@@ -110,7 +111,7 @@ exports.getAssessors = async (req, res) => {
       // Scholar berdasarkan NAMA; bila keduanya gagal barulah memakai profil yang
       // tersimpan di basis data (assessor_profiles) sebagai fallback. Hasil live
       // yang berhasil di-cache ke DB. Seluruh proses bersifat non-fatal.
-      if (result.rows.length > 0) {
+      if (result.rows.length > 0 && config.scraping.enabled) {
         const semanticScholar = require('../services/semanticScholarService');
         const googleScholar = require('../services/googleScholarService');
         for (const a of assessors) {
