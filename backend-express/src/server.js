@@ -120,6 +120,10 @@ app.use(errorHandler);
 // Create HTTP server for WebSocket support
 const server = http.createServer(app);
 
+// Set connection timeout to 7 minutes (420,000 ms) for large uploads & AI analysis
+server.timeout = 420000;
+server.keepAliveTimeout = 420000;
+
 // Initialize WebSocket
 const wss = websocketModule.initializeWebSocket(server);
 websocketService.initialize(websocketModule);

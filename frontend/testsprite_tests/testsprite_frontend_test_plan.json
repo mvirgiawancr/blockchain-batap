@@ -1,0 +1,1011 @@
+[
+  {
+    "id": "TC001",
+    "title": "Redirect unauthenticated visitors to sign in from a protected page",
+    "description": "This verifies that a protected route cannot be opened without a valid session and sends the visitor to sign in.",
+    "category": "Role-Based Protected Navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /submissions"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sign in page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the protected page is not accessible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Login and reach the correct dashboard",
+    "description": "A user can sign in with valid credentials and land on the role-appropriate dashboard.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the correct dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a role-specific dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Search for a published certificate traceability result",
+    "description": "This verifies that a public visitor can search traceability and see a matching published certificate result.",
+    "category": "Public Traceability Lookup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the traceability search field with a valid published certificate identifier"
+      },
+      {
+        "type": "action",
+        "description": "Submit the traceability search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a matching traceability result is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the published certificate entry is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Access the correct dashboard after signing in",
+    "description": "This verifies that a signed-in user lands on the role-appropriate dashboard and can see role-specific navigation.",
+    "category": "Role-Based Protected Navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the role-based dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify role-specific navigation sections are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Search traceability records and open a published result",
+    "description": "A public visitor can search for a certificate and open a matching published traceability result.",
+    "category": "Public Traceability Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid institution or study program search term"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Open a matching search result"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify certificate traceability history is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected result details are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Open traceability and blockchain history for a certificate",
+    "description": "This verifies that a public visitor can open a traceability result and review its history details.",
+    "category": "Public Traceability Lookup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the traceability search field with a valid published certificate identifier"
+      },
+      {
+        "type": "action",
+        "description": "Submit the traceability search"
+      },
+      {
+        "type": "action",
+        "description": "Open the matching traceability result"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the certificate history details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the blockchain history information is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "View traceability history details for a published certificate",
+    "description": "A public visitor can inspect the blockchain or history details for an opened certificate result.",
+    "category": "Public Traceability Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid institution or study program search term"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "action",
+        "description": "Open a matching search result"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify traceability history details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify blockchain history information is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "View the submissions list after signing in",
+    "description": "This verifies that an authenticated user can open the submissions page and see the available list of submissions.",
+    "category": "Submissions Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the submissions page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the submissions list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify at least one submission item is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "View notifications after signing in",
+    "description": "This verifies that an authenticated user can open the notifications center and see notification items.",
+    "category": "Notifications Center",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the notifications page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the notifications list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify at least one notification item is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Land on the correct dashboard after logging in as a role user",
+    "description": "An authenticated internal user reaches the correct role-specific landing page after sign-in.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expected role dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify role-specific navigation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Register a new user with required details",
+    "description": "This verifies that a new visitor can complete the registration form with required fields and reach the next authenticated state.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with a new username"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Select a role for the new user"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the name field with a valid full name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the organization field with a valid organization name"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the registration success state is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Register a new account with valid details",
+    "description": "A new user can complete registration with required details and receive account creation feedback.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with a unique username"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the name field with a valid full name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the organization field with a valid organization name"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid role"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify account creation feedback is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the registration form is no longer in the initial state"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Reach the assessor assignments page from the dashboard",
+    "description": "This verifies that an authenticated assessor can open the assignments page from the dashboard navigation.",
+    "category": "Assessor Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assessor assignments page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the assignments list is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Open a role-specific dashboard section after signing in",
+    "description": "This verifies that an authenticated user can navigate from the landing dashboard into a role-specific page.",
+    "category": "Role-Based Protected Navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open an available dashboard section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected role-specific page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Open a submission from the submissions list",
+    "description": "This verifies that a user can drill into a submission from the list and reach its detail or history view.",
+    "category": "Submissions Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the submissions page"
+      },
+      {
+        "type": "action",
+        "description": "Open a submission from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the submission detail or history view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Mark a notification as read",
+    "description": "This verifies that a user can change one notification from unread to read and see the list update.",
+    "category": "Notifications Center",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the notifications page"
+      },
+      {
+        "type": "action",
+        "description": "Mark one notification as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the notification is shown as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the notifications list updates"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Mark all notifications as read",
+    "description": "This verifies that a user can clear the unread state for all notifications from the notifications center.",
+    "category": "Notifications Center",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the notifications page"
+      },
+      {
+        "type": "action",
+        "description": "Mark all notifications as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all notifications are shown as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the unread state is cleared"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Open an assessor assignment detail and start assessment",
+    "description": "This verifies that an assessor can drill into an assignment and reach the assessment page for that item.",
+    "category": "Assessor Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assessor assignments page"
+      },
+      {
+        "type": "action",
+        "description": "Open an assignment detail"
+      },
+      {
+        "type": "action",
+        "description": "Start the assessment for the assignment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the assessment page is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC019",
+    "title": "Open certificate release and publish a submission",
+    "description": "This verifies that an authenticated user can open a release item and complete the certificate release flow.",
+    "category": "Certificate Release",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the release list page"
+      },
+      {
+        "type": "action",
+        "description": "Open a submission for release"
+      },
+      {
+        "type": "action",
+        "description": "Complete the release action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the certificate release confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC020",
+    "title": "Review submission status after opening a submission",
+    "description": "This verifies that a user can move from a submission list into the status view for that submission.",
+    "category": "Submissions Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the submissions page"
+      },
+      {
+        "type": "action",
+        "description": "Open a submission from the list"
+      },
+      {
+        "type": "action",
+        "description": "Open the submission status view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the submission status information is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC021",
+    "title": "Review the assessor assignment history",
+    "description": "This verifies that an assessor can open their assignment history and see previous work entries.",
+    "category": "Assessor Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assessor history page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the assignment history list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify previous assignment entries are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC022",
+    "title": "Keep registration blocked when required fields are missing",
+    "description": "This verifies that the registration form surfaces validation when mandatory fields are omitted.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with a new username"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify registration validation errors are visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the account is not created"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC023",
+    "title": "Show validation when registration is incomplete",
+    "description": "A user leaving required registration fields empty sees validation feedback and cannot complete registration.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify required-field validation feedback is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the registration form remains visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC024",
+    "title": "Show an inline error for invalid login",
+    "description": "A user entering invalid credentials sees an inline sign-in error and stays on the login page.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with invalid_user"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with invalid_password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an inline login error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login form remains available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC025",
+    "title": "Return to an empty submissions state when no items are available",
+    "description": "This verifies that the submissions page shows an empty state when there are no submissions to display.",
+    "category": "Submissions Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the submissions page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no submission items are displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC026",
+    "title": "Stay on the sign-in page after entering invalid credentials",
+    "description": "This verifies that invalid login details are rejected inline and the user remains on the sign-in page.",
+    "category": "Role-Based Protected Navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with an invalid username"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with an invalid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login error message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sign in page remains displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC027",
+    "title": "Show an empty state when traceability search has no matches",
+    "description": "A public visitor searching for an unknown term sees an empty results state.",
+    "category": "Public Traceability Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Enter a search term with no expected matches"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty results message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no certificate results are displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC028",
+    "title": "Show an empty notifications state when there are none",
+    "description": "This verifies that the notifications page clearly communicates when there are no notifications to review.",
+    "category": "Notifications Center",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the notifications page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no notification items are displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC029",
+    "title": "Show no results for an unknown traceability search",
+    "description": "This verifies that an invalid public traceability search is handled with a clear empty-state result.",
+    "category": "Public Traceability Lookup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /traceability"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the traceability search field with an unknown identifier"
+      },
+      {
+        "type": "action",
+        "description": "Submit the traceability search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a no-results message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no traceability result items are displayed"
+      }
+    ],
+    "priority": "Low"
+  }
+]

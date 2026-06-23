@@ -21,7 +21,7 @@ module.exports = {
     model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
     // Model GA stabil yang dipakai saat model utama (mis. preview) balas 503/overload.
     fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
-    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-2',
     minRequestIntervalMs: parseInt(process.env.GEMINI_MIN_REQUEST_INTERVAL_MS || '4000')
   },
 
@@ -30,8 +30,20 @@ module.exports = {
   rag: {
     enabled: !['false', '0', 'no', 'off'].includes(
       String(process.env.FULL_RAG ?? process.env.RAG_ENABLED ?? 'true').toLowerCase()
+    ),
+    embeddingEnabled: !['false', '0', 'no', 'off'].includes(
+      String(process.env.EMBEDDING ?? process.env.RAG_EMBEDDING ?? process.env.EMBEDDING_ENABLED ?? 'true').toLowerCase()
+    ),
+    embeddingProvider: process.env.EMBEDDING_PROVIDER || process.env.RAG_EMBEDDING_PROVIDER || 'local'
+  },
+
+  // Toggle live data scraping. SCRAPING_DATA=false -> direct database retrieval for assessor profiles.
+  scraping: {
+    enabled: !['false', '0', 'no', 'off'].includes(
+      String(process.env.SCRAPING_DATA ?? 'true').toLowerCase()
     )
   },
+
 
   // Pinata IPFS Configuration (for document storage)
   pinata: {

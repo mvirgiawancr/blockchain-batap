@@ -215,7 +215,7 @@ const uploadDocuments = async (req, res, next) => {
           await ragService.indexDocument({ submissionId, docType: 'LED', content: ledContent });
           await ragService.indexDocument({ submissionId, docType: 'LKPS', content: lkpsContent });
         } else {
-          logger.info('RAG dinonaktifkan (FULL_RAG=false) — memakai jalur lightweight.');
+
         }
 
         // Send progress: AI analysis

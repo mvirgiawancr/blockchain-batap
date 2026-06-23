@@ -7,6 +7,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../config');
 const pdfParse = require('pdf-parse');
 const ExcelJS = require('exceljs');
+const logger = require('../utils/logger');
+
 
 class GeminiService {
   constructor() {
@@ -16,11 +18,24 @@ class GeminiService {
     } else {
       this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
       this.model = this.genAI.getGenerativeModel({ model: config.gemini.model });
+      // Model GA stabil untuk fallback saat model utama 503/overload.
+      this.fallbackModelName = config.gemini.fallbackModel;
+      if (this.fallbackModelName && this.fallbackModelName !== config.gemini.model) {
+        this.fallbackModel = this.genAI.getGenerativeModel({ model: this.fallbackModelName });
+      }
     }
 
     // Global rate limiting for Free Tier (2 RPM = 1 request per 30 seconds)
     this.lastRequestTime = 0;
     this.minRequestIntervalMs = config.gemini.minRequestIntervalMs; // configurable (env GEMINI_MIN_REQUEST_INTERVAL_MS, default 4000)
+
+    // Circuit breaker generasi: setelah 429 kuota persisten, panggilan berikutnya gagal-cepat
+    // selama cooldown — mencegah ~18 panggilan × backoff 35s menumpuk hingga timeout.
+    this.genCooldownMs = 120000;
+    this.genQuotaExhaustedUntil = 0;
+    // Saat model utama 503/overload, langsung pakai fallback untuk panggilan berikutnya
+    // selama jendela ini (hindari membayar 503 di setiap panggilan).
+    this.primaryOverloadedUntil = 0;
 
     // LAM-TEK 2025: 7 Kriteria Configuration with 53 Butir (Instrumen 2025)
     // Bobot per program type: S=Sarjana, M=Magister, D=Doktor
@@ -552,9 +567,19 @@ Return ONLY the JSON, no markdown, no explanation.`;
     let bestIdx = -1;
     let bestKeyword = '';
     
-    // Find the first matching keyword (prefer earlier occurrences)
+    // Skip Table of Contents/Cover pages for long documents (first 15% or up to 25k chars)
+    const skipThreshold = Math.min(25000, Math.floor(content.length * 0.15));
+
     for (const keyword of keywords) {
-      const idx = contentLower.indexOf(keyword.toLowerCase());
+      let idx = contentLower.indexOf(keyword.toLowerCase());
+      
+      // If found in the Table of Contents, try to find the next occurrence further down
+      while (idx !== -1 && idx < skipThreshold && content.length > 30000) {
+        const nextIdx = contentLower.indexOf(keyword.toLowerCase(), idx + 1);
+        if (nextIdx === -1) break; // If no other occurrence, fall back to what we found
+        idx = nextIdx;
+      }
+
       if (idx !== -1 && (bestIdx === -1 || idx < bestIdx)) {
         bestIdx = idx;
         bestKeyword = keyword;
@@ -568,10 +593,11 @@ Return ONLY the JSON, no markdown, no explanation.`;
       const start = Math.max(0, bestIdx - beforeContext);
       const end = Math.min(content.length, bestIdx + afterContext);
       
-      console.log(`[Gemini] Found keyword "${bestKeyword}" at position ${bestIdx}, window: ${start}-${end}`);
-      console.log(`[Gemini] Context at keyword position (±200 chars):`);
-      console.log(content.substring(Math.max(0, bestIdx - 200), Math.min(content.length, bestIdx + 200)));
-      console.log('---');
+      logger.info(`[Gemini] Found keyword "${bestKeyword}" at position ${bestIdx}, window: ${start}-${end}`);
+      const cleanContext = content.substring(Math.max(0, bestIdx - 80), Math.min(content.length, bestIdx + 80))
+        .replace(/\s+/g, ' ')
+        .trim();
+      logger.debug(`[Gemini] Context at keyword position: "... ${cleanContext} ..."`);
       
       return content.substring(start, end);
     }
@@ -579,7 +605,8 @@ Return ONLY the JSON, no markdown, no explanation.`;
     // If no keywords found, try searching in the middle section of the document
     // (skip header section which often contains repeated metadata)
     const skipHeader = Math.min(50000, Math.floor(content.length * 0.1));
-    console.log(`[Gemini] No keywords found. Using middle section (skipping first ${skipHeader} chars)`);
+    logger.info(`[Gemini] No keywords found. Using middle section (skipping first ${skipHeader} chars)`);
+
     return content.substring(skipHeader, skipHeader + windowSize);
   }
 
@@ -617,10 +644,15 @@ Return ONLY the JSON, no markdown, no explanation.`;
         const rows = await ragService.search({ query, submissionId, docType: 'LED', kriteria: i, topK: 6 });
         if (rows.length) return rows.map(r => r.content).join('\n\n').slice(0, 25000);
       } catch (err) {
-        console.warn(`[Gemini] RAG LED K${i} gagal, fallback:`, err.message);
+        logger.warn(`[Gemini] RAG LED K${i} gagal, fallback: ${err.message}`);
       }
     }
-    return ledContent.substring(0, 25000);
+    const crit = this.criteriaConfig[i];
+    const keywords = crit ? [crit.name, `KRITERIA ${i}`, `Kriteria ${i}`] : [];
+    if (crit && crit.ledKeys) {
+      keywords.push(...crit.ledKeys.map(k => k.replace(/_/g, ' ')));
+    }
+    return this.findRelevantSnippet(ledContent, keywords, 25000);
   }
 
   /**
@@ -631,8 +663,17 @@ Return ONLY the JSON, no markdown, no explanation.`;
       throw new Error('Gemini API not configured');
     }
 
+    // Breaker: bila kuota generasi baru saja habis, gagal-cepat agar caller (yang sudah
+    // dibungkus try/catch non-fatal) lanjut dengan data parsial + floor low_confidence.
+    if (Date.now() < this.genQuotaExhaustedUntil) {
+      throw new Error('gemini generation quota cooldown (429) — fast-fail');
+    }
+
     let lastError;
-    
+    // Bila model utama baru saja overload, mulai langsung dengan fallback.
+    let activeModel = (this.fallbackModel && Date.now() < this.primaryOverloadedUntil) ? this.fallbackModel : this.model;
+    let usedFallback = activeModel === this.fallbackModel;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         // Global rate limiting - wait if last request was too recent
@@ -640,18 +681,18 @@ Return ONLY the JSON, no markdown, no explanation.`;
         const timeSinceLastRequest = now - this.lastRequestTime;
         if (this.lastRequestTime > 0 && timeSinceLastRequest < this.minRequestIntervalMs) {
           const waitTime = this.minRequestIntervalMs - timeSinceLastRequest;
-          console.log(`[Gemini] ⏳ Rate limit: waiting ${Math.ceil(waitTime/1000)}s before next request...`);
+          logger.info(`[Gemini] Rate limit: waiting ${Math.ceil(waitTime/1000)}s before next request...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
         this.lastRequestTime = Date.now();
-        
-        console.log(`[Gemini] Generating content (attempt ${attempt}/${maxRetries})...`);
-        
-        const result = await this.model.generateContent(prompt);
+
+        logger.info(`[Gemini] Generating content (attempt ${attempt}/${maxRetries})${usedFallback ? ' [fallback ' + this.fallbackModelName + ']' : ''}...`);
+
+        const result = await activeModel.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
         
-        console.log(`[Gemini] ✅ Content generated successfully (${text.length} chars)`);
+        logger.info(`[Gemini] Content generated successfully (${text.length} chars)`);
         return text;
         
       } catch (error) {
@@ -666,8 +707,23 @@ Return ONLY the JSON, no markdown, no explanation.`;
           errorMsg.includes('quota') ||
           errorMsg.includes('rate limit');
         
+        // 503/overload pada model utama → beralih ke model fallback stabil sekali, lalu coba lagi.
+        const isOverloaded = errorMsg.includes('503') || errorMsg.includes('overloaded') || errorMsg.includes('UNAVAILABLE');
+        if (isOverloaded && this.fallbackModel && !usedFallback) {
+          usedFallback = true;
+          activeModel = this.fallbackModel;
+          this.primaryOverloadedUntil = Date.now() + 60000; // panggilan berikutnya mulai dari fallback
+          logger.warn(`[Gemini] Model utama 503 — beralih ke fallback ${this.fallbackModelName} dan coba lagi...`);
+          continue; // langsung coba dengan fallback tanpa menunggu lama
+        }
+
         if (!isRetryable || attempt === maxRetries) {
-          console.error(`[Gemini] ❌ Error generating content (attempt ${attempt}/${maxRetries}):`, errorMsg);
+          // Trip breaker bila kuota 429 habis: panggilan generasi berikutnya gagal-cepat.
+          if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('rate limit')) {
+            this.genQuotaExhaustedUntil = Date.now() + this.genCooldownMs;
+            logger.warn(`[Gemini] Kuota 429 — breaker generasi aktif ${Math.ceil(this.genCooldownMs / 1000)}s.`);
+          }
+          logger.error(`[Gemini] Error generating content (attempt ${attempt}/${maxRetries}): ${errorMsg}`);
           throw error;
         }
         
@@ -675,12 +731,13 @@ Return ONLY the JSON, no markdown, no explanation.`;
         const baseDelay = errorMsg.includes('429') || errorMsg.includes('quota') ? 35000 : 5000;
         const delayMs = Math.min(baseDelay * Math.pow(1.5, attempt - 1), 60000); // Max 60 seconds
         
-        console.warn(`[Gemini] ⚠️  ${errorMsg}`);
-        console.log(`[Gemini] Retrying in ${delayMs}ms... (attempt ${attempt}/${maxRetries})`);
+        logger.warn(`[Gemini] ${errorMsg}`);
+        logger.info(`[Gemini] Retrying in ${delayMs}ms... (attempt ${attempt}/${maxRetries})`);
         
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
+
     }
     
     // If all retries failed
@@ -772,20 +829,56 @@ ${butirLines}
   }
 
   /**
+   * Nilai SELURUH butir kualitatif beberapa kriteria dalam SATU panggilan (hemat kuota).
+   * @param {Array<{criterionNum:number, butirList:Array, ledEvidence:string, pedomanRubric:string}>} criteria
+   * @returns {Object} gabungan { "<code>": { score, justification, confidence } }
+   */
+  async scoreAllQualitativeButir(criteria) {
+    if (!this.model || !criteria || !criteria.length) return {};
+    const firstCode = criteria[0].butirList[0] ? criteria[0].butirList[0].code : '1.1';
+    const blocks = criteria.map(c => {
+      const butirLines = c.butirList.map(b => `- ${b.code}: ${b.name}`).join('\n');
+      return `## KRITERIA ${c.criterionNum}
+### Rubrik pedoman (rujukan):
+${(c.pedomanRubric || '(tidak tersedia)').slice(0, 1500)}
+### Bukti dari LED:
+${(c.ledEvidence || '(tidak tersedia)').slice(0, 4000)}
+### Butir yang dinilai:
+${butirLines}`;
+    }).join('\n\n');
+
+    const prompt = `# TUGAS
+Nilai SETIAP butir kualitatif dari beberapa kriteria akreditasi LAM-TEK 2025 dengan SKALA 0-4.
+
+${blocks}
+
+# ATURAN PENILAIAN
+1. Skor 4 = SELURUH aspek indikator terbukti kuat di LED kriteria tsb.
+2. Skor turun proporsional dengan jumlah aspek yang TIDAK terbukti.
+3. Jika bukti TIDAK ditemukan di LED, set "confidence":"low" dan score sekitar 2.0 — JANGAN beri 0 hanya karena bukti tidak ketemu.
+4. Skor 0-1.5 hanya jika ADA bukti eksplisit capaian memang rendah/tidak ada.
+
+# OUTPUT (JSON saja, tanpa markdown) — sertakan SEMUA butir dari semua kriteria di atas
+{"butir_scores":{"${firstCode}":{"score":3.5,"justification":"alasan singkat","confidence":"high"}}}`;
+
+    const raw = await this.generateGeminiResponse(prompt);
+    return this.parseQualitativeScores(raw);
+  }
+
+  /**
    * Analyze documents for LAM-TEK 2025 scoring (7 Criteria)
    */
   async analyzeDocumentsForScoring(programStudi, institusi, ledContent, lkpsContent, programType = 'S', options = {}) {
-    console.log(`[Gemini] Starting LAM-TEK 2025 analysis (7 Criteria) for ${programStudi} (${programType})`);
+    logger.info(`[Gemini] Starting LAM-TEK 2025 analysis (7 Criteria) for ${programStudi} (${programType})`);
 
     // Check if Gemini is configured
     if (!this.genAI || !config.gemini.apiKey) {
-      console.error('[Gemini] Analysis error: Gemini API not configured');
+      logger.error('[Gemini] Analysis error: Gemini API not configured');
       throw new Error('Gemini API not configured. Please set GEMINI_API_KEY in .env file. Get your key from https://makersuite.google.com/app/apikey');
     }
 
     const { submissionId = null, ragService = null } = options;
     const ragReady = ragService ? await ragService.isAvailable().catch(() => false) : false;
-    console.log(`[Gemini] RAG retrieval: ${ragReady ? 'ON' : 'OFF (jalur lama)'}`);
 
     const finalLedData = {};
     const finalLkpsData = {};
@@ -793,19 +886,19 @@ ${butirLines}
 
     try {
       // Process Kriteria 4 first (SDM - to get NDTPS)
-      console.log('[Gemini] [PRIORITY] Analyzing Kriteria 4: SDM for NDTPS...');
-      console.log(`[Gemini] Total LKPS content length: ${lkpsContent.length} chars`);
+      logger.info('[Gemini] [PRIORITY] Analyzing Kriteria 4: SDM for NDTPS...');
+      logger.info(`[Gemini] Total LKPS content length: ${lkpsContent.length} chars`);
       
       // Check if key tables exist
       const has3a1 = lkpsContent.includes('3.a.1') || lkpsContent.includes('3.a.1)') || lkpsContent.includes('Tabel 3.a.1');
       const hasDTPS = lkpsContent.toLowerCase().includes('dtps');
       const hasDosen = lkpsContent.toLowerCase().includes('dosen');
-      console.log(`[Gemini] Key content check: Tabel 3.a.1=${has3a1}, DTPS=${hasDTPS}, Dosen=${hasDosen}`);
+      logger.debug(`[Gemini] Key content check: Tabel 3.a.1=${has3a1}, DTPS=${hasDTPS}, Dosen=${hasDosen}`);
       
       // List all sheet names
       const sheetMatches = lkpsContent.match(/--- Sheet: ([^\-]+) ---/g);
       if (sheetMatches) {
-        console.log(`[Gemini] Available sheets (first 20): ${sheetMatches.slice(0, 20).join(', ')}`);
+        logger.debug(`[Gemini] Available sheets (first 20): ${sheetMatches.slice(0, 20).join(', ')}`);
       }
       
       // Find the actual data sheet (look for sheet marker "--- Sheet: 3a1 ---" or similar)
@@ -813,7 +906,7 @@ ${butirLines}
       const sheet3a1Alt = sheet3a1Idx === -1 ? lkpsContent.indexOf('Sheet: 3a1)') : sheet3a1Idx;
       const sheet3a1Final = sheet3a1Alt === -1 ? lkpsContent.indexOf('Sheet: 3.a.1') : sheet3a1Alt;
       
-      console.log(`[Gemini] Searching for Sheet 3a1: idx=${sheet3a1Idx}, alt=${sheet3a1Alt}, final=${sheet3a1Final}`);
+      logger.debug(`[Gemini] Searching for Sheet 3a1: idx=${sheet3a1Idx}, alt=${sheet3a1Alt}, final=${sheet3a1Final}`);
       
       // For Kriteria 4, we need multiple tables: 3a1, 3a4, 3b1, 3b2, 3b3
       // Take a large snippet that covers all these tables
@@ -824,13 +917,13 @@ ${butirLines}
           const start = sheet3a1Final;
           const end = Math.min(lkpsContent.length, start + 150000); // Take 150KB to cover all tables
           snippet = lkpsContent.substring(start, end);
-          console.log(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
+          logger.debug(`[Gemini] Using Sheet 3a1 and following tables from position ${start}-${end}`);
 
           // Check if we have the required tables in snippet
           const has3b1 = snippet.includes('3b1') || snippet.includes('3.b.1');
           const has3b2 = snippet.includes('3b2') || snippet.includes('3.b.2');
           const has3b3 = snippet.includes('3b3') || snippet.includes('3.b.3');
-          console.log(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
+          logger.debug(`[Gemini] K4 Table check: 3b1=${has3b1}, 3b2=${has3b2}, 3b3=${has3b3}`);
         } else {
           // Fallback: search with keywords including penelitian and publikasi
           snippet = this.findRelevantSnippet(lkpsContent, [
@@ -842,20 +935,26 @@ ${butirLines}
         return snippet;
       });
 
-      console.log(`[Gemini] K4 Snippet length: ${lkpsSnippetK4.length} chars`);
-      console.log(`[Gemini] K4 Snippet preview: ${lkpsSnippetK4.substring(0, 500)}...`);
+      logger.debug(`[Gemini] K4 Snippet length: ${lkpsSnippetK4.length} chars`);
+      logger.debug(`[Gemini] K4 Snippet preview: ${lkpsSnippetK4.substring(0, 500)}...`);
       
       const lkpsPromptK4 = this.getLKPSExtractionPrompt(4, lkpsSnippetK4);
       
       if (lkpsPromptK4) {
-        const responseK4 = await this.generateGeminiResponse(lkpsPromptK4);
-        console.log(`[Gemini] K4 Raw response: ${responseK4.substring(0, 1000)}...`);
-        
-        const dataK4 = this.parseJSONResponse(responseK4, 'lkps_data');
-        console.log(`[Gemini] K4 Parsed data:`, JSON.stringify(dataK4, null, 2));
-        
-        Object.assign(finalLkpsData, dataK4);
-        console.log(`[Gemini] ✓ Kriteria 4 extracted - NDTPS: ${finalLkpsData.ndtps || 0}, PDS3: ${finalLkpsData.pds3 || 0}%, PGBLKL: ${finalLkpsData.pgblkl || 0}%, Publikasi RI: ${finalLkpsData.publikasi_ilmiah_dtps_ri || 0}, Publikasi RN: ${finalLkpsData.publikasi_ilmiah_dtps_rn || 0}`);
+        try {
+          const responseK4 = await this.generateGeminiResponse(lkpsPromptK4);
+          logger.debug(`[Gemini] K4 Raw response: ${responseK4.substring(0, 500)}...`);
+
+          const dataK4 = this.parseJSONResponse(responseK4, 'lkps_data');
+          logger.debug(`[Gemini] K4 Parsed data: ${JSON.stringify(dataK4)}`);
+
+          Object.assign(finalLkpsData, dataK4);
+          logger.info(`[Gemini] Kriteria 4 extracted - NDTPS: ${finalLkpsData.ndtps || 0}, PDS3: ${finalLkpsData.pds3 || 0}%, PGBLKL: ${finalLkpsData.pgblkl || 0}%, Publikasi RI: ${finalLkpsData.publikasi_ilmiah_dtps_ri || 0}, Publikasi RN: ${finalLkpsData.publikasi_ilmiah_dtps_rn || 0}`);
+        } catch (error) {
+          // Non-fatal: lanjut ke kriteria lain. Butir K4 yang kosong nanti di-floor (low_confidence).
+          errors.push(`LKPS extraction failed for Kriteria 4: ${error.message}`);
+          logger.error(`[Gemini] K4 extraction error (non-fatal): ${error.message}`);
+        }
       }
 
       // Process other criteria
@@ -863,7 +962,8 @@ ${butirLines}
       
       for (const i of criteriaToProcess) {
         const criterion = this.criteriaConfig[i];
-        console.log(`[Gemini] Processing Kriteria ${i}: ${criterion.name}...`);
+        logger.info(`[Gemini] Processing Kriteria ${i}: ${criterion.name}...`);
+
 
         await new Promise(resolve => setTimeout(resolve, 2000)); // Rate limiting
 
@@ -903,14 +1003,14 @@ ${butirLines}
               let sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5c ---');
               if (sheet5cIdx === -1) sheet5cIdx = lkpsContent.indexOf('--- Sheet: 5.c ---');
 
-              console.log(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
+              logger.debug(`[Gemini] K6 Sheets: 5a=${sheet5aIdx}, 5b=${sheet5bIdx}, 5c=${sheet5cIdx}`);
 
               if (sheet5aIdx !== -1) {
                 // Extract from Sheet 5a to end of 5d (or 80KB)
                 const start = sheet5aIdx;
                 const end = Math.min(lkpsContent.length, start + 80000);
                 snippet = lkpsContent.substring(start, end);
-                console.log(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
+                logger.debug(`[Gemini] Using Sheets 5a-5d directly from position ${start}-${end}`);
               } else {
                 // Fallback
                 snippet = this.findRelevantSnippet(lkpsContent, [
@@ -939,26 +1039,27 @@ ${butirLines}
               const lkpsData = this.parseJSONResponse(lkpsResponse, 'lkps_data');
               
               // Log extracted data for debugging
-              console.log(`[Gemini] K${i} LKPS extracted fields:`, Object.keys(lkpsData).length);
+              logger.info(`[Gemini] K${i} LKPS extracted fields: ${Object.keys(lkpsData).length}`);
               if (i === 2) {
-                console.log(`[Gemini] K2 (Akuntabilitas) - BOP: ${lkpsData.bop_value || 0}, DPD: ${lkpsData.dpd_total || 0}, Kerjasama Pendidikan: ${lkpsData.kerjasama_pendidikan || 0}, Penelitian: ${lkpsData.kerjasama_penelitian || 0}, PKM: ${lkpsData.kerjasama_pkm || 0}, Internasional: ${lkpsData.kerjasama_internasional || 0}, Nasional: ${lkpsData.kerjasama_nasional || 0}, Wilayah: ${lkpsData.kerjasama_wilayah || 0}`);
+                logger.debug(`[Gemini] K2 (Akuntabilitas) - BOP: ${lkpsData.bop_value || 0}, DPD: ${lkpsData.dpd_total || 0}, Kerjasama Pendidikan: ${lkpsData.kerjasama_pendidikan || 0}, Penelitian: ${lkpsData.kerjasama_penelitian || 0}, PKM: ${lkpsData.kerjasama_pkm || 0}, Internasional: ${lkpsData.kerjasama_internasional || 0}, Nasional: ${lkpsData.kerjasama_nasional || 0}, Wilayah: ${lkpsData.kerjasama_wilayah || 0}`);
               } else if (i === 6) {
-                console.log(`[Gemini] K6 (Mahasiswa) - RMD: ${lkpsData.rmd || 0}, PMA: ${lkpsData.pma || 0}%, RIPK: ${lkpsData.ripk || 0}, Prestasi Akademik RI: ${lkpsData.prestasi_akademik_ri || 0}, RN: ${lkpsData.prestasi_akademik_rn || 0}, PTW: ${lkpsData.ptw || 0}%, WT: ${lkpsData.wt || 0}, KBK: ${lkpsData.kbk || 0}%`);
+                logger.debug(`[Gemini] K6 (Mahasiswa) - RMD: ${lkpsData.rmd || 0}, PMA: ${lkpsData.pma || 0}%, RIPK: ${lkpsData.ripk || 0}, Prestasi Akademik RI: ${lkpsData.prestasi_akademik_ri || 0}, RN: ${lkpsData.prestasi_akademik_rn || 0}, PTW: ${lkpsData.ptw || 0}%, WT: ${lkpsData.wt || 0}, KBK: ${lkpsData.kbk || 0}%`);
               }
               
               Object.assign(finalLkpsData, lkpsData);
             } catch (error) {
               errors.push(`LKPS extraction failed for Kriteria ${i}: ${error.message}`);
-              console.error(`[Gemini] LKPS extraction error K${i}:`, error.message);
+              logger.error(`[Gemini] LKPS extraction error K${i}: ${error.message}`);
             }
           }
         }
 
-        console.log(`[Gemini] ✓ Kriteria ${i} completed`);
+        logger.info(`[Gemini] ✓ Kriteria ${i} completed`);
       }
 
-      console.log(`[Gemini] Extraction complete! LED fields: ${Object.keys(finalLedData).length}, LKPS fields: ${Object.keys(finalLkpsData).length}`);
-      console.log(`[Gemini] LKPS Summary - NDTPS: ${finalLkpsData.ndtps || 0}, PGBLKL: ${finalLkpsData.pgblkl || 0}%, Publikasi RI: ${finalLkpsData.publikasi_ilmiah_dtps_ri || 0}, Kerjasama Int: ${finalLkpsData.kerjasama_internasional || 0}, Prestasi Akademik RI: ${finalLkpsData.prestasi_akademik_ri || 0}`);
+      logger.info(`[Gemini] Extraction complete! LED fields: ${Object.keys(finalLedData).length}, LKPS fields: ${Object.keys(finalLkpsData).length}`);
+      logger.info(`[Gemini] LKPS Summary - NDTPS: ${finalLkpsData.ndtps || 0}, PGBLKL: ${finalLkpsData.pgblkl || 0}%, Publikasi RI: ${finalLkpsData.publikasi_ilmiah_dtps_ri || 0}, Kerjasama Int: ${finalLkpsData.kerjasama_internasional || 0}, Prestasi Akademik RI: ${finalLkpsData.prestasi_akademik_ri || 0}`);
+
 
       // Check if we got any meaningful data
       const hasData = Object.keys(finalLedData).length > 0 || Object.keys(finalLkpsData).length > 0;
@@ -969,11 +1070,14 @@ ${butirLines}
         throw new Error(`AI analysis failed: ${errors.join('; ')}`);
       }
 
+      // PENTING: kesiapan skoring HANYA bergantung pada adanya data (≥1 field), BUKAN pada
+      // nol error. Sebelumnya 1 panggilan 429 → errors terisi → skoring dilewati total. Padahal
+      // butir yang datanya kosong sudah di-floor (low_confidence 2.0) oleh scoring service.
       return {
         led_data: finalLedData,
         lkps_data: finalLkpsData,
         scoring_readiness: {
-          ready_for_lamtek_scoring: hasData && errors.length === 0,
+          ready_for_lamtek_scoring: hasData,
           error: errors.length > 0 ? errors.join('; ') : null
         }
       };
@@ -1000,7 +1104,7 @@ ${butirLines}
    */
   async matchAssessorExpertise(programStudi, assessors) {
     if (!this.genAI) {
-      console.warn('[Gemini] AI not available, returning assessors without ranking');
+      logger.warn('[Gemini] AI not available, returning assessors without ranking');
       return assessors.map((a, i) => ({
         ...a,
         similarityScore: 50,
@@ -1015,7 +1119,7 @@ ${butirLines}
       const timeSinceLastRequest = now - this.lastRequestTime;
       if (timeSinceLastRequest < this.minRequestIntervalMs) {
         const waitTime = this.minRequestIntervalMs - timeSinceLastRequest;
-        console.log(`[Gemini] Rate limiting: waiting ${waitTime}ms before assessor matching`);
+        logger.info(`[Gemini] Rate limiting: waiting ${waitTime}ms before assessor matching`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
       this.lastRequestTime = Date.now();
@@ -1113,11 +1217,11 @@ PENTING: Output hanya JSON array, tanpa penjelasan lain.
       rankedAssessors.sort((a, b) => b.similarityScore - a.similarityScore);
       rankedAssessors.forEach((a, i) => { a.rank = i + 1; });
 
-      console.log(`[Gemini] ✅ Assessor matching complete for "${programStudi}"`);
+      logger.info(`[Gemini] Assessor matching complete for "${programStudi}"`);
       return rankedAssessors;
 
     } catch (error) {
-      console.error('[Gemini] Assessor matching error:', error.message);
+      logger.error(`[Gemini] Assessor matching error: ${error.message}`);
       return assessors.map((a, i) => ({
         ...a,
         similarityScore: 50,

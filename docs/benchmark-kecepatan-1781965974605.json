@@ -1,0 +1,284 @@
+{
+  "title": "Benchmark Kecepatan Pembacaan Dokumen Akreditasi hingga Skor (AkreChain)",
+  "environment": {
+    "timestamp": "2026-06-20T14:32:54.610Z",
+    "node": "v22.20.0",
+    "platform": "linux x64",
+    "cpus": 12,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz",
+    "totalMemGB": 7.6,
+    "geminiModel": "gemini-3.1-flash-lite",
+    "geminiFallbackModel": "gemini-2.5-flash-lite",
+    "geminiMinIntervalMs": 4000,
+    "embeddingProvider": "local",
+    "fullRag": true,
+    "embeddingEnabled": true
+  },
+  "dataset": {
+    "led": {
+      "path": "/home/virgi/blockchain-new/skoring/Dokumen_led_S3 (6).pdf",
+      "name": "Dokumen_led_S3 (6).pdf",
+      "sizeBytes": 8156885,
+      "sizeMB": 7.78
+    },
+    "lkps": {
+      "path": "/home/virgi/blockchain-new/skoring/LKPS  S3 AKREDITASI 2026 (6).xlsx",
+      "name": "LKPS  S3 AKREDITASI 2026 (6).xlsx",
+      "sizeBytes": 1286119,
+      "sizeMB": 1.23
+    },
+    "programType": "D",
+    "prodi": "Program Studi Doktor (Contoh Prof)",
+    "institusi": "Perguruan Tinggi Contoh"
+  },
+  "config": {
+    "runs": 5,
+    "warmupExcluded": true,
+    "timingUnit": "milliseconds"
+  },
+  "warmup": {
+    "stages": {
+      "extractLED": 1743.411616,
+      "extractLKPS": 1370.721021,
+      "verify": 7.787573,
+      "indexRAG": 79089.564692,
+      "analyzeAI": 56468.191873,
+      "qualitativeScoring": 17467.738407,
+      "calcLAMTEK": 1.946935,
+      "total": 156209.395678
+    },
+    "ok": true,
+    "error": null
+  },
+  "runs": [
+    {
+      "runIndex": 1,
+      "submissionId": "BENCH-1781966133809-1",
+      "stages": {
+        "extractLED": 1010.541387,
+        "extractLKPS": 1089.599693,
+        "verify": 7.78306,
+        "indexRAG": 77864.524602,
+        "analyzeAI": 53352.664864,
+        "qualitativeScoring": 17909.205467,
+        "calcLAMTEK": 2.229664,
+        "total": 151237.981955
+      },
+      "ok": true,
+      "error": null,
+      "meta": {
+        "ledChars": 706361,
+        "lkpsChars": 689313,
+        "ledChunks": 479,
+        "lkpsChunks": 157,
+        "ragAvailable": true,
+        "ledFieldsExtracted": 29,
+        "lkpsFieldsExtracted": 42,
+        "readyForScoring": true,
+        "finalScore": 3.18,
+        "maxPossibleScore": 4,
+        "percentage": 79.46103434315684,
+        "akreditasi": "Baik Sekali"
+      }
+    },
+    {
+      "runIndex": 2,
+      "submissionId": "BENCH-1781966287175-2",
+      "stages": {
+        "extractLED": 1092.854448,
+        "extractLKPS": 1087.478587,
+        "verify": 8.342181,
+        "indexRAG": 77000.493139,
+        "analyzeAI": 48408.196734,
+        "qualitativeScoring": 18621.234232,
+        "calcLAMTEK": 3.116033,
+        "total": 146223.367605
+      },
+      "ok": true,
+      "error": null,
+      "meta": {
+        "ledChars": 706361,
+        "lkpsChars": 689313,
+        "ledChunks": 479,
+        "lkpsChunks": 157,
+        "ragAvailable": true,
+        "ledFieldsExtracted": 29,
+        "lkpsFieldsExtracted": 42,
+        "readyForScoring": true,
+        "finalScore": 3.27,
+        "maxPossibleScore": 4,
+        "percentage": 81.86767367382618,
+        "akreditasi": "Baik Sekali"
+      }
+    },
+    {
+      "runIndex": 3,
+      "submissionId": "BENCH-1781966436326-3",
+      "stages": {
+        "extractLED": 1109.703992,
+        "extractLKPS": 1243.930933,
+        "verify": 7.631607,
+        "indexRAG": 78770.748154,
+        "analyzeAI": 44273.74142,
+        "qualitativeScoring": 19140.636341,
+        "calcLAMTEK": 2.260216,
+        "total": 144549.989628
+      },
+      "ok": true,
+      "error": null,
+      "meta": {
+        "ledChars": 706361,
+        "lkpsChars": 689313,
+        "ledChunks": 479,
+        "lkpsChunks": 157,
+        "ragAvailable": true,
+        "ledFieldsExtracted": 29,
+        "lkpsFieldsExtracted": 42,
+        "readyForScoring": true,
+        "finalScore": 3.12,
+        "maxPossibleScore": 4,
+        "percentage": 77.90073304445555,
+        "akreditasi": "Baik Sekali"
+      }
+    },
+    {
+      "runIndex": 4,
+      "submissionId": "BENCH-1781966583901-4",
+      "stages": {
+        "extractLED": 1074.878051,
+        "extractLKPS": 1109.028894,
+        "verify": 7.426489,
+        "indexRAG": 79881.381475,
+        "analyzeAI": 54672.588994,
+        "qualitativeScoring": 19118.011269,
+        "calcLAMTEK": 2.212707,
+        "total": 155866.879969
+      },
+      "ok": true,
+      "error": null,
+      "meta": {
+        "ledChars": 706361,
+        "lkpsChars": 689313,
+        "ledChunks": 479,
+        "lkpsChunks": 157,
+        "ragAvailable": true,
+        "ledFieldsExtracted": 29,
+        "lkpsFieldsExtracted": 42,
+        "readyForScoring": true,
+        "finalScore": 3.36,
+        "maxPossibleScore": 4,
+        "percentage": 83.95620422077921,
+        "akreditasi": "Baik Sekali"
+      }
+    },
+    {
+      "runIndex": 5,
+      "submissionId": "BENCH-1781966743181-5",
+      "stages": {
+        "extractLED": 1067.78123,
+        "extractLKPS": 1099.538627,
+        "verify": 8.322157,
+        "indexRAG": 77661.068577,
+        "analyzeAI": 52788.49196,
+        "qualitativeScoring": 18140.302906,
+        "calcLAMTEK": 2.147664,
+        "total": 150769.04129
+      },
+      "ok": true,
+      "error": null,
+      "meta": {
+        "ledChars": 706361,
+        "lkpsChars": 689313,
+        "ledChunks": 479,
+        "lkpsChunks": 157,
+        "ragAvailable": true,
+        "ledFieldsExtracted": 29,
+        "lkpsFieldsExtracted": 42,
+        "readyForScoring": true,
+        "finalScore": 3.27,
+        "maxPossibleScore": 4,
+        "percentage": 81.68761352263068,
+        "akreditasi": "Baik Sekali"
+      }
+    }
+  ],
+  "summary": {
+    "extractLED": {
+      "mean": 1071.15,
+      "std": 33.63,
+      "min": 1010.54,
+      "max": 1109.7,
+      "median": 1074.88,
+      "cvPercent": 3.1
+    },
+    "extractLKPS": {
+      "mean": 1125.92,
+      "std": 59.51,
+      "min": 1087.48,
+      "max": 1243.93,
+      "median": 1099.54,
+      "cvPercent": 5.3
+    },
+    "verify": {
+      "mean": 7.9,
+      "std": 0.37,
+      "min": 7.43,
+      "max": 8.34,
+      "median": 7.78,
+      "cvPercent": 4.7
+    },
+    "indexRAG": {
+      "mean": 78235.64,
+      "std": 998.82,
+      "min": 77000.49,
+      "max": 79881.38,
+      "median": 77864.52,
+      "cvPercent": 1.3
+    },
+    "analyzeAI": {
+      "mean": 50699.14,
+      "std": 3840.03,
+      "min": 44273.74,
+      "max": 54672.59,
+      "median": 52788.49,
+      "cvPercent": 7.6
+    },
+    "qualitativeScoring": {
+      "mean": 18585.88,
+      "std": 499.72,
+      "min": 17909.21,
+      "max": 19140.64,
+      "median": 18621.23,
+      "cvPercent": 2.7
+    },
+    "calcLAMTEK": {
+      "mean": 2.39,
+      "std": 0.36,
+      "min": 2.15,
+      "max": 3.12,
+      "median": 2.23,
+      "cvPercent": 15.2
+    },
+    "total": {
+      "mean": 149729.45,
+      "std": 4003.6,
+      "min": 144549.99,
+      "max": 155866.88,
+      "median": 150769.04,
+      "cvPercent": 2.7
+    }
+  },
+  "resultConsistency": {
+    "finalScores": [
+      3.18,
+      3.27,
+      3.12,
+      3.36,
+      3.27
+    ],
+    "akreditasi": [
+      "Baik Sekali"
+    ]
+  },
+  "generatedAt": "2026-06-20T14:48:17.421Z"
+}
