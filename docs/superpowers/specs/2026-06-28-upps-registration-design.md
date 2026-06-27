@@ -1,7 +1,7 @@
 # UPPS Registration — Design Spec
 
 **Date**: 2026-06-28
-**Status**: Approved (pending spec review)
+**Status**: Approved + Resend email integration added
 **Owner**: darwan
 
 ## Context
@@ -21,7 +21,6 @@ Spec ini mendefinisikan bagaimana AkreChain meniru flow SAKTI tersebut, sehingga
 
 ## Non-Goals
 
-- Email notification setup (di-scope out; provider TBD by user)
 - Frontend admin/UPPS dashboard untuk manage registration setelah approve
 - SSO / OAuth login
 - Captcha / anti-bot protection (di-scope out; rate-limit di API cukup)
@@ -306,6 +305,44 @@ Token format: JWT signed dengan secret backend, expired dalam 7 hari, payload `{
 
 ## Open Questions / Future Work
 
-- Email notification on approve/reject: provider TBD (Resend recommended). Token resubmit akan dikirim via email saat menolak.
 - Captcha / rate-limiting on public endpoint (mitigated by express-rate-limit on `/api/`)
 - Institution/prodi list might update from LAM Teknik — re-run scraper periodically
+
+## Email Integration (Resend)
+
+Provider: **Resend** (https://resend.com). Package: `resend` (Node SDK).
+
+```js
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+await resend.emails.send({
+  from: process.env.EMAIL_FROM,
+  to: user.email,
+  subject: '...',
+  html: '...',
+});
+```
+
+### Email events (semua best-effort, jangan block flow utama)
+
+| Trigger | Recipient | Subject |
+|---------|-----------|---------|
+| Registration request submitted | UPPS email | "Pendaftaran AkreChain diterima — menunggu approval" |
+| Request approved | UPPS email | "Akun UPPS AkreChain Anda telah aktif" |
+| Request rejected + resubmit token | UPPS email | "Pendaftaran ditolak — silakan perbaiki & resubmit" |
+
+### Service file: `src/services/emailService.js`
+
+- Singleton `Resend` instance
+- Methods: `sendRegistrationReceived()`, `sendApprovalNotification()`, `sendRejectionWithResubmitToken()`
+- All methods return `{ success, id?, error? }` — caller decides whether to log or surface
+- Wrap in try/catch — email failure gak boleh gagalkan flow utama
+
+### Templates
+
+Plain HTML strings (no React Email for v1 — keep simple). Style inline CSS. Templates:
+- `emails/registration-received.html`
+- `emails/approval-notification.html`
+- `emails/rejection-resubmit.html`
+
+Resend free tier: 100 emails/day, 3000/month — cukup untuk registration flow.
