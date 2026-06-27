@@ -6,7 +6,8 @@ module.exports = {
   server: {
     port: process.env.PORT || 8000,
     env: process.env.NODE_ENV || 'development',
-    apiPrefix: '/api/v1'
+    apiPrefix: '/api/v1',
+    publicBaseUrl: process.env.PUBLIC_BASE_URL || ''
   },
 
   // CORS Configuration
@@ -23,6 +24,12 @@ module.exports = {
     fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-2',
     minRequestIntervalMs: parseInt(process.env.GEMINI_MIN_REQUEST_INTERVAL_MS || '4000')
+  },
+
+  // Resubmit Token (JWT) — for rejected registration resubmit links
+  resubmitToken: {
+    secret: process.env.RESUBMIT_TOKEN_SECRET || process.env.JWT_SECRET || 'dev-resubmit-secret',
+    expiresIn: '7d',
   },
 
   // Toggle Full RAG. FULL_RAG=false → mode "lightweight" (retrieval kata kunci, versi lama).
@@ -49,6 +56,13 @@ module.exports = {
   pinata: {
     jwt: process.env.PINATA_JWT,
     gateway: process.env.PINATA_GATEWAY || 'gateway.pinata.cloud'
+  },
+
+  // Resend Email (for registration approval/rejection notifications)
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || '',
+    from: process.env.EMAIL_FROM || 'AkreChain <onboarding@resend.dev>',
+    replyTo: process.env.EMAIL_REPLY_TO || '',
   },
 
   // Hyperledger Fabric Configuration
