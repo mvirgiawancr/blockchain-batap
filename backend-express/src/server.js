@@ -31,6 +31,9 @@ const alExecutionRoutes = require('./routes/alExecution'); // Phase 4
 const verificationRoutes = require('./routes/verification'); // Phase 5
 const releaseRoutes = require('./routes/release'); // Phase 6
 const traceabilityRoutes = require('./routes/traceability'); // Traceability
+const documentValidationRoutes = require('./routes/documentValidation'); // UPPS doc template validation
+const registrationRoutes = require('./routes/registration'); // UPPS registration
+const sekretariatRegistrationRoutes = require('./routes/sekretariatRegistration'); // Sekretariat registration management
 
 
 // Import WebSocket
@@ -112,6 +115,9 @@ app.use(`${config.server.apiPrefix}/al-execution`, alExecutionRoutes); // Phase 
 app.use(`${config.server.apiPrefix}/verification`, verificationRoutes); // Phase 5: Verification & Decision
 app.use(`${config.server.apiPrefix}/release`, releaseRoutes); // Phase 6: Certificate Release
 app.use(`${config.server.apiPrefix}/traceability`, traceabilityRoutes); // Traceability & Certificate Search
+app.use(`${config.server.apiPrefix}/document-validation`, documentValidationRoutes); // UPPS document template validation
+app.use(`${config.server.apiPrefix}/auth/register-upps`, registrationRoutes); // UPPS registration (public)
+app.use(`${config.server.apiPrefix}/sekretariat/registrations`, sekretariatRegistrationRoutes); // Sekretariat registration management
 
 // Error handling middleware
 app.use(notFound);
