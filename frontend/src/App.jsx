@@ -17,6 +17,7 @@ import SekretariatUPPSPage from './pages/SekretariatUPPSPage';
 import SekretariatPaymentPage from './pages/SekretariatPaymentPage';
 import SekretariatReportsPage from './pages/SekretariatReportsPage';
 import SekretariatALApprovalPage from './pages/SekretariatALApprovalPage';
+import SekretariatRegistrationsPage from './pages/SekretariatRegistrationsPage';
 import KEAAssignmentsPage from './pages/KEAAssignmentsPage';
 import KEAMonitoringPage from './pages/KEAMonitoringPage';
 import KEAConsistencyPage from './pages/KEAConsistencyPage';
@@ -97,6 +98,14 @@ function App() {
             element={
               <ProtectedRoute roles={['sekretariat', 'admin']}>
                 <SekretariatDashboard user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sekretariat/registrations"
+            element={
+              <ProtectedRoute roles={['sekretariat', 'admin']}>
+                <SekretariatRegistrationsPage user={currentUser} />
               </ProtectedRoute>
             }
           />
