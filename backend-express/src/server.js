@@ -34,6 +34,7 @@ const traceabilityRoutes = require('./routes/traceability'); // Traceability
 const documentValidationRoutes = require('./routes/documentValidation'); // UPPS doc template validation
 const registrationRoutes = require('./routes/registration'); // UPPS registration
 const sekretariatRegistrationRoutes = require('./routes/sekretariatRegistration'); // Sekretariat registration management
+const referenceRoutes = require('./routes/reference'); // Reference data (institutions, prodi, jenjang)
 
 
 // Import WebSocket
@@ -118,6 +119,7 @@ app.use(`${config.server.apiPrefix}/traceability`, traceabilityRoutes); // Trace
 app.use(`${config.server.apiPrefix}/document-validation`, documentValidationRoutes); // UPPS document template validation
 app.use(`${config.server.apiPrefix}/auth/register-upps`, registrationRoutes); // UPPS registration (public)
 app.use(`${config.server.apiPrefix}/sekretariat/registrations`, sekretariatRegistrationRoutes); // Sekretariat registration management
+app.use(`${config.server.apiPrefix}/reference`, referenceRoutes); // Reference data (public)
 
 // Error handling middleware
 app.use(notFound);
