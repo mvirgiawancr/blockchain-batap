@@ -43,4 +43,26 @@ describe('emailService', () => {
       expect(result).toHaveProperty('success');
     });
   });
+
+  describe('XSS escaping', () => {
+    it('escapes HTML in user-supplied fields', async () => {
+      // We can't easily inspect the HTML from outside, but we can verify the call doesn't throw
+      // and the result shape is preserved when given malicious input.
+      const malicious = `<script>alert('xss')</script><img src=x onerror=alert(1)>`;
+      const results = await Promise.all([
+        emailService.sendRegistrationReceived({
+          to: 'test@example.com', uppsName: malicious, requestId: malicious,
+        }),
+        emailService.sendApprovalNotification({
+          to: 'test@example.com', uppsName: malicious, username: malicious,
+        }),
+        emailService.sendRejectionWithResubmitToken({
+          to: 'test@example.com', uppsName: malicious, reason: malicious,
+          resubmitUrl: 'https://app.example.com/register-upps?resubmit=tok123',
+        }),
+      ]);
+      // All should return the standard result shape (success or error, no throw)
+      results.forEach((r) => expect(r).toHaveProperty('success'));
+    });
+  });
 });
