@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/authenticate');
 const { authorize } = require('../middleware/authorize');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-router.use(authenticate, authorize('sekretariat'));
+router.use(authenticate, authorize('sekretariat', 'admin'));
 
 router.get('/', asyncHandler(ctrl.list));
 router.get('/:id', asyncHandler(ctrl.detail));
