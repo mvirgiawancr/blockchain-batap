@@ -14,13 +14,13 @@ Visualisasi alur sebelum vs sesudah (sumber Mermaid source ada di bagian bawah d
 
 ### Sebelum (Legacy Admin Single-Step)
 
-![Flow sebelum](../assets/upps-registration/flow-before.svg)
+![Flow sebelum](../../assets/upps-registration/flow-before.svg)
 
 ### Sesudah (3-Step Wizard + Approval)
 
-![Flow sesudah](../assets/upps-registration/flow-after.svg)
+![Flow sesudah](../../assets/upps-registration/flow-after.svg)
 
-> **Catatan:** file gambar harus ada di `docs/assets/upps-registration/flow-before.svg` & `flow-after.svg`. Kalau belum di-drop, image di atas akan broken.
+> **Catatan:** file gambar ada di `docs/assets/upps-registration/flow-before.svg` & `flow-after.svg`.
 
 ---
 
