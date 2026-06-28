@@ -68,7 +68,7 @@ const calculateScores = async (req, res, next) => {
         status: 'under_review',
         updatedAt: new Date().toISOString()
       },
-      { mspOrg: req.user?.msp_org }
+      { userId: req.user?.id }
     );
 
     res.json({
@@ -328,7 +328,7 @@ const manualScoring = async (req, res, next) => {
     await fabricService.updateSubmission(
       submissionId,
       { scoringResult },
-      { mspOrg: req.user?.msp_org }
+      { userId: req.user?.id }
     );
 
     res.json({

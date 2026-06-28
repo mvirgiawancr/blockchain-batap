@@ -402,7 +402,7 @@ const uploadDocuments = async (req, res, next) => {
         });
 
         await fabricService.submitSubmission(submission, {
-          mspOrg: actor.msp_org || submission.submittedByOrg
+          userId: actor.id
         });
         logger.info('Submission stored on blockchain successfully');
         

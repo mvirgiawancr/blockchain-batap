@@ -32,7 +32,7 @@ const getPendingVerifications = async (req, res, next) => {
                 let programStudi = 'N/A';
                 let institusi = 'N/A';
                 try {
-                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'KEA' });
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { userId: req.user?.id });
                     if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                     programStudi = blockchainData.programStudi || 'N/A';
                     institusi = blockchainData.institusi || 'N/A';
@@ -77,7 +77,7 @@ const getPendingDecisions = async (req, res, next) => {
                 let programStudi = 'N/A';
                 let institusi = 'N/A';
                 try {
-                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'MajelisMSP' });
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { userId: req.user?.id });
                     if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                     programStudi = blockchainData.programStudi || 'N/A';
                     institusi = blockchainData.institusi || 'N/A';
@@ -308,7 +308,7 @@ const getDecidedSubmissions = async (req, res, next) => {
                 let programStudi = 'N/A';
                 let institusi = 'N/A';
                 try {
-                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'MajelisMSP' });
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { userId: req.user?.id });
                     if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                     programStudi = blockchainData.programStudi || 'N/A';
                     institusi = blockchainData.institusi || 'N/A';

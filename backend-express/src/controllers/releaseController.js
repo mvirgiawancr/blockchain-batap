@@ -38,7 +38,7 @@ const getReadyForRelease = async (req, res, next) => {
                 let programStudi = 'N/A';
                 let institusi = 'N/A';
                 try {
-                    let blockchainData = await fabricService.querySubmission(row.submission_id, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                    let blockchainData = await fabricService.querySubmission(row.submission_id, { userId: req.user?.id });
                     if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                     programStudi = blockchainData.programStudi || 'N/A';
                     institusi = blockchainData.institusi || 'N/A';
@@ -87,7 +87,7 @@ const previewCertificate = async (req, res, next) => {
             let programStudi = 'N/A';
             let institusi = 'N/A';
             try {
-                let blockchainData = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                let blockchainData = await fabricService.querySubmission(submissionId, { userId: req.user?.id });
                 if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                 programStudi = blockchainData.programStudi || 'N/A';
                 institusi = blockchainData.institusi || 'N/A';
@@ -153,7 +153,7 @@ const publishCertificate = async (req, res, next) => {
             let programStudi = 'N/A';
             let institusi = 'N/A';
             try {
-                let blockchainData = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                let blockchainData = await fabricService.querySubmission(submissionId, { userId: req.user?.id });
                 if (typeof blockchainData === 'string') blockchainData = JSON.parse(blockchainData);
                 programStudi = blockchainData.programStudi || 'N/A';
                 institusi = blockchainData.institusi || 'N/A';
@@ -316,7 +316,7 @@ const downloadCertificate = async (req, res, next) => {
             let programStudi = 'N/A';
             let institusi = 'N/A';
             try {
-                let bc = await fabricService.querySubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+                let bc = await fabricService.querySubmission(submissionId, { userId: req.user?.id });
                 if (typeof bc === 'string') bc = JSON.parse(bc);
                 programStudi = bc.programStudi || 'N/A';
                 institusi = bc.institusi || 'N/A';

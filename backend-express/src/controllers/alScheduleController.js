@@ -151,7 +151,7 @@ exports.approveSchedule = async (req, res) => {
           } catch (_) { /* abaikan */ }
           // Kedua asesor dari blockchain (assignedAssessors)
           try {
-            const sub = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+            const sub = await fabricService.getSubmission(submissionId, { userId: req.user?.id });
             const aa = sub?.assignedAssessors;
             if (aa?.assessor1Id) recipients.push(aa.assessor1Id);
             if (aa?.assessor2Id) recipients.push(aa.assessor2Id);
@@ -254,7 +254,7 @@ exports.getPendingSchedules = async (req, res) => {
           try {
             const submission = await fabricService.getSubmission(
               schedule.submission_id, 
-              { mspOrg: req.user?.msp_org || 'UPPSMSP' }
+              { userId: req.user?.id }
             );
             return {
               ...schedule,
@@ -480,7 +480,7 @@ exports.generateAssignmentLetter = async (req, res) => {
     // Try to get submission details from blockchain, with fallback
     let submission = null;
     try {
-      submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+      submission = await fabricService.getSubmission(submissionId, { userId: req.user?.id });
     } catch (error) {
       logger.warn(`Could not fetch submission from blockchain for letter generation: ${error.message}. Using fallback data.`);
     }
@@ -544,7 +544,7 @@ exports.downloadAssignmentLetter = async (req, res) => {
 
     let submission = null;
     try {
-      submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user?.msp_org || 'SekretariatMSP' });
+      submission = await fabricService.getSubmission(submissionId, { userId: req.user?.id });
     } catch (e) {
       logger.warn(`[SuratTugas] Tidak bisa ambil submission dari blockchain: ${e.message}. Pakai fallback.`);
     }

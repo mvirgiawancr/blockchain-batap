@@ -340,7 +340,7 @@ const setDecision = async (req, res, next) => {
       decision,
       notes,
       decisionData.decidedBy,
-      { mspOrg: actor.msp_org }
+      { userId: actor.id }
     );
 
     logger.info(`Decision set successfully for submission ${id}: ${decision}`);
@@ -508,7 +508,7 @@ const respondToAssessorOffer = async (req, res, next) => {
       response,
       notes,
       actor.username,
-      { mspOrg: actor.msp_org }
+      { userId: actor.id }
     );
 
     res.json({ success: true, result });
@@ -529,8 +529,8 @@ const getSubmissionHistory = async (req, res, next) => {
 
     logger.info(`Fetching submission history: ${id}`);
 
-    const history = await fabricService.getSubmissionHistory(id, { 
-      mspOrg: actor.msp_org || actor.role 
+    const history = await fabricService.getSubmissionHistory(id, {
+      userId: actor.id
     });
 
     // Parse history if it's a string

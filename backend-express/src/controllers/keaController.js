@@ -15,7 +15,7 @@ const config = require('../config');
 exports.getApprovedSubmissions = async (req, res) => {
   try {
     const db = require('../config/database');
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
     
     // Filter for submissions that need assignment (e.g. status 'submitted' or 'approved' and no currentOffer)
     const readySubmissions = submissions.filter(s => 
@@ -251,7 +251,7 @@ exports.assignAssessors = async (req, res) => {
       assessor2Id,
       assessor2Name || assessor2Id,
       req.user.username,
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     // Create notifications for assessors
@@ -281,7 +281,7 @@ exports.assignAssessors = async (req, res) => {
  */
 exports.getMonitoring = async (req, res) => {
   try {
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
     
     // Transform submissions into monitoring data
     const monitoringData = submissions.map(s => {
@@ -339,7 +339,7 @@ exports.getMonitoring = async (req, res) => {
  */
 exports.getConsistencyAnalysis = async (req, res) => {
   try {
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
     
     // Filter for submissions where both assessors have submitted AK
     const readyForCheck = submissions.filter(s => 
@@ -387,7 +387,7 @@ exports.setConsistency = async (req, res) => {
       consistent,
       req.user.username,
       notes || '',
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     logger.info(`Consistency set for ${submissionId}: ${consistent}`);
@@ -410,7 +410,7 @@ exports.getConsistencyDetail = async (req, res) => {
     const { submissionId } = req.params;
     
     // Get the specific submission
-    const submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user.msp_org });
+    const submission = await fabricService.getSubmission(submissionId, { userId: req.user.id });
     
     if (!submission) {
       return res.status(404).json({ error: 'Submission not found' });
@@ -467,7 +467,7 @@ exports.getConsistencyDetail = async (req, res) => {
  */
 exports.getPendingRejections = async (req, res) => {
   try {
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
     
     // Filter for submissions where UPPS rejected the offer and KEA review is pending
     const pendingRejections = submissions.filter(s => 
@@ -522,11 +522,11 @@ exports.reviewRejection = async (req, res) => {
       decision,
       notes || '',
       req.user.username,
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     // Create notification for UPPS
-    const submission = await fabricService.getSubmission(submissionId, { mspOrg: req.user.msp_org });
+    const submission = await fabricService.getSubmission(submissionId, { userId: req.user.id });
     if (submission && submission.submittedBy) {
       const message = decision === 'reason_accepted'
         ? `Alasan penolakan asesor untuk ${submission.programStudi} diterima. Asesor baru akan ditugaskan.`

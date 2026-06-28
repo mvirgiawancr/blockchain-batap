@@ -17,7 +17,7 @@ exports.getAssignments = async (req, res) => {
     const asesorId = req.user.id;
     
     // Get all submissions and filter for this assessor
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
     
     const filteredSubmissions = submissions.filter(s => {
       // Check for offers
@@ -128,7 +128,7 @@ exports.acceptAssignment = async (req, res) => {
       asesorId,
       response || 'accepted',
       notes || '',
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     logger.info(`Assignment ${id} ${response || 'accepted'} by ${asesorId}`);
@@ -160,7 +160,7 @@ exports.respondToOffer = async (req, res) => {
       asesorId,
       response || 'accepted',
       notes || '',
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     logger.info(`Offer for ${submissionId} ${response || 'accepted'} by ${asesorId}`);
@@ -191,7 +191,7 @@ exports.submitAssessment = async (req, res) => {
       asesorName,
       scores,
       notes || '',
-      { mspOrg: req.user.msp_org }
+      { userId: req.user.id }
     );
 
     logger.info(`Assessment submitted for assignment ${id} by ${asesorId}`);
@@ -212,7 +212,7 @@ exports.submitAssessment = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const asesorId = req.user.id;
-    const submissions = await fabricService.getAllSubmissions({ mspOrg: req.user.msp_org });
+    const submissions = await fabricService.getAllSubmissions({ userId: req.user.id });
 
     const history = submissions.filter(s => 
       s.akAssessments && s.akAssessments.find(a => a.assessorId === asesorId)
