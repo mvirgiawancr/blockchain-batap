@@ -30,9 +30,110 @@ export default function SubmissionsPage({ user }) {
       
       if (response.ok) {
         const result = await response.json();
-        // Extract submissions array from response data
-        const data = result.data || [];
-        setSubmissions(Array.isArray(data) ? data : []);
+        const rawData = result.data || [];
+        const mappedData = (Array.isArray(rawData) ? rawData : []).map(sub => {
+          const typeNames = {
+            'S': 'Sarjana (S1)',
+            'M': 'Magister (S2)',
+            'D': 'Doktor (S3)',
+            'D1': 'Diploma 1',
+            'D2': 'Diploma 2',
+            'D3': 'Diploma 3',
+            'STr': 'Sarjana Terapan',
+            'MTr': 'Magister Terapan',
+            'DTr': 'Doktor Terapan',
+            'PPI': 'Program Profesi/Internship'
+          };
+          
+          const inferJenjang = (progStudi) => {
+            if (!progStudi) return 'Sarjana (S1)';
+            const name = progStudi.toLowerCase();
+            if (name.includes('magister') || name.includes('s2') || name.includes('s-2')) return 'Magister (S2)';
+            if (name.includes('doktor') || name.includes('s3') || name.includes('s-3')) return 'Doktor (S3)';
+            if (name.includes('d3') || name.includes('d-3') || name.includes('diploma tiga') || name.includes('diploma 3')) return 'Diploma 3';
+            if (name.includes('d2') || name.includes('d-2') || name.includes('diploma dua') || name.includes('diploma 2')) return 'Diploma 2';
+            if (name.includes('d1') || name.includes('d-1') || name.includes('diploma satu') || name.includes('diploma 1')) return 'Diploma 1';
+            if (name.includes('terapan') || name.includes('d4') || name.includes('d-4') || name.includes('str')) return 'Sarjana Terapan';
+            if (name.includes('profesi') || name.includes('insinyur') || name.includes('ppi')) return 'Program Profesi/Internship';
+            return 'Sarjana (S1)';
+          };
+
+          const inferJenjangFromDocs = (documents) => {
+            if (!Array.isArray(documents)) return null;
+            for (const doc of documents) {
+              const fname = (doc.filename || doc.fileName || doc.name || '').toLowerCase();
+              if (fname) {
+                if (fname.includes('s3') || fname.includes('s-3') || fname.includes('doktor') || fname.includes('doctor')) return 'D';
+                if (fname.includes('s2') || fname.includes('s-2') || fname.includes('magister') || fname.includes('master')) return 'M';
+                if (fname.includes('d3') || fname.includes('d-3') || fname.includes('diploma tiga') || fname.includes('diploma 3')) return 'D3';
+                if (fname.includes('d2') || fname.includes('d-2') || fname.includes('diploma dua') || fname.includes('diploma 2')) return 'D2';
+                if (fname.includes('d1') || fname.includes('d-1') || fname.includes('diploma satu') || fname.includes('diploma 1')) return 'D1';
+                if (fname.includes('terapan') || fname.includes('d4') || fname.includes('d-4') || fname.includes('str')) return 'STr';
+                if (fname.includes('profesi') || fname.includes('insinyur') || fname.includes('ppi')) return 'PPI';
+                if (fname.includes('s1') || fname.includes('s-1') || fname.includes('sarjana') || fname.includes('bachelor')) return 'S';
+              }
+            }
+            return null;
+          };
+
+          const rawType = sub.programType || 
+                          sub.ai?.scoring?.programType || 
+                          sub.ai?.scoringResults?.programType || 
+                          sub.scoringResult?.programType;
+
+          let pType = 'S';
+          if (rawType) {
+            const rt = String(rawType).trim().toUpperCase();
+            if (typeNames[rt]) {
+              pType = rt;
+            } else {
+              const rtLower = rt.toLowerCase();
+              if (rtLower.includes('doktor') || rtLower.includes('doctor') || rtLower === 'd') pType = 'D';
+              else if (rtLower.includes('magister') || rtLower.includes('master') || rtLower === 'm') pType = 'M';
+              else if (rtLower.includes('profesi') || rtLower === 'ppi') pType = 'PPI';
+              else if (rtLower.includes('diploma 3') || rtLower.includes('d3') || rtLower === 'd3') pType = 'D3';
+              else if (rtLower.includes('diploma 2') || rtLower.includes('d2') || rtLower === 'd2') pType = 'D2';
+              else if (rtLower.includes('diploma 1') || rtLower.includes('d1') || rtLower === 'd1') pType = 'D1';
+              else if (rtLower.includes('sarjana terapan') || rtLower === 'str') pType = 'STr';
+              else if (rtLower.includes('magister terapan') || rtLower === 'mtr') pType = 'MTr';
+              else if (rtLower.includes('doktor terapan') || rtLower === 'dtr') pType = 'DTr';
+              else if (rtLower.includes('sarjana') || rtLower === 's') pType = 'S';
+            }
+          } else {
+            const inferredFromStudi = sub.programStudi ? inferJenjang(sub.programStudi) : null;
+            if (!inferredFromStudi || inferredFromStudi === 'Sarjana (S1)') {
+              const inferredFromDocs = inferJenjangFromDocs(sub.documents);
+              if (inferredFromDocs) {
+                pType = inferredFromDocs;
+              } else if (inferredFromStudi) {
+                return {
+                  ...sub,
+                  programType: 'S',
+                  jenjang: sub.jenjang && sub.jenjang !== '-' && sub.jenjang !== 'N/A'
+                    ? sub.jenjang
+                    : inferredFromStudi
+                };
+              }
+            } else {
+              if (inferredFromStudi === 'Magister (S2)') pType = 'M';
+              else if (inferredFromStudi === 'Doktor (S3)') pType = 'D';
+              else if (inferredFromStudi === 'Diploma 3') pType = 'D3';
+              else if (inferredFromStudi === 'Diploma 2') pType = 'D2';
+              else if (inferredFromStudi === 'Diploma 1') pType = 'D1';
+              else if (inferredFromStudi === 'Sarjana Terapan') pType = 'STr';
+              else if (inferredFromStudi === 'Program Profesi/Internship') pType = 'PPI';
+            }
+          }
+
+          return {
+            ...sub,
+            programType: pType,
+            jenjang: sub.jenjang && sub.jenjang !== '-' && sub.jenjang !== 'N/A'
+              ? sub.jenjang 
+              : (typeNames[pType] || inferJenjang(sub.programStudi))
+          };
+        });
+        setSubmissions(mappedData);
       } else {
         setSubmissions([]);
       }

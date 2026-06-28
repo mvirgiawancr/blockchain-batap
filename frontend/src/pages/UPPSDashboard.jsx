@@ -9,10 +9,13 @@ import ScoringDetailDropdown from '../components/ScoringDetailDropdown';
 export default function UPPSDashboard({ user }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    programStudi: '',
-    institusi: '',
+    programStudi: user?.program_studi || '',
+    institusi: user?.institution || '',
     programType: 'S', // Default to Sarjana
   });
+  // Program Studi & Institusi diambil otomatis dari akun UPPS (database); dikunci jika sudah tersimpan
+  const prodiFromAccount = Boolean(user?.program_studi);
+  const institusiFromAccount = Boolean(user?.institution);
   const [ledFile, setLedFile] = useState(null);
   const [lkpsFile, setLkpsFile] = useState(null);
   const [additionalFiles, setAdditionalFiles] = useState([]);
@@ -826,9 +829,13 @@ export default function UPPSDashboard({ user }) {
                   value={formData.programStudi}
                   onChange={(e) => setFormData({ ...formData, programStudi: e.target.value })}
                   placeholder="e.g., Teknik Industri Pertanian"
-                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all"
+                  readOnly={prodiFromAccount}
+                  className={`w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all ${prodiFromAccount ? 'bg-slate-100/80 cursor-not-allowed' : 'bg-white/70'}`}
                   required
                 />
+                {prodiFromAccount && (
+                  <p className="text-[11px] text-slate-400 font-semibold ml-1">Otomatis dari akun Anda</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -840,9 +847,13 @@ export default function UPPSDashboard({ user }) {
                   value={formData.institusi}
                   onChange={(e) => setFormData({ ...formData, institusi: e.target.value })}
                   placeholder="e.g., IPB University"
-                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all"
+                  readOnly={institusiFromAccount}
+                  className={`w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all ${institusiFromAccount ? 'bg-slate-100/80 cursor-not-allowed' : 'bg-white/70'}`}
                   required
                 />
+                {institusiFromAccount && (
+                  <p className="text-[11px] text-slate-400 font-semibold ml-1">Otomatis dari akun Anda</p>
+                )}
               </div>
 
               <div className="space-y-1">
