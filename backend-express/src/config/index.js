@@ -70,7 +70,7 @@ module.exports = {
     networkName: 'akreditasi',
     channelName: 'akreditasi',
     chaincodeName: 'submission-contract',
-    mspId: process.env.FABRIC_MSP_ID || 'SekretariatAdminMSP',
+    mspId: process.env.FABRIC_MSP_ID || 'SekretariatMSP',
     walletPath: process.env.FABRIC_WALLET_PATH || './wallet',
     connectionProfile: process.env.FABRIC_CONNECTION_PROFILE || '../fablo-target/fabric-config/connection-profiles/connection-profile-sekretariatadmin.json'
   },

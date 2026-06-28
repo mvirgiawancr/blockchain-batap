@@ -718,7 +718,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Set Decision ===========');
 
         // Only Sekretariat (or Assessor for peer review) can set decisions
-        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'SekretariatAdminMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
+        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
 
         if (decision !== 'approved' && decision !== 'rejected') {
             throw new Error(`Invalid decision: ${decision}. Must be 'approved' or 'rejected'`);
