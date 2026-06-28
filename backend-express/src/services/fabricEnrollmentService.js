@@ -44,15 +44,12 @@ class FabricEnrollmentService {
     if (!ca) {
       throw new Error(`Unknown MSP: ${mspOrg}. Valid: ${Object.keys(ORG_TO_CA).join(', ')}`);
     }
-    // Use static methods if available (real fabric-ca-client), otherwise provide empty object for mocks
-    let cryptoSuite = {};
-    if (typeof FabricCAServices.createCryptoSuite === 'function') {
-      const realCryptoSuite = FabricCAServices.createCryptoSuite();
-      const cryptoKeyStore = FabricCAServices.newCryptoKeyStore();
-      realCryptoSuite.setCryptoKeyStore(cryptoKeyStore);
-      cryptoSuite = realCryptoSuite;
-    }
-    return new FabricCAServices(ca.url, { verify: false }, ca.caName, cryptoSuite);
+    // In fabric-ca-client v2.2, the constructor signature is:
+    //   new FabricCAServices(url, tlsOptions, caName)
+    // The crypto suite is configured internally via utils.newCryptoSuite()
+    // inside the constructor, which produces a CryptoSuite_ECDSA_AES that
+    // supports generateEphemeralKey (needed by enroll()).
+    return new FabricCAServices(ca.url, { verify: false }, ca.caName);
   }
 
   /**

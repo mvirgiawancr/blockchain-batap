@@ -132,9 +132,8 @@ describe('fabricEnrollmentService', () => {
       const client = fabricEnrollmentService.getCaClientForOrg('UPPSMSP');
       expect(FabricCAServices).toHaveBeenCalledWith(
         expect.stringContaining(':7040'), // UPPS CA port
-        expect.any(Object),
-        expect.any(String),
-        expect.any(Object)
+        expect.any(Object), // tls options ({ verify: false })
+        expect.any(String)  // caName
       );
       expect(client).toBe(mockCa);
     });
@@ -144,8 +143,7 @@ describe('fabricEnrollmentService', () => {
       expect(FabricCAServices).toHaveBeenCalledWith(
         expect.stringContaining(':7060'),
         expect.any(Object),
-        expect.any(String),
-        expect.any(Object)
+        expect.any(String)
       );
     });
   });
