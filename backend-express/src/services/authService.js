@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { query } = require('../config/database');
+const fabricEnrollmentService = require('./fabricEnrollmentService');
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -18,52 +19,67 @@ class AuthService {
    * Register new user
    */
   async register({ username, password, role, name, institution, programStudi, mspOrg }) {
+    // Validate role
+    const validRoles = ['upps', 'sekretariat', 'assessor', 'kea', 'asesor', 'majelis', 'admin'];
+    if (!validRoles.includes(role)) {
+      throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    if (!mspOrg) {
+      throw new Error('mspOrg is required for Fabric CA enrollment');
+    }
+
+    // Check if username exists
+    const existingUser = await query(
+      'SELECT id FROM users WHERE username = $1',
+      [username]
+    );
+    if (existingUser.rows.length > 0) {
+      throw new Error('Username already exists');
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    let user;
     try {
-      // Validate role
-      const validRoles = ['upps', 'sekretariat', 'assessor', 'admin'];
-      if (!validRoles.includes(role)) {
-        throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
-      }
-
-      // Check if username exists
-      const existingUser = await query(
-        'SELECT id FROM users WHERE username = $1',
-        [username]
-      );
-
-      if (existingUser.rows.length > 0) {
-        throw new Error('Username already exists');
-      }
-
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-      // Insert user
       const result = await query(
-        `INSERT INTO users 
-         (username, password_hash, role, name, institution, program_studi, msp_org) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        `INSERT INTO users
+         (username, password_hash, role, name, institution, program_studi, msp_org)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, username, role, name, institution, created_at`,
         [username, passwordHash, role, name, institution, programStudi || null, mspOrg]
       );
-
-      const user = result.rows[0];
-
-      // Log audit
-      await this.logAudit({
-        userId: user.id,
-        action: 'USER_REGISTERED',
-        entityType: 'user',
-        entityId: user.id,
-        details: { username, role, institution }
-      });
-
-      console.log(`[AuthService] User registered: ${username} (${role})`);
-      return user;
-    } catch (error) {
-      console.error('[AuthService] Registration error:', error.message);
-      throw error;
+      user = result.rows[0];
+    } catch (err) {
+      console.error('[AuthService] DB insert failed:', err.message);
+      throw err;
     }
+
+    // Enroll user with Fabric CA. If this fails, roll back the user row so we
+    // don't end up with an un-authenticatable half-state.
+    let enrollment;
+    try {
+      enrollment = await fabricEnrollmentService.enrollNewUser({
+        userId: user.id,
+        username: user.username,
+        mspOrg,
+      });
+    } catch (err) {
+      console.error(`[AuthService] Enrollment failed for ${user.username}, rolling back: ${err.message}`);
+      await query('DELETE FROM users WHERE id = $1', [user.id]);
+      throw new Error(`Registration failed during Fabric CA enrollment: ${err.message}`);
+    }
+
+    await this.logAudit({
+      userId: user.id,
+      action: 'USER_REGISTERED',
+      entityType: 'user',
+      entityId: user.id,
+      details: { username, role, institution, enrollmentId: enrollment.enrollmentId }
+    });
+
+    console.log(`[AuthService] User registered & enrolled: ${username} (${role})`);
+    return { ...user, enrollmentId: enrollment.enrollmentId };
   }
 
   /**
