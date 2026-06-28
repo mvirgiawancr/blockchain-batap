@@ -3,6 +3,17 @@ import api from './api';
 // PUBLIC endpoints (no auth needed — registration is pre-auth)
 // Using the same `api` instance is fine; the request interceptor only adds token if present.
 
+const TEMPLATE_URLS = {
+  surat_permohonan_akun:
+    'https://lamteknik.or.id/assets/template-surat-permohonan-pembuatan-akun-sakti.docx',
+  surat_pernyataan_upps:
+    'https://lamteknik.or.id/assets/template_surat-pernyataan-sebagai-upps-oleh-pimpinan-perguruan-tinggi.docx',
+};
+
+export function getTemplateDownloadUrl(templateCode) {
+  return TEMPLATE_URLS[templateCode];
+}
+
 export async function checkUsernameAvailable(username) {
   const { data } = await api.get('/auth/register-upps/check-username', { params: { username } });
   return data.available;

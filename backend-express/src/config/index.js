@@ -19,9 +19,9 @@ module.exports = {
   // Google Gemini AI Configuration
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
-    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     // Model GA stabil yang dipakai saat model utama (mis. preview) balas 503/overload.
-    fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
+    fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.0-flash',
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-2',
     minRequestIntervalMs: parseInt(process.env.GEMINI_MIN_REQUEST_INTERVAL_MS || '4000')
   },

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { UploadCloud, FileText, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { validateDocument } from '../../services/registration';
+import { UploadCloud, FileText, CheckCircle2, XCircle, Loader2, Download } from 'lucide-react';
+import { validateDocument, getTemplateDownloadUrl } from '../../services/registration';
 
 const DOCS = [
   { key: 'surat_permohonan_akun', label: 'Surat Pengajuan Permohonan Akun', hint: 'Format surat diunduh dari template resmi LAM Teknik', template: 'surat_permohonan_akun' },
@@ -71,7 +71,18 @@ export default function Step3Documents({ formData, setFormData, onBack, onSubmit
               : validation?.error || (validation && !validation.is_valid) ? 'border-rose-200 bg-rose-50/30'
               : 'border-slate-200 bg-white/50'}`}>
             <div>
-              <label className="text-xs font-bold text-slate-800">{doc.label} <span className="text-rose-500">*</span></label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-bold text-slate-800">{doc.label} <span className="text-rose-500">*</span></label>
+                <a
+                  href={getTemplateDownloadUrl(doc.template)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Unduh Template
+                </a>
+              </div>
               <p className="text-[10px] text-slate-500 mt-0.5">{doc.hint}</p>
             </div>
 

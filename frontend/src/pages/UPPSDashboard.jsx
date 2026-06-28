@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSubmission } from '../services/api';
+import { createSubmission, getMyUppsProfile } from '../services/api';
 import wsService from '../services/websocket';
 import Sidebar, { getMenuForRole } from '../components/Sidebar';
 import { Upload, FileText, CheckCircle, AlertCircle, Clock, FileCheck, Download, RefreshCw, TrendingUp, Banknote, ShieldAlert } from 'lucide-react';
@@ -11,7 +11,7 @@ export default function UPPSDashboard({ user }) {
   const [formData, setFormData] = useState({
     programStudi: '',
     institusi: '',
-    programType: 'S', // Default to Sarjana
+    programType: 'S1', // Default to Sarjana
   });
   const [ledFile, setLedFile] = useState(null);
   const [lkpsFile, setLkpsFile] = useState(null);
@@ -99,7 +99,7 @@ export default function UPPSDashboard({ user }) {
       // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       addNotification(`${documentType} downloaded successfully`, 'success');
     } catch (error) {
       console.error('Download error:', error);
@@ -107,10 +107,28 @@ export default function UPPSDashboard({ user }) {
     }
   };
 
+  // Prefill form with UPPS profile (institution + primary prodi + jenjang)
+  const fetchUppsProfile = async () => {
+    try {
+      const profile = await getMyUppsProfile();
+      if (!profile) return;
+      const primary = (profile.prodi_list || []).find((p) => p.is_primary) || profile.prodi_list?.[0];
+      setFormData((prev) => ({
+        ...prev,
+        institusi: profile.institution_name || prev.institusi,
+        programStudi: primary?.program_studi_name || prev.programStudi,
+        programType: primary?.jenjang_code || prev.programType,
+      }));
+    } catch (err) {
+      console.warn('[UPPSDashboard] Could not load profile:', err.message);
+    }
+  };
+
   useEffect(() => {
     fetchStatistics(); // Fetch statistics on mount
     fetchPaymentStatus(); // Check payment verification status
-    
+    fetchUppsProfile(); // Prefill form from profile
+
     const wsId = (user && (user.username || user.id)) || 'upps';
     wsService.connect(wsId);
 
@@ -855,16 +873,16 @@ export default function UPPSDashboard({ user }) {
                   className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-sm outline-none transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.65rem_auto] bg-[right_1.2rem_center] bg-no-repeat"
                   required
                 >
-                  <option value="S">Sarjana (S)</option>
-                  <option value="D">Doktor (D)</option>
-                  <option value="PPI">Profesi Insinyur (PPI)</option>
-                  <option value="D1">Diploma Satu (D1)</option>
-                  <option value="D2">Diploma Dua (D2)</option>
-                  <option value="D3">Diploma Tiga (D3)</option>
+                  <option value="S1">Sarjana (S1)</option>
+                  <option value="S2">Magister (S2)</option>
+                  <option value="S3">Doktor (S3)</option>
+                  <option value="D1">Diploma 1 (D1)</option>
+                  <option value="D2">Diploma 2 (D2)</option>
+                  <option value="D3">Diploma 3 (D3)</option>
                   <option value="STr">Sarjana Terapan (STr)</option>
-                  <option value="M">Magister (M)</option>
                   <option value="MTr">Magister Terapan (MTr)</option>
-                  <option value="DTr">Doktor Terapan (DTr)</option>
+                  <option value="DTr">Diploma Terapan (DTr)</option>
+                  <option value="Prof">Profesi Insinyur (Prof)</option>
                 </select>
               </div>
             </div>
