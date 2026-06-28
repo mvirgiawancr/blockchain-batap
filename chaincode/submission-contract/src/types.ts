@@ -160,8 +160,10 @@ export interface Submission {
     scoringResult?: any;
     submittedBy?: string;
     submittedByMsp?: string;
+    invokedByX509?: string; // X.509 subject DN of the identity that created this submission
     updatedBy?: string;
     updatedByMsp?: string;
+    updatedByX509?: string; // X.509 subject DN of the last identity that updated this submission
 
     // Phase 3A: Assessor Assignment & AK
     currentOffer?: AssessorOffer;

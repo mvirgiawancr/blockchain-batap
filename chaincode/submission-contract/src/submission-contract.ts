@@ -39,12 +39,18 @@ export class SubmissionContract extends Contract {
     /**
      * Validate that the invoker belongs to one of the allowed MSPs
      */
-    private assertMSP(ctx: Context, allowedMSPs: string[], action: string) {
+    private assertMSP(ctx: Context, allowedMSPs: string[], action: string): { mspId: string; x509Subject: string } {
         const mspId = ctx.clientIdentity.getMSPID();
         if (!allowedMSPs.includes(mspId)) {
             throw new Error(`Access denied for ${action}. Required MSPs: ${allowedMSPs.join(', ')}, but got ${mspId}`);
         }
-        return mspId;
+        let x509Subject = '';
+        try {
+            x509Subject = ctx.clientIdentity.getID(); // e.g. "x509::CN=upps.john,OU=client+OU=...::CN=fabric-ca-server"
+        } catch (err) {
+            x509Subject = 'unknown';
+        }
+        return { mspId, x509Subject };
     }
 
     /**
@@ -75,7 +81,7 @@ export class SubmissionContract extends Contract {
         console.info(`Submission JSON length: ${submissionJson.length}`);
 
         // Only UPPS (and optionally Sekretariat) can create submissions
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'CreateSubmission');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'CreateSubmission');
 
         // Check if submission already exists
         const exists = await this.SubmissionExists(ctx, submissionId);
@@ -99,8 +105,10 @@ export class SubmissionContract extends Contract {
             version: 1,
             submittedBy: submissionData.submittedBy || submissionData.submittedByName || 'unknown',
             submittedByMsp: submissionData.submittedByOrg || mspId,
+            invokedByX509: x509Subject,
             updatedBy: submissionData.submittedBy || submissionData.submittedByName || 'unknown',
             updatedByMsp: submissionData.submittedByOrg || mspId,
+            updatedByX509: x509Subject,
             createdAt: timestamp,
             updatedAt: timestamp,
             docType: 'submission',
@@ -145,7 +153,7 @@ export class SubmissionContract extends Contract {
         console.info(`AI payload JSON length: ${aiPayloadJson.length}`);
 
         // UPPS and Sekretariat can attach AI/analysis
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'AttachAIRecommendation');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'AttachAIRecommendation');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -202,7 +210,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Offer Assessor Pair ===========');
 
         // Only KEA can offer assessor pairs
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'OfferAssessorPair');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'OfferAssessorPair');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -237,6 +245,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = offeredBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -268,7 +277,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Respond To Offer ===========');
 
         // Only Asesor can respond
-        const mspId = this.assertMSP(ctx, ['AsesorMSP'], 'RespondToOffer');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['AsesorMSP'], 'RespondToOffer');
 
         if (response !== 'accepted' && response !== 'rejected') {
             throw new Error(`Invalid response: ${response}. Must be 'accepted' or 'rejected'`);
@@ -322,6 +331,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = assessorId;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -354,7 +364,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : UPPS Respond To Offer ===========');
 
         // Only UPPS can respond
-        const mspId = this.assertMSP(ctx, ['UPPSMSP'], 'UPPSRespondToOffer');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['UPPSMSP'], 'UPPSRespondToOffer');
 
         if (response !== 'accepted' && response !== 'rejected') {
             throw new Error(`Invalid response: ${response}. Must be 'accepted' or 'rejected'`);
@@ -418,6 +428,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = respondedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -450,7 +461,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : KEA Review Rejection ===========');
 
         // Only KEA can review rejections
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'KEAReviewRejection');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'KEAReviewRejection');
 
         if (decision !== 'reason_accepted' && decision !== 'reason_rejected') {
             throw new Error(`Invalid decision: ${decision}. Must be 'reason_accepted' or 'reason_rejected'`);
@@ -498,6 +509,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = reviewedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -530,7 +542,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Submit AK Assessment ===========');
 
         // Only Asesor can submit AK
-        const mspId = this.assertMSP(ctx, ['AsesorMSP'], 'SubmitAKAssessment');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['AsesorMSP'], 'SubmitAKAssessment');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -571,6 +583,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = assessorName;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -600,7 +613,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Check AK Consistency ===========');
 
         // Only KEA can check consistency
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'CheckAKConsistency');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'CheckAKConsistency');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -617,6 +630,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = checkedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -644,7 +658,7 @@ export class SubmissionContract extends Contract {
         assignedBy: string,
         notes: string
     ): Promise<string> {
-        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'KEAMSP'], 'AssignAssessor');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['SekretariatMSP', 'KEAMSP'], 'AssignAssessor');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -657,6 +671,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = assignedBy || 'sekretariat';
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -680,7 +695,7 @@ export class SubmissionContract extends Contract {
         ctx: Context,
         submissionId: string
     ): Promise<string> {
-        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'KEAMSP'], 'ClearAssessor');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['SekretariatMSP', 'KEAMSP'], 'ClearAssessor');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -693,6 +708,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = 'sekretariat';
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
         return JSON.stringify(submission);
@@ -718,7 +734,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Set Decision ===========');
 
         // Only Sekretariat (or Assessor for peer review) can set decisions
-        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['SekretariatMSP', 'AsesorMSP', 'KEAMSP', 'MajelisMSP'], 'SetDecision');
 
         if (decision !== 'approved' && decision !== 'rejected') {
             throw new Error(`Invalid decision: ${decision}. Must be 'approved' or 'rejected'`);
@@ -740,6 +756,7 @@ export class SubmissionContract extends Contract {
         };
         submission.updatedBy = decidedBy || 'unknown';
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
         submission.updatedAt = timestamp;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
@@ -772,7 +789,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Update Documents ===========');
 
         // UPPS and Sekretariat can update documents (revision cycle)
-        const mspId = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'UpdateDocuments');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['UPPSMSP', 'SekretariatMSP'], 'UpdateDocuments');
 
         const submission = await this.getSubmission(ctx, submissionId);
         const newDocuments: Document[] = JSON.parse(newDocumentsJson);
@@ -798,6 +815,7 @@ export class SubmissionContract extends Contract {
         delete submission.ai;
         submission.updatedBy = submission.updatedBy || 'unknown';
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -828,7 +846,7 @@ export class SubmissionContract extends Contract {
     ): Promise<string> {
         console.info('============= START : Set Scoring Result ===========');
 
-        const mspId = this.assertMSP(ctx, ['AsesorMSP', 'SekretariatMSP', 'KEAMSP'], 'SetScoringResult');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['AsesorMSP', 'SekretariatMSP', 'KEAMSP'], 'SetScoringResult');
         const submission = await this.getSubmission(ctx, submissionId);
 
         const scoringResult = JSON.parse(scoringJson);
@@ -842,6 +860,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = scoringResult.calculatedBy || 'assessor';
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1035,7 +1054,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Propose AL Schedule ===========');
 
         // Only KEA can propose AL schedule
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'ProposeALSchedule');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'ProposeALSchedule');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1066,6 +1085,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = proposedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         // Initialize flow sync status if not exists
         if (!submission.flowSyncStatus) {
@@ -1107,7 +1127,7 @@ export class SubmissionContract extends Contract {
         console.info('============= START : Approve AL Schedule ===========');
 
         // Only Sekretariat Admin can approve AL schedule
-        const mspId = this.assertMSP(ctx, ['SekretariatMSP', 'SekretariatMSP'], 'ApproveALSchedule');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['SekretariatMSP', 'SekretariatMSP'], 'ApproveALSchedule');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1164,6 +1184,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = approvedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1193,7 +1214,7 @@ export class SubmissionContract extends Contract {
     ): Promise<string> {
         console.info('============= START : Check Flows Synchronized ===========');
 
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'CheckFlowsSynchronized');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'CheckFlowsSynchronized');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1243,6 +1264,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = checkedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1291,7 +1313,7 @@ export class SubmissionContract extends Contract {
         executionJson: string
     ): Promise<string> {
         console.info('============= START : Submit AL Execution ===========');
-        const mspId = this.assertMSP(ctx, ['AsesorMSP'], 'SubmitALExecution');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['AsesorMSP'], 'SubmitALExecution');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1322,6 +1344,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = executionData.submittedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1348,7 +1371,7 @@ export class SubmissionContract extends Contract {
         responseJson: string
     ): Promise<string> {
         console.info('============= START : Submit UPPS Response ===========');
-        const mspId = this.assertMSP(ctx, ['UPPSMSP'], 'SubmitUPPSResponse');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['UPPSMSP'], 'SubmitUPPSResponse');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1377,6 +1400,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = responseData.respondedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1402,7 +1426,7 @@ export class SubmissionContract extends Contract {
         verificationJson: string
     ): Promise<string> {
         console.info('============= START : Verify AL Result ===========');
-        const mspId = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'VerifyALResult');
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['KEAMSP', 'SekretariatMSP'], 'VerifyALResult');
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1431,6 +1455,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = verificationData.verifiedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
@@ -1457,7 +1482,7 @@ export class SubmissionContract extends Contract {
         decisionJson: string
     ): Promise<string> {
         console.info('============= START : Finalize Accreditation ===========');
-        const mspId = this.assertMSP(ctx, ['MajelisMSP', 'SekretariatMSP', 'KEAMSP'], 'FinalizeAccreditation'); // Allowed MSPs
+        const { mspId, x509Subject } = this.assertMSP(ctx, ['MajelisMSP', 'SekretariatMSP', 'KEAMSP'], 'FinalizeAccreditation'); // Allowed MSPs
 
         const submission = await this.getSubmission(ctx, submissionId);
 
@@ -1487,6 +1512,7 @@ export class SubmissionContract extends Contract {
         submission.updatedAt = timestamp;
         submission.updatedBy = decisionData.decidedBy;
         submission.updatedByMsp = mspId;
+        submission.updatedByX509 = x509Subject;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
 
