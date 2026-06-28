@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { User, Lock, Building, GraduationCap, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Lock, Building, GraduationCap, Briefcase, ArrowRight, Loader2, Info, ExternalLink } from 'lucide-react';
 
 const mspOrgOptions = [
   { value: 'UPPSMSP', label: 'UPPS MSP (Program Studi)' },
@@ -42,8 +42,11 @@ const Register = () => {
     });
   };
 
+  const isUpps = formData.role === 'upps';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isUpps) return;
     setLoading(true);
     setError('');
 
@@ -183,7 +186,8 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Row 4: Institution and Program Studi */}
+              {/* Row 4: Institution and Program Studi (hidden for UPPS — they use wizard) */}
+              {!isUpps && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-700 ml-1">Institusi</label>
@@ -219,9 +223,31 @@ const Register = () => {
                   </div>
                 </div>
               </div>
+              )}
 
             </div>
 
+            {isUpps ? (
+              <div className="mt-5 p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl flex gap-3 items-start animate-fade-in">
+                <div className="flex-shrink-0 mt-0.5">
+                  <Info className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-slate-800">UPPS pakai wizard pendaftaran khusus</p>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                    Pendaftaran UPPS (Unit Penjaminan Mutu Program Studi) memerlukan validasi dokumen & multi-prodi. Lanjut ke form 3-langkah.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/register-upps')}
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 transition-all duration-200 cursor-pointer shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200"
+                  >
+                    Daftar UPPS Wizard
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
             <button
               type="submit"
               disabled={loading}
@@ -236,6 +262,7 @@ const Register = () => {
                 </>
               )}
             </button>
+            )}
           </form>
 
           <div className="mt-4 text-center">

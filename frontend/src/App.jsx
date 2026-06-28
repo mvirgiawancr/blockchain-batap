@@ -17,6 +17,7 @@ import SekretariatUPPSPage from './pages/SekretariatUPPSPage';
 import SekretariatPaymentPage from './pages/SekretariatPaymentPage';
 import SekretariatReportsPage from './pages/SekretariatReportsPage';
 import SekretariatALApprovalPage from './pages/SekretariatALApprovalPage';
+import SekretariatRegistrationsPage from './pages/SekretariatRegistrationsPage';
 import KEAAssignmentsPage from './pages/KEAAssignmentsPage';
 import KEAMonitoringPage from './pages/KEAMonitoringPage';
 import KEAConsistencyPage from './pages/KEAConsistencyPage';
@@ -30,6 +31,7 @@ import AsesorHistoryPage from './pages/AsesorHistoryPage';
 import AsesorAssignmentDetailPage from './pages/AsesorAssignmentDetailPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RegisterUPPSPage from './pages/RegisterUPPSPage';
 import ALExecutionPage from './pages/ALExecutionPage';
 import DashboardLayout from './components/DashboardLayout';
 import ALResponsePage from './pages/ALResponsePage';
@@ -96,6 +98,14 @@ function App() {
             element={
               <ProtectedRoute roles={['sekretariat', 'admin']}>
                 <SekretariatDashboard user={currentUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sekretariat/registrations"
+            element={
+              <ProtectedRoute roles={['sekretariat', 'admin']}>
+                <SekretariatRegistrationsPage user={currentUser} />
               </ProtectedRoute>
             }
           />
@@ -414,6 +424,7 @@ function App() {
 
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
+          <Route path="/register-upps" element={<RegisterUPPSPage />} />
           <Route path="/traceability" element={<TraceabilityPage user={currentUser} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

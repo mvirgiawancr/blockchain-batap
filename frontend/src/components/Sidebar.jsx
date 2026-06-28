@@ -1,9 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  ClipboardCheck, 
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  ClipboardCheck,
   Settings,
   Award,
   Banknote,
@@ -13,7 +13,8 @@ import {
   TrendingUp,
   AlertTriangle,
   MapPin,
-  Search
+  Search,
+  UserPlus
 } from 'lucide-react';
 
 const Sidebar = ({ user, onLogout, menuItems }) => {
@@ -93,6 +94,7 @@ export const getMenuForRole = (role) => {
     ],
     sekretariat: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/sekretariat' },
+      { icon: UserPlus, label: 'Pendaftaran UPPS', path: '/sekretariat/registrations' },
       { icon: Banknote, label: 'Verifikasi Pembayaran', path: '/sekretariat/payment' },
       { icon: Award, label: 'Verifikasi Jadwal AL', path: '/sekretariat/al-approval' },
       { icon: TrendingUp, label: 'Laporan', path: '/sekretariat/reports' },

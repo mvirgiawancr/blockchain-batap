@@ -118,6 +118,12 @@ export const manualScore = async (payload) => {
   return response.data;
 };
 
+// UPPS profile (current user) — for prefilling dashboard forms
+export const getMyUppsProfile = async () => {
+  const response = await api.get('/auth/me/upps-profile');
+  return response.data?.data;
+};
+
 // Payment APIs
 export const checkPaymentStatus = async () => {
   const response = await api.get('/sekretariat/payments/check-status');

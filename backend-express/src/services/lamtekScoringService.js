@@ -192,7 +192,7 @@ class LAMTEKScoringService {
    * Calculate RMD score (Rasio Mahasiswa/DTPS)
    */
   calculateRMDScore(rmdValue, programType) {
-    if (programType === 'S') {
+    if (programType === 'S' || programType === 'S1' || programType === 'STr') {
       // Sarjana Butir 40
       if (rmdValue >= 15 && rmdValue <= 25) {
         return 4.0;
@@ -203,7 +203,7 @@ class LAMTEKScoringService {
       } else {
         return 0.0;
       }
-    } else if (programType === 'PPI') {
+    } else if (programType === 'PPI' || programType === 'Prof') {
       // PPI Butir 37
       if (rmdValue >= 4 && rmdValue <= 10) {
         return 4.0;
@@ -300,7 +300,7 @@ class LAMTEKScoringService {
       const ri = lkpsData.kerjasama_internasional || 0;
       const rn = lkpsData.kerjasama_nasional || 0;
       const rl = lkpsData.kerjasama_wilayah || 0;
-      const [a, b, c] = programType === 'D' || programType === 'DTr' ? [3, 8, 10] : [2, 6, 8];
+      const [a, b, c] = programType === 'D' || programType === 'S3' || programType === 'DTr' ? [3, 8, 10] : [2, 6, 8];
       const kerjasamaScore = this.calculateInterpolationScore(ri, rn, rl, a, b, c);
       task1Scores.push(kerjasamaScore);
 

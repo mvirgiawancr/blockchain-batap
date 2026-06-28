@@ -31,6 +31,7 @@ router.post('/logout', authenticate, authController.logout.bind(authController))
  * @access  Private
  */
 router.get('/me', authenticate, authController.getCurrentUser.bind(authController));
+router.get('/me/upps-profile', authenticate, authController.getUppsProfile.bind(authController));
 
 /**
  * @route   POST /api/v1/auth/refresh

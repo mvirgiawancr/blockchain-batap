@@ -265,8 +265,17 @@ class PinataService {
         pinata_url: `https://gateway.pinata.cloud/ipfs/${cid}`
       };
     } catch (error) {
-      console.error('[Pinata] Upload failed:', error.response?.data || error.response?.status || error.message);
-      throw new Error(`IPFS upload failed: ${error.response?.data?.error || error.message}`);
+      const status = error.response?.status;
+      const body = error.response?.data;
+      // Pinata error body can be { error: "string" } or { error: { details, reason } }
+      const errField = typeof body?.error === 'object' ? body.error?.details || body.error?.reason : body?.error;
+      const detail = errField || (typeof body === 'string' ? body : JSON.stringify(body)) || error.message;
+      console.error('[Pinata] Upload failed:', { status, body, message: error.message });
+      const hint =
+        status === 401 || status === 403
+          ? ' (auth failed — PINATA_JWT invalid/expired; check https://app.pinata.cloud/developers/api-keys)'
+          : '';
+      throw new Error(`IPFS upload failed${status ? ` (${status})` : ''}: ${detail}${hint}`);
     }
   }
 
