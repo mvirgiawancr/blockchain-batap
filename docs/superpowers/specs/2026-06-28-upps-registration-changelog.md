@@ -8,6 +8,22 @@ Dokumen ini merangkum semua perubahan setelah sesi manual testing pertama (post-
 
 ---
 
+## Flow Diagrams
+
+Visualisasi alur sebelum vs sesudah (sumber Mermaid source ada di bagian bawah dokumen).
+
+### Sebelum (Legacy Admin Single-Step)
+
+![Flow sebelum](../../assets/upps-registration/flow-before.svg)
+
+### Sesudah (3-Step Wizard + Approval)
+
+![Flow sesudah](../../assets/upps-registration/flow-after.svg)
+
+> **Catatan:** file gambar ada di `docs/assets/upps-registration/flow-before.svg` & `flow-after.svg`.
+
+---
+
 ## Daftar Perubahan
 
 ### 1. Schema: Table `upps` baru (1:1 dengan `users`)
