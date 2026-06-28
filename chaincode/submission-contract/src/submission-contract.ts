@@ -176,6 +176,7 @@ export class SubmissionContract extends Contract {
         };
         submission.updatedBy = aiPayload.updatedBy || aiPayload.actor || submission.updatedBy || 'unknown';
         submission.updatedByMsp = aiPayload.updatedByMsp || mspId;
+        submission.updatedByX509 = x509Subject;
         submission.updatedAt = timestamp;
 
         await ctx.stub.putState(submissionId, Buffer.from(JSON.stringify(submission)));
