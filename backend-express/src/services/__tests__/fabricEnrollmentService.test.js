@@ -60,6 +60,13 @@ describe('fabricEnrollmentService', () => {
           enrollmentSecret: 'generated-secret',
         })
       );
+      expect(fabricCredentialService.storeEnrollmentMeta).toHaveBeenCalledWith(
+        'user-uuid',
+        expect.objectContaining({
+          enrollmentId: 'upps.john',
+          enrollmentSecret: 'generated-secret',
+        })
+      );
       expect(result).toEqual({
         enrollmentId: 'upps.john',
         mspId: 'UPPSMSP',
@@ -76,6 +83,21 @@ describe('fabricEnrollmentService', () => {
           mspOrg: 'UPPSMSP',
         })
       ).rejects.toThrow('Authorization failure');
+
+      expect(fabricCredentialService.storeCredentials).not.toHaveBeenCalled();
+    });
+
+    it('throws if CA enroll fails after register succeeded (no DB write)', async () => {
+      mockCa.register.mockResolvedValue('generated-secret');
+      mockCa.enroll.mockRejectedValue(new Error('Enrollment TLS failure'));
+
+      await expect(
+        fabricEnrollmentService.enrollNewUser({
+          userId: 'user-uuid',
+          username: 'upps.john',
+          mspOrg: 'UPPSMSP',
+        })
+      ).rejects.toThrow('Enrollment TLS failure');
 
       expect(fabricCredentialService.storeCredentials).not.toHaveBeenCalled();
     });
