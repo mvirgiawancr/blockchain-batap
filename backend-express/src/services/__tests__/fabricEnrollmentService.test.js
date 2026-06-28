@@ -20,6 +20,20 @@ describe('fabricEnrollmentService', () => {
     // Stub credential storage so we don't touch the DB.
     jest.spyOn(fabricCredentialService, 'storeCredentials').mockResolvedValue({ id: 'user-uuid' });
     jest.spyOn(fabricCredentialService, 'storeEnrollmentMeta').mockResolvedValue(undefined);
+
+    // Mock _getAdminUser to return a fake registrar that has constructor.name === 'User'
+    // This bypasses the real setEnrollment call which requires valid PEM data
+    const { User } = require('fabric-common');
+    const mockRegistrar = {
+      constructor: { name: 'User' },
+      getName: () => 'admin',
+      getMspid: () => 'UPPSMSP',
+      getSigningIdentity: jest.fn().mockReturnValue({
+        certificate: 'mock-cert',
+        privateKey: { _key: { ski: 'mock-ski' } },
+      }),
+    };
+    jest.spyOn(fabricEnrollmentService, '_getAdminUser').mockResolvedValue(mockRegistrar);
   });
 
   describe('enrollNewUser', () => {
@@ -27,7 +41,7 @@ describe('fabricEnrollmentService', () => {
       mockCa.register.mockResolvedValue('generated-secret');
       mockCa.enroll.mockResolvedValue({
         certificate: '-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----',
-        key: { toBytes: () => '-----BEGIN PRIVATE KEY-----\nFAKE\n-----END PRIVATE KEY-----' },
+        key: '-----BEGIN PRIVATE KEY-----\nFAKE\n-----END PRIVATE KEY-----',
         rootCertificate: '-----BEGIN CERTIFICATE-----\nROOT\n-----END CERTIFICATE-----',
       });
 

@@ -16,6 +16,7 @@
  */
 
 const FabricCAServices = require('fabric-ca-client');
+const { User } = require('fabric-common');
 const fabricCredentialService = require('./fabricCredentialService');
 const logger = require('../utils/logger');
 
@@ -65,16 +66,9 @@ class FabricEnrollmentService {
       enrollmentSecret: ADMIN_ENROLLMENT_SECRET,
     });
 
-    const adminUser = {
-      enrollment,
-      getName: () => ADMIN_ENROLLMENT_ID,
-      getMSPID: () => mspOrg,
-      getIdentity: () => ({ credentials: { certificate: enrollment.certificate } }),
-      getSigningIdentity: () => ({
-        certificate: enrollment.certificate,
-        privateKey: { toBytes: () => enrollment.key.toBytes() },
-      }),
-    };
+    const adminUser = new User(ADMIN_ENROLLMENT_ID);
+    await adminUser.setEnrollment(enrollment.key, enrollment.certificate, mspOrg);
+
     this._adminCache[mspOrg] = adminUser;
     return adminUser;
   }
