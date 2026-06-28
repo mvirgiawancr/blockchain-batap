@@ -73,9 +73,29 @@ CREATE TABLE IF NOT EXISTS user_program_studi (
 
 CREATE INDEX IF NOT EXISTS idx_ups_user ON user_program_studi(user_id);
 
+-- UPPS profile (1:1 with users) — holds UPPS-specific fields after approval.
+-- users table holds generic identity (username, role, msp_org, name=upps_name).
+-- This table holds the rich detail (pimpinan tertinggi, account PJ, email, phone, institution).
+CREATE TABLE IF NOT EXISTS upps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  upps_name VARCHAR(255) NOT NULL,
+  highest_leader_name VARCHAR(255) NOT NULL,
+  account_pj_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  institution_id INTEGER NOT NULL REFERENCES institutions(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_upps_user_id ON upps(user_id);
+CREATE INDEX IF NOT EXISTS idx_upps_institution ON upps(institution_id);
+
 COMMENT ON TABLE registration_requests IS 'Pending/approved/rejected UPPS self-registration requests';
 COMMENT ON TABLE registration_request_prodi IS 'Multi-prodi entries attached to a pending registration_request';
 COMMENT ON TABLE registration_request_documents IS 'Validated documents (Pinata IPFS archived)';
 COMMENT ON TABLE user_program_studi IS 'Multi-prodi linked to an approved UPPS user';
+COMMENT ON TABLE upps IS 'UPPS profile (1:1 with users) — rich detail linked from users.id';
 
 COMMIT;

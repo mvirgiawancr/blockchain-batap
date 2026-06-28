@@ -26,12 +26,12 @@ async function _uploadDocToPinata(fileBuffer, fileName, requestId, templateCode)
     templateCode,
     uploadedAt: new Date().toISOString(),
   });
-  if (!result || !result.IpfsHash) {
+  if (!result || !result.cid) {
     throw new Error(`Pinata upload failed for ${templateCode}`);
   }
   return {
-    cid: result.IpfsHash,
-    url: `https://${config.pinata.gateway}/ipfs/${result.IpfsHash}`,
+    cid: result.cid,
+    url: result.pinata_url || `https://${config.pinata.gateway}/ipfs/${result.cid}`,
   };
 }
 
@@ -208,6 +208,15 @@ async function approveRequest(requestId, sekretariatUserId) {
       [req.username, req.password_hash, req.upps_name, req.email, req.phone, req.institution_id],
     );
     const newUserId = userResult.rows[0].id;
+
+    await client.query(
+      `INSERT INTO upps
+        (user_id, upps_name, highest_leader_name, account_pj_name,
+         email, phone, institution_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [newUserId, req.upps_name, req.highest_leader_name, req.account_pj_name,
+       req.email, req.phone, req.institution_id],
+    );
 
     await client.query(
       `INSERT INTO user_program_studi

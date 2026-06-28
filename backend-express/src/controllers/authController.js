@@ -1,5 +1,6 @@
 const authService = require('../services/authService');
 const fabricCredentialService = require('../services/fabricCredentialService');
+const { pool } = require('../config/database');
 
 class AuthController {
   /**
@@ -130,6 +131,54 @@ class AuthController {
         success: false,
         error: error.message
       });
+    }
+  }
+
+  /**
+   * GET /api/v1/auth/me/upps-profile
+   * Returns UPPS profile + institution + multi-prodi (with names resolved).
+   * Used by UPPS dashboard to prefill forms.
+   */
+  async getUppsProfile(req, res) {
+    try {
+      if (req.user.role !== 'upps') {
+        return res.status(403).json({ success: false, error: 'Hanya role UPPS yang memiliki profile UPPS.' });
+      }
+      const { rows } = await pool.query(
+        `SELECT
+            u.id AS user_id, u.username, u.name AS user_name,
+            up.upps_name, up.highest_leader_name, up.account_pj_name,
+            up.email, up.phone,
+            up.institution_id, inst.name AS institution_name,
+            COALESCE(
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'program_studi_id', ups.program_studi_id,
+                  'program_studi_name', ps.name,
+                  'jenjang_code', ups.jenjang_code,
+                  'ketua_prodi', ups.ketua_prodi,
+                  'letak_prodi', ups.letak_prodi,
+                  'is_primary', ups.is_primary
+                ) ORDER BY ups.is_primary DESC, ups.id
+              ) FILTER (WHERE ups.program_studi_id IS NOT NULL),
+              '[]'
+            ) AS prodi_list
+         FROM users u
+         JOIN upps up ON up.user_id = u.id
+         LEFT JOIN institutions inst ON inst.id = up.institution_id
+         LEFT JOIN user_program_studi ups ON ups.user_id = u.id
+         LEFT JOIN program_studi ps ON ps.id = ups.program_studi_id
+         WHERE u.id = $1
+         GROUP BY u.id, up.id, inst.name`,
+        [req.user.id],
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'UPPS profile belum dibuat.' });
+      }
+      res.json({ success: true, data: rows[0] });
+    } catch (error) {
+      console.error('[AuthController] Get UPPS profile error:', error.message);
+      res.status(500).json({ success: false, error: error.message });
     }
   }
 
