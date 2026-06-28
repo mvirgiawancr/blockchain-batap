@@ -151,9 +151,9 @@ class FabricCredentialService {
   async deleteCredentials(userId) {
     try {
       await query(
-        `UPDATE users 
-         SET msp_credentials = NULL, 
-             updated_at = CURRENT_TIMESTAMP 
+        `UPDATE users
+         SET msp_credentials = NULL,
+             updated_at = CURRENT_TIMESTAMP
          WHERE id = $1`,
         [userId]
       );
@@ -163,6 +163,23 @@ class FabricCredentialService {
       console.error('[FabricCredential] Delete error:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Persist enrollment metadata (enrollment_id, encrypted secret, cert expiry)
+   * separate from the full credentials blob. Called after a successful enroll.
+   */
+  async storeEnrollmentMeta(userId, { enrollmentId, enrollmentSecret, certExpiresAt }) {
+    const { encrypted, iv } = this.encrypt(enrollmentSecret);
+    await query(
+      `UPDATE users
+       SET enrollment_id = $1,
+           enrollment_secret = $2,
+           cert_expires_at = $3,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4`,
+      [enrollmentId, JSON.stringify({ encrypted, iv }), certExpiresAt, userId]
+    );
   }
 
   /**
