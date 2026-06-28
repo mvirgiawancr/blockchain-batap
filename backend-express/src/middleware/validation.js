@@ -110,10 +110,10 @@ const uploadSubmissionSchema = Joi.object({
       'string.max': 'Institusi must not exceed 200 characters'
     }),
   
-  programType: Joi.string().valid('S', 'M', 'D', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'PPI')
-    .default('S')
+  programType: Joi.string().valid('S1', 'S2', 'S3', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'Prof')
+    .default('S1')
     .messages({
-      'any.only': 'Program type must be one of: S, M, D, D1, D2, D3, STr, MTr, DTr, PPI'
+      'any.only': 'Program type must be one of: S1, S2, S3, D1, D2, D3, STr, MTr, DTr, Prof'
     }),
   
   submittedBy: Joi.string().optional().max(100),
@@ -138,7 +138,7 @@ const submissionIdSchema = Joi.object({
 const querySubmissionsSchema = Joi.object({
   programStudi: Joi.string().optional(),
   institusi: Joi.string().optional(),
-  programType: Joi.string().valid('S', 'M', 'D', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'PPI').optional(),
+  programType: Joi.string().valid('S1', 'S2', 'S3', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'Prof').optional(),
   status: Joi.string().valid('uploaded', 'processing', 'completed', 'failed', 'under_review', 'approved', 'rejected').optional(),
   limit: Joi.number().integer().min(1).max(100).default(20),
   offset: Joi.number().integer().min(0).default(0)
@@ -153,9 +153,9 @@ const scoringRequestSchema = Joi.object({
       'string.guid': 'Invalid submission ID format',
       'any.required': 'Submission ID is required'
     }),
-  
-  programType: Joi.string().valid('S', 'M', 'D', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'PPI')
-    .default('S')
+
+  programType: Joi.string().valid('S1', 'S2', 'S3', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'Prof')
+    .default('S1')
 });
 
 /**
@@ -164,7 +164,7 @@ const scoringRequestSchema = Joi.object({
 const updateSubmissionSchema = Joi.object({
   programStudi: Joi.string().min(3).max(200).optional(),
   institusi: Joi.string().min(3).max(200).optional(),
-  programType: Joi.string().valid('S', 'M', 'D', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'PPI').optional(),
+  programType: Joi.string().valid('S1', 'S2', 'S3', 'D1', 'D2', 'D3', 'STr', 'MTr', 'DTr', 'Prof').optional(),
   status: Joi.string().valid('uploaded', 'processing', 'completed', 'failed', 'under_review', 'approved', 'rejected').optional(),
   notes: Joi.string().max(1000).optional()
 }).min(1);

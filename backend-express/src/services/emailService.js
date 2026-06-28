@@ -24,6 +24,7 @@ function isConfigured() {
 
 async function safeSend(payload) {
   if (!resend) {
+    console.warn('[Email] not sent — RESEND_API_KEY missing');
     return { success: false, error: 'Resend not configured' };
   }
   try {
@@ -32,9 +33,23 @@ async function safeSend(payload) {
       reply_to: config.resend.replyTo || undefined,
       ...payload,
     });
+    if (data?.error) {
+      // Resend SDK sometimes returns error in body without throwing
+      console.error(`[Email] send rejected by Resend for "${payload.to}":`, {
+        message: data.error.message,
+        name: data.error.name,
+      });
+      return { success: false, error: data.error.message };
+    }
+    console.log(`[Email] sent to "${payload.to}" — subject: "${payload.subject}" — id: ${data.id}`);
     return { success: true, id: data.id };
   } catch (err) {
-    console.error('[Email] send failed:', err.message);
+    console.error(`[Email] send threw for "${payload.to}":`, {
+      message: err.message,
+      name: err.name,
+      statusCode: err.statusCode,
+      response: err.response,
+    });
     return { success: false, error: err.message };
   }
 }
