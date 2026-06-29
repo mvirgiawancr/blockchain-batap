@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { User, Lock, Building, GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
+import PddiktiAutocomplete from '../components/PddiktiAutocomplete';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -129,36 +130,26 @@ const Register = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-700 ml-1">Institusi</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Building className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                    </div>
-                    <input
-                      type="text"
-                      name="institution"
-                      className="block w-full pl-9 pr-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-slate-800 placeholder-slate-400 text-sm transition-all outline-none"
-                      placeholder="e.g. UNIKOM / IPB"
-                      value={formData.institution}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  <PddiktiAutocomplete
+                    type="pt"
+                    name="institution"
+                    value={formData.institution}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, institution: val }))}
+                    icon={<Building className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />}
+                    placeholder="Ketik nama PT, mis. UNIKOM"
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-700 ml-1">Program Studi</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <GraduationCap className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                    </div>
-                    <input
-                      type="text"
-                      name="programStudi"
-                      className="block w-full pl-9 pr-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-slate-800 placeholder-slate-400 text-sm transition-all outline-none"
-                      placeholder="e.g. Teknik Informatika"
-                      value={formData.programStudi}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  <PddiktiAutocomplete
+                    type="prodi"
+                    name="programStudi"
+                    value={formData.programStudi}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, programStudi: val }))}
+                    icon={<GraduationCap className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />}
+                    placeholder="Ketik nama prodi, mis. Teknik Informatika"
+                  />
                 </div>
               </div>
 

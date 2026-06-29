@@ -163,12 +163,12 @@ export default function Login({ onLogin }) {
           </form>
 
           <div className="mt-5 text-center">
-            {/* <p className="text-xs font-semibold text-slate-500">
+            <p className="text-xs font-semibold text-slate-500">
               Belum punya akun?{' '}
               <Link to="/register" className="font-bold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer">
                 Buat Akun Baru
               </Link>
-            </p> */}
+            </p>
           </div>
         </div>
       </div>

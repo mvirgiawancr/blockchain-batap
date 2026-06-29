@@ -31,6 +31,7 @@ const alExecutionRoutes = require('./routes/alExecution'); // Phase 4
 const verificationRoutes = require('./routes/verification'); // Phase 5
 const releaseRoutes = require('./routes/release'); // Phase 6
 const traceabilityRoutes = require('./routes/traceability'); // Traceability
+const pddiktiRoutes = require('./routes/pddikti'); // PDDikti public search (autocomplete)
 
 
 // Import WebSocket
@@ -112,6 +113,7 @@ app.use(`${config.server.apiPrefix}/al-execution`, alExecutionRoutes); // Phase 
 app.use(`${config.server.apiPrefix}/verification`, verificationRoutes); // Phase 5: Verification & Decision
 app.use(`${config.server.apiPrefix}/release`, releaseRoutes); // Phase 6: Certificate Release
 app.use(`${config.server.apiPrefix}/traceability`, traceabilityRoutes); // Traceability & Certificate Search
+app.use(`${config.server.apiPrefix}/pddikti`, pddiktiRoutes); // PDDikti public search (autocomplete pendaftaran)
 
 // Error handling middleware
 app.use(notFound);
