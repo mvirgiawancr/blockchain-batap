@@ -8,27 +8,48 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/
 /**
  * Input autocomplete yang menarik data dari PDDikti.
  *
+ * Dua mode:
+ * - Pencarian global (default): type 'pt' atau 'prodi' tanpa prop ptId → memanggil /search/{type}.
+ * - Prodi-per-PT (dependent): type 'prodi' + prop ptId → memuat daftar prodi milik PT terpilih
+ *   lalu memfilter secara lokal. Disabled selama ptId masih kosong.
+ *
  * Dropdown dirender lewat portal ke document.body dengan position: fixed,
  * supaya tidak terpotong oleh kontainer ber-overflow (mis. wrapper form yang scroll).
  *
  * Props:
- * - type: 'pt' | 'prodi'        (endpoint mana yang dipakai)
- * - name: string                (nama field, diteruskan saat memilih)
- * - value: string               (nilai terkontrol)
- * - onChange: (value) => void   (dipanggil saat user mengetik / memilih)
- * - onSelect?: (item) => void   (opsional, menerima objek mentah saat dipilih)
- * - icon: ReactNode             (ikon di kiri input)
+ * - type: 'pt' | 'prodi'
+ * - name: string
+ * - value: string                 (nilai terkontrol)
+ * - onChange: (value) => void
+ * - onSelect?: (item) => void
+ * - icon: ReactNode
  * - placeholder: string
+ * - ptId?: string                 (aktifkan mode prodi-per-PT; '' = belum ada PT)
+ * - disabledPlaceholder?: string  (placeholder saat disabled di mode dependent)
  */
-const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, placeholder }) => {
+const PddiktiAutocomplete = ({
+  type,
+  name,
+  value,
+  onChange,
+  onSelect,
+  icon,
+  placeholder,
+  ptId,
+  disabledPlaceholder,
+}) => {
   const [suggestions, setSuggestions] = useState([]);
+  const [allProdi, setAllProdi] = useState([]); // cache prodi PT (mode dependent)
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [coords, setCoords] = useState(null);
   const inputRef = useRef(null);
-  // Lewati fetch tepat setelah user memilih sebuah item.
   const justSelected = useRef(false);
+
+  // Mode "prodi milik PT" aktif jika type prodi dan prop ptId diberikan.
+  const ptMode = type === 'prodi' && ptId !== undefined;
+  const disabled = ptMode && !ptId;
 
   // Hitung posisi dropdown relatif viewport (fixed), bisa membuka ke atas bila sempit.
   const updateCoords = useCallback(() => {
@@ -48,13 +69,11 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
     });
   }, []);
 
-  // Posisikan ulang saat dropdown terbuka, dan saat scroll/resize.
   useLayoutEffect(() => {
     if (!open) return;
     updateCoords();
     const handler = () => updateCoords();
     window.addEventListener('resize', handler);
-    // capture: true agar menangkap scroll dari kontainer dalam (bukan hanya window)
     window.addEventListener('scroll', handler, true);
     return () => {
       window.removeEventListener('resize', handler);
@@ -73,8 +92,63 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounce pencarian (350ms) saat value berubah.
+  const labelOf = (item) =>
+    type === 'pt'
+      ? item.nama
+      : `${item.nama}${item.jenjang ? ` (${item.jenjang})` : ''}`;
+
+  const subLabelOf = (item) => {
+    if (type === 'pt') {
+      return [item.namaSingkat, item.kode].filter(Boolean).join(' • ');
+    }
+    // prodi
+    if (item.akreditasi) return `Akreditasi: ${item.akreditasi}`;
+    return item.pt || '';
+  };
+
+  // === Mode dependent: muat daftar prodi milik PT saat ptId berubah ===
   useEffect(() => {
+    if (!ptMode) return;
+    if (!ptId || ptId === 'manual') {
+      setAllProdi([]);
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/pddikti/pt/prodi`, {
+          params: { idPt: ptId },
+        });
+        if (!cancelled) setAllProdi(res.data?.data || []);
+      } catch {
+        if (!cancelled) setAllProdi([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ptId, ptMode]);
+
+  // Mode dependent: filter lokal saat user mengetik / daftar termuat.
+  useEffect(() => {
+    if (!ptMode) return;
+    const term = (value || '').trim().toLowerCase();
+    const filtered = term
+      ? allProdi.filter((p) => labelOf(p).toLowerCase().includes(term))
+      : allProdi;
+    setSuggestions(filtered.slice(0, 50));
+    setHighlight(-1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, allProdi, ptMode]);
+
+  // === Mode pencarian global: debounce 350ms ke /search/{type} ===
+  useEffect(() => {
+    if (ptMode) return; // ditangani efek mode dependent di atas
     if (justSelected.current) {
       justSelected.current = false;
       return;
@@ -110,24 +184,14 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [value, type]);
-
-  const labelOf = (item) =>
-    type === 'pt'
-      ? item.nama
-      : `${item.nama}${item.jenjang ? ` (${item.jenjang})` : ''}`;
-
-  const subLabelOf = (item) =>
-    type === 'pt'
-      ? [item.namaSingkat, item.kode].filter(Boolean).join(' • ')
-      : item.pt || '';
+  }, [value, type, ptMode]);
 
   const handleSelect = (item) => {
     justSelected.current = true;
     onChange(labelOf(item));
     if (onSelect) onSelect(item);
     setOpen(false);
-    setSuggestions([]);
+    if (!ptMode) setSuggestions([]);
     setHighlight(-1);
   };
 
@@ -145,6 +209,11 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
     } else if (e.key === 'Escape') {
       setOpen(false);
     }
+  };
+
+  const handleFocus = () => {
+    if (ptMode && allProdi.length > 0) setOpen(true);
+    else if (!ptMode && suggestions.length > 0) setOpen(true);
   };
 
   const dropdown =
@@ -194,7 +263,11 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
 
   return (
     <div className="relative group">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+      <div
+        className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10 ${
+          disabled ? 'opacity-40' : ''
+        }`}
+      >
         {icon}
       </div>
       <input
@@ -202,18 +275,19 @@ const PddiktiAutocomplete = ({ type, name, value, onChange, onSelect, icon, plac
         type="text"
         name={name}
         autoComplete="off"
-        className="block w-full pl-9 pr-8 py-2.5 bg-white/70 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-slate-800 placeholder-slate-400 text-sm transition-all outline-none"
-        placeholder={placeholder}
+        disabled={disabled}
+        className="block w-full pl-9 pr-8 py-2.5 bg-white/70 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 text-slate-800 placeholder-slate-400 text-sm transition-all outline-none disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+        placeholder={disabled ? (disabledPlaceholder || 'Pilih institusi dulu') : placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        onFocus={handleFocus}
         onKeyDown={handleKeyDown}
       />
       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
         {loading ? (
           <Loader2 className="h-4 w-4 text-indigo-400 animate-spin" />
         ) : (
-          <Search className="h-3.5 w-3.5 text-slate-300" />
+          <Search className={`h-3.5 w-3.5 text-slate-300 ${disabled ? 'opacity-40' : ''}`} />
         )}
       </div>
       {dropdown}

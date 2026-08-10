@@ -16,4 +16,11 @@ router.get('/search/pt', pddiktiController.searchPt);
  */
 router.get('/search/prodi', pddiktiController.searchProdi);
 
+/**
+ * @route   GET /api/v1/pddikti/pt/prodi
+ * @desc    Daftar Program Studi milik satu PT (prodi dependent pada institusi terpilih)
+ * @access  Public
+ */
+router.get('/pt/prodi', pddiktiController.prodiByPt);
+
 module.exports = router;

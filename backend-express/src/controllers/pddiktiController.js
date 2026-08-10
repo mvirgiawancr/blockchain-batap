@@ -46,3 +46,21 @@ exports.searchProdi = async (req, res) => {
     return res.status(502).json({ success: false, error: 'Gagal mengambil data Prodi dari PDDikti' });
   }
 };
+
+/**
+ * GET /api/v1/pddikti/pt/prodi?idPt=...
+ * Daftar Program Studi milik satu Perguruan Tinggi (untuk autocomplete prodi yang dependent).
+ */
+exports.prodiByPt = async (req, res) => {
+  try {
+    const idPt = (req.query.idPt || '').trim();
+    if (!idPt) {
+      return res.json({ success: true, data: [] });
+    }
+    const data = await pddikti.getProdiByPt(idPt);
+    return res.json({ success: true, data });
+  } catch (error) {
+    logger.error(`[PDDikti] prodiByPt controller error: ${error.message}`);
+    return res.status(502).json({ success: false, error: 'Gagal mengambil data Prodi PT dari PDDikti' });
+  }
+};

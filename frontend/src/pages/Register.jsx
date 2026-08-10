@@ -18,6 +18,8 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // id PT terpilih (hanya untuk memfilter prodi; tidak dikirim ke backend)
+  const [institutionId, setInstitutionId] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -134,7 +136,12 @@ const Register = () => {
                     type="pt"
                     name="institution"
                     value={formData.institution}
-                    onChange={(val) => setFormData((prev) => ({ ...prev, institution: val }))}
+                    onChange={(val) => {
+                      // mengetik ulang institusi → reset PT terpilih & kosongkan prodi
+                      setInstitutionId('');
+                      setFormData((prev) => ({ ...prev, institution: val, programStudi: '' }));
+                    }}
+                    onSelect={(item) => setInstitutionId(item.id)}
                     icon={<Building className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />}
                     placeholder="Ketik nama PT, mis. UNIKOM"
                   />
@@ -147,8 +154,10 @@ const Register = () => {
                     name="programStudi"
                     value={formData.programStudi}
                     onChange={(val) => setFormData((prev) => ({ ...prev, programStudi: val }))}
+                    ptId={institutionId || (formData.institution.trim() ? 'manual' : '')}
                     icon={<GraduationCap className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />}
-                    placeholder="Ketik nama prodi, mis. Teknik Informatika"
+                    placeholder="Pilih / ketik prodi dari institusi"
+                    disabledPlaceholder="Pilih institusi dulu"
                   />
                 </div>
               </div>
