@@ -177,26 +177,39 @@ class PinataService {
    * Download and DECRYPT file from IPFS
    */
   async getFileDecrypted(cid, encryptionKeyHex, ivHex) {
-    try {
-      // Download encrypted file from IPFS
-      const url = `${this.pinataGateway}/ipfs/${cid}`;
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 30000
-      });
+    // Coba beberapa gateway berurutan. Gateway berdedikasi bisa 403 saat akun
+    // kena limit plan; fallback ke gateway publik yang masih menyajikan CID.
+    const gateways = [
+      `${this.pinataGateway}/ipfs/${cid}`,
+      `https://gateway.pinata.cloud/ipfs/${cid}`,
+      `https://ipfs.io/ipfs/${cid}`,
+      `https://${cid}.ipfs.dweb.link/`,
+    ];
 
-      const encryptedBuffer = Buffer.from(response.data);
-      
-      console.log(`[Pinata] Encrypted file retrieved: ${cid}`);
-      
-      // Decrypt file
-      const decryptedBuffer = this.decryptFile(encryptedBuffer, encryptionKeyHex, ivHex);
-      
-      return decryptedBuffer;
-    } catch (error) {
-      console.error(`[Pinata] Failed to retrieve/decrypt file ${cid}:`, error.message);
-      throw new Error(`IPFS decryption retrieval failed: ${error.message}`);
+    let lastError;
+    for (const url of gateways) {
+      const gwName = url.split('/ipfs/')[0].replace('https://', '') || url;
+      try {
+        const response = await axios.get(url, {
+          responseType: 'arraybuffer',
+          timeout: 30000
+        });
+
+        const encryptedBuffer = Buffer.from(response.data);
+        // Dekripsi di dalam try: bila gateway balas body salah (mis. halaman error
+        // 200), dekripsi gagal dan kita lanjut ke gateway berikutnya.
+        const decryptedBuffer = this.decryptFile(encryptedBuffer, encryptionKeyHex, ivHex);
+
+        console.log(`[Pinata] Encrypted file retrieved & decrypted: ${cid} via ${gwName}`);
+        return decryptedBuffer;
+      } catch (error) {
+        lastError = error;
+        console.warn(`[Pinata] Gateway gagal (${gwName}) untuk ${cid}: ${error.response?.status || error.message}`);
+      }
     }
+
+    console.error(`[Pinata] Semua gateway gagal untuk ${cid}:`, lastError?.message);
+    throw new Error(`IPFS decryption retrieval failed: ${lastError?.message}`);
   }
 
   /**
