@@ -198,15 +198,42 @@ const finalizeAccreditation = async (req, res, next) => {
         // === Auto-generate SK Number if not provided ===
         let skNumber = manualSkNumber;
         if (!skNumber) {
-            const year = new Date().getFullYear();
-            const countResult = await client.query(
-                `SELECT COUNT(*) as cnt FROM accreditation_decisions 
-                 WHERE EXTRACT(YEAR FROM decided_at) = $1`,
-                [year]
+            // Jika submission ini sudah pernah difinalisasi, pakai ulang SK-nya
+            // (mencegah nomor bergeser & bentrok saat finalize diulang).
+            const existingDecision = await client.query(
+                `SELECT sk_number FROM accreditation_decisions WHERE submission_id = $1`,
+                [submissionId]
             );
-            const seqNum = parseInt(countResult.rows[0].cnt) + 1;
-            skNumber = `SK/LAM-TEK/${year}/${String(seqNum).padStart(3, '0')}`;
-            logger.info(`[SK] Auto-generated SK Number: ${skNumber}`);
+            if (existingDecision.rows[0]?.sk_number) {
+                skNumber = existingDecision.rows[0].sk_number;
+                logger.info(`[SK] Reusing existing SK Number: ${skNumber}`);
+            } else {
+                const year = new Date().getFullYear();
+                // Mulai dari nomor urut tertinggi tahun ini + 1 (bukan COUNT, agar tahan
+                // terhadap celah/penghapusan), lalu cari nomor pertama yang belum terpakai.
+                const maxResult = await client.query(
+                    `SELECT COALESCE(MAX(CAST(split_part(sk_number, '/', 4) AS INTEGER)), 0) AS maxseq
+                     FROM accreditation_decisions
+                     WHERE sk_number ~ $1`,
+                    [`^SK/LAM-TEK/${year}/[0-9]+$`]
+                );
+                let seqNum = parseInt(maxResult.rows[0].maxseq, 10) + 1;
+                // Jamin unik walau ada nomor manual/celah: naikkan sampai bebas.
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    const candidate = `SK/LAM-TEK/${year}/${String(seqNum).padStart(3, '0')}`;
+                    const dup = await client.query(
+                        `SELECT 1 FROM accreditation_decisions WHERE sk_number = $1`,
+                        [candidate]
+                    );
+                    if (dup.rowCount === 0) {
+                        skNumber = candidate;
+                        break;
+                    }
+                    seqNum++;
+                }
+                logger.info(`[SK] Auto-generated SK Number: ${skNumber}`);
+            }
         }
 
         // Auto-set SK date to today if not provided
